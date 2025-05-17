@@ -1,0 +1,32 @@
+Passi per avviare correttamente Hardhat, compilare i contratti e avviare l'applicazione
+
+1. Avviare il nodo Hardhat
+# Navigare alla directory on_chain
+cd c:\Users\fabio\Documents\GitHub\Project_Sustainable_Food_Supply_Chain\on_chain
+
+# Avviare il nodo Hardhat
+npx hardhat node
+
+Questo comando avvierà un nodo Hardhat locale sulla porta 8545. Lascia questa finestra del terminale aperta mentre lavori con l'applicazione.
+
+2. Compilare i contratti
+# In una nuova finestra del terminale, navigare alla directory on_chain
+cd c:\Users\fabio\Documents\GitHub\Project_Sustainable_Food_Supply_Chain\on_chain
+
+# Compilare i contratti
+npx hardhat compile
+
+3. Deployare i contratti
+# Nella stessa finestra del terminale
+npx hardhat run scripts/deploy.js --network localhost
+
+Questo comando deployerà tutti i contratti sul nodo Hardhat locale e creerà il file contract_addresses.json con gli indirizzi e le ABI dei contratti.
+
+4. Avviare l'applicazione
+# Navigare alla directory off_chain
+cd c:\Users\fabio\Documents\GitHub\Project_Sustainable_Food_Supply_Chain\off_chain
+
+# Avviare l'applicazione
+python main.py
+
+L'applicazione dovrebbe avviarsi e connettersi automaticamente al nodo Hardhat in esecuzione, utilizzando i contratti appena deployati
