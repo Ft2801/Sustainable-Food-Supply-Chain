@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "sustainable-food-supply-chain"
+version = "0.1.0"
+description = "Blockchain project for sustainable food supply chain"
+authors = ["Catalina Quispe"]
+package-mode = false
+requires-python = ">=3.13"
+[tool.poetry.scripts]
+sfc = "sustainable_food_supply_chain.__main__:main"
+
+
+[tool.poetry.dependencies]
+python = ">=3.13"
+pyqt5 = "==5.15.2"
+pyotp = "==2.9.0"
+pyyaml = ">=6.0.2,<7.0.0"
+pytest = ">=8.3.4,<9.0.0"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[project]
+name = "sustainable-food-supply-chain"
+version = "0.1.0"
+description = "Off-Chain module backend and frontend"
+authors = [
+    {name = "Catalinaqi",email = "ccequispe@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "pyqt5 (==5.15.2)",
+    "pyotp (==2.9.0)",
+    "pyyaml (>=6.0.2,<7.0.0)",
+    "pytest (>=8.3.4,<9.0.0)"
+]

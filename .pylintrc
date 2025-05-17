@@ -1,0 +1,139 @@
+[MASTER]
+
+# Specify the maximum line length.
+max-line-length=88
+
+# Specify a regular expression for bad variable names (e.g., camelCase).
+variable-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Specify a regular expression for bad argument names (e.g., camelCase).
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Specify a regular expression for bad class attribute names (e.g., camelCase).
+attr-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Specify a regular expression for bad function names (e.g., camelCase).
+function-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Specify a regular expression for bad method names (e.g., camelCase).
+method-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Specify a regular expression for bad class names (e.g., lowercase or camelCase).
+class-rgx=[A-Z_][a-zA-Z0-9]+$
+
+# Specify a regular expression for bad module names (e.g., camelCase).
+module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+
+# List of plugins to load, usually not needed with recent pylint versions.
+# load-plugins=
+
+[MESSAGES CONTROL]
+
+# Disable the specified messages.
+disable=
+    C0114, # missing-module-docstring
+    C0115, # missing-class-docstring
+    C0116, # missing-function-docstring
+    R0903, # too-few-public-methods
+    W0511, # fixme
+    W0703  # broad-except
+
+# Enable the specified messages.
+# enable=
+
+[REPORTS]
+
+# Set the output format. Available formats are text, parseable, colorized, json and msvs. (Old format.)
+output-format=text
+
+# Tells whether to display a full report or only the messages
+reports=no
+
+[FORMAT]
+
+# Maximum number of characters on a single line.
+# max-line-length=100
+
+# Maximum number of lines in a module.
+# max-module-lines=1000
+
+# String used as indentation marker. PEP8 recommends using 4 spaces.
+indent-string='    '
+
+[BASIC]
+
+# Good variable names which should always be accepted, separated by a comma.
+# good-names=i,j,k,ex,Run,_.*
+
+# Bad variable names which should always be refused, separated by a comma.
+# bad-names=foo,bar,baz,toto,tutu,tata
+
+# List of builtins function names that should not be used, separated by a comma.
+# bad-functions=map,filter,apply,input
+
+# List of decorators that produce context managers, such as contextlib.contextmanager.
+# contextmanager-decorators=contextlib.contextmanager
+
+[VARIABLES]
+
+# Tells whether we should check for unused import in __init__ files.
+init-import=no
+
+# List of additional names supposed to be defined in builtins. Remember that you should avoid to define new builtins when possible.
+# additional-builtins=
+
+# Tells whether unused global variables should be treated as a violation.
+dummy-variables-rgx=_$|dummy*|^ignored_|^unused_
+
+[CLASSES]
+
+# List of method names defining classes as iterator objects.
+# defining-attr-methods=__init__,__new__,prepare
+
+# List of valid names for the metaclass attribute of a class.
+# valid-classmethod-first-arg=cls
+
+# List of valid names for the first argument in a class method.
+# valid-metaclass-classmethod-first-arg=mcs
+
+[DESIGN]
+
+# Maximum number of arguments for function / method.
+max-args=5
+
+# Maximum number of locals for function / method body.
+max-locals=15
+
+# Maximum number of return statements in function / method body.
+max-returns=6
+
+# Maximum number of branch for function / method body.
+max-branches=12
+
+# Maximum number of statements in function / method body.
+max-statements=50
+
+# Maximum number of parents for a class (see R0901).
+max-parents=7
+
+# Maximum number of attributes for a class (see R0902).
+max-attributes=7
+
+# Minimum number of public methods for a class (see R0903).
+min-public-methods=1
+
+[IMPORTS]
+
+# Deprecated modules which should not be used, separated by a comma.
+# deprecated-modules=
+
+# Modules of the standard library that should not be used, separated by a comma.
+# bad-standard-library=
+
+# Allow wildcard imports from modules that define __all__.
+# allow-wildcard-with-all=no
+
+[EXCEPTIONS]
+
+# Exceptions that will be suppressed of check for raising of not implemented error.
+# overgeneral-exceptions=Exception, StandardError

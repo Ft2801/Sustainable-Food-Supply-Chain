@@ -1,0 +1,55 @@
+# Ignore Poetry dependency files
+#poetry.lock
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore virtual environments
+.venv/
+env/
+venv/
+
+# Ignore PyCharm/IntelliJ IDEA settings
+.idea/
+*.iml
+
+# Pytest caches
+.pytest_cache/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore temporary databases but NOT the main one
+identifier.sqlite
+
+#Ignore log file
+*.log
+*.db
+
+*DS_store
+
+# Ignore node_modules
+**/node_modules/
+
+# Ignore build artifacts
+**/package-lock.json
+
+# Hardhat specific
+.hardhat/
+cache/
+artifacts/
+**/cache/
+**/artifacts/
+
+# Solidity coverage
+coverage/
+coverage.json
+
+# Typechain
+typechain/
+typechain-types/
+

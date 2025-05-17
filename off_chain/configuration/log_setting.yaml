@@ -1,0 +1,33 @@
+logging:
+  version: 1
+  disable_existing_loggers: false #Keeps existing loggers active
+  enable_file_logging: true #Indicates whether to enable file logging
+
+  formatters:
+    detailed:
+      format: "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+
+  handlers:
+    console:
+      class: logging.StreamHandler #Use StreamHandler to print logs to the console (sys.stdout)
+      level: DEBUG #minimum DEBUG level (displays DEBUG, INFO, WARNING, ERROR, CRITICAL)
+      formatter: detailed
+      stream: ext://sys.stdout
+
+    file:
+      class: logging.FileHandler #Use FileHandler to write to log/logOffChainApp.log
+      level: INFO #Save minimum level logs INFO
+      formatter: detailed
+      filename: log/logOffChainApp.log
+      mode: a #Append mode (overridden via code in log_load_setting.py).
+      delay: false #Create the file immediately.
+
+  loggers: #Defines a logger 'app_logger'
+    app_logger:
+      level: INFO #Only display logs of INFO level or higher.
+      handlers: [console, file] #Use handlers console anf file
+      propagate: no #Prevent logs from being duplicated in other loggers.
+
+  root: #Defines the root logger, ensures that all system logs are captured
+    level: INFO
+    handlers: [console, file] #Applies the same handlers (console and file)
