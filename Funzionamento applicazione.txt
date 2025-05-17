@@ -1,8 +1,11 @@
 Passi per avviare correttamente Hardhat, compilare i contratti e avviare l'applicazione
 
-1. Avviare il nodo Hardhat
+1.Installare hardhat e avviare il nodo Hardhat
 # Navigare alla directory on_chain
 cd c:\Users\fabio\Documents\GitHub\Project_Sustainable_Food_Supply_Chain\on_chain
+
+# Installare hardhat
+npm install --save-dev hardhat
 
 # Avviare il nodo Hardhat
 npx hardhat node
