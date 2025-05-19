@@ -81,7 +81,9 @@ npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzepp
 
 ## Come Avviare l'Applicazione
 
-L'applicazione può essere avviata direttamente dal modulo principale:
+### Avvio Automatico (Consigliato)
+
+L'applicazione può essere avviata direttamente dal modulo principale, che gestirà automaticamente tutte le operazioni necessarie:
 
 ```bash
 cd off_chain
@@ -95,6 +97,58 @@ Questo script eseguirà automaticamente le seguenti operazioni:
 3. Compilazione e deployment dei contratti smart
 4. Configurazione del database
 5. Avvio dell'interfaccia grafica
+
+### Avvio Manuale (Passo-Passo)
+
+Se preferisci avere un maggiore controllo sul processo di avvio, puoi seguire questi passaggi manuali:
+
+#### 1. Installare Hardhat e avviare il nodo
+
+```bash
+# Navigare alla directory on_chain
+cd on_chain
+
+# Installare hardhat (se non già fatto)
+npm install --save-dev hardhat
+
+# Avviare il nodo Hardhat
+npx hardhat node
+```
+
+Questo comando avvierà un nodo Hardhat locale sulla porta 8545. Lascia questa finestra del terminale aperta mentre lavori con l'applicazione.
+
+#### 2. Compilare i contratti
+
+In una nuova finestra del terminale:
+
+```bash
+# Navigare alla directory on_chain
+cd on_chain
+
+# Compilare i contratti
+npx hardhat compile
+```
+
+#### 3. Deployare i contratti
+
+Nella stessa finestra del terminale:
+
+```bash
+# Deployare i contratti sul nodo locale
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+Questo comando deployerà tutti i contratti sul nodo Hardhat locale e creerà il file `contract_addresses.json` con gli indirizzi e le ABI dei contratti.
+
+#### 4. Avviare l'applicazione
+
+```bash
+# Navigare alla directory off_chain
+cd off_chain
+
+# Avviare l'applicazione
+python main.py
+```
 
 ## Struttura del Progetto
 
