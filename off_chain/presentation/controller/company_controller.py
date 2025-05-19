@@ -17,6 +17,7 @@ from model.operation_estesa_model import OperazioneEstesaModel
 from model.compensation_action_model import CompensationActionModel
 from model.prodotto_finito_model import ProdottoLottoModel
 from model.richiesta_model import RichiestaModel
+from model.richiesta_token_model import RichiestaTokenModel
 from session import Session
 from persistence.repository_impl.company_repository_impl import CompanyRepositoryImpl
 from persistence.repository_impl.threshold_repository_impl import ThresholdRepositoryImpl
@@ -217,4 +218,31 @@ class ControllerAzienda:
         except Exception as e:
             logger.error(f"Errore nel ottenimento dei prodotti standard: {e}", exc_info=True)
             return []
-# C0304: Aggiunta newline finale
+
+    def get_richieste_ric_token(self) -> list[RichiestaTokenModel]:
+        try:
+            return self.richieste.get_richieste_ric_token(Session().current_user["id_azienda"])
+        except Exception as e:
+            logger.error(f"Errore {e}", exc_info=True)
+            return []
+        
+    def get_richiesta_inv_token(self) -> list[RichiestaTokenModel]:
+        try:
+            return self.richieste.get_richiesta_inviata_token(Session().current_user["id_azienda"])
+        except Exception as e:
+            logger.error(f"Errore {e}", exc_info=True)
+            return []
+        
+    def get_operazioni_token(self) -> list[RichiestaTokenModel]:
+        try:
+            return self.richieste.get_operazioni_token(Session().current_user["id_azienda"])
+        except Exception as e:
+            logger.error(f"Errore {e}", exc_info=True)
+            return []
+        
+    def update_richiesta_token(self, richiesta: RichiestaTokenModel, stato: str):
+        try:
+            self.richieste.update_richiesta_token(richiesta, stato)
+        except Exception as e:
+            logger.error(f"Errore {e}", exc_info=True)
+        

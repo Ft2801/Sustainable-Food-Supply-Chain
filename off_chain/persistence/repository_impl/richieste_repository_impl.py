@@ -4,10 +4,10 @@
 # pylint: disable= trailing-whitespace
 from configuration.database import Database
 from model.richiesta_model import RichiestaModel
+from model.richiesta_token_model import RichiestaTokenModel
 from persistence.query_builder import QueryBuilder
-from configuration.log_load_setting import logger
 from persistence.repository_impl import db_default_string
-
+from configuration.log_load_setting import logger
 
 class RichiesteRepositoryImpl():
     def __init__(self):
@@ -172,3 +172,97 @@ class RichiesteRepositoryImpl():
             logger.error(f"Errore nell'aggiornamento della richiesta: {e}", exc_info=True)
 
             
+    def get_richieste_ric_token(self, id_azienda: int) -> list[RichiestaTokenModel]:
+
+        try:
+            self.query_builder.select(
+                "r.Id_richiesta",
+                "r.Id_richiedente", "rich.Nome AS Nome_richiedente",
+                "r.Id_ricevente", "rice.Nome AS Nome_ricevente",
+                "r.Quantita", "r.Stato"
+            )\
+            .table("RichiestaToken AS r") \
+            .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
+            .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
+            .where("r.Id_richiedente", "=", id_azienda)
+            query, value = self.query_builder.get_query()
+            risultati_raw = self.db.fetch_results(query, value)
+
+            return [RichiestaTokenModel(*r) for r in risultati_raw] if risultati_raw else []
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle richieste di token: {e}", exc_info=True)
+            return []
+    
+    def get_richiesta_inviata_token(self, id_azienda: int) -> list[RichiestaTokenModel]:
+
+        try:
+            self.query_builder.select(
+                "r.Id_richiesta",
+                "r.Id_richiedente", "rich.Nome AS Nome_richiedente",
+                "r.Id_ricevente", "rice.Nome AS Nome_ricevente",
+                "r.Quantita", "r.Stato"
+            )\
+            .table("RichiestaToken AS r") \
+            .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
+            .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
+            .where("r.Id_ricevente", "=", id_azienda)
+            query, value = self.query_builder.get_query()
+            risultati_raw = self.db.fetch_results(query, value)
+
+            return [RichiestaTokenModel(*r) for r in risultati_raw] if risultati_raw else []
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle richieste di token inviate: {e}", exc_info=True)
+            return []
+    
+    def get_operazioni_token(self, id_azienda: int) -> list[RichiestaTokenModel]:
+
+        try:
+            self.query_builder.select(
+                "r.Id_richiesta",
+                "r.Id_richiedente", "rich.Nome AS Nome_richiedente",
+                "r.Id_ricevente", "rice.Nome AS Nome_ricevente",
+                "r.Quantita", "r.Stato"
+            )\
+            .table("RichiestaToken AS r") \
+            .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
+            .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
+            .where("r.Id_richiedente", "=", id_azienda) \
+            .or_where("r.Id_ricevente", "=", id_azienda)
+            query, value = self.query_builder.get_query()
+            risultati_raw = self.db.fetch_results(query, value)
+
+            return [RichiestaTokenModel(*r) for r in risultati_raw] if risultati_raw else []
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle operazioni di token: {e}", exc_info=True)
+            return []
+    
+    def update_richiesta_token(self, richiesta: RichiestaTokenModel, stato : str) -> None:
+        """
+        Aggiorna lo stato di una richiesta.
+        """
+        try:
+            queries = []
+
+            # Aggiornamento
+            query_mag = """UPDATE RichiestaToken SET stato = ? WHERE id_richiesta = ?;""" 
+            value_mag = (stato, richiesta.id_richiesta)
+            queries.append((query_mag, value_mag))
+
+            query_mag = """UPDATE Azienda SET Token = Token - ? WHERE Id_azienda = ?;""" 
+            value_mag = (richiesta.quantita, richiesta.destinatario)
+            queries.append((query_mag, value_mag))
+
+            query_mag = """UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?;""" 
+            value_mag = (richiesta.quantita, richiesta.mittente)
+            queries.append((query_mag, value_mag))
+
+            self.db.execute_transaction(queries)
+            logger.info(f"Richiesta con ID {richiesta.id_richiesta} aggiornata a {stato}.")
+
+
+
+        except Exception as e:
+            logger.error(f"Errore nell'aggiornamento della richiesta: {e}", exc_info=True)
+            return False
+
+         

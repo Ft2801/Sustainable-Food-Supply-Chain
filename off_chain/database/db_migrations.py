@@ -133,6 +133,17 @@ class DatabaseMigrations:
                 FOREIGN KEY (Id_ricevente) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE
                 FOREIGN KEY (Id_trasportatore) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE
             )
+            ''',
+             '''
+            CREATE TABLE  RichiestaToken (
+                Id_richiesta INTEGER PRIMARY KEY AUTOINCREMENT,
+                Id_richiedente INTEGER NOT NULL,
+                Id_ricevente INTEGER NOT NULL,
+                Quantita INTEGER NOT NULL,
+                Stato TEXT CHECK(Stato IN ('In attesa', 'Accettata', 'Rifiutata')),
+                FOREIGN KEY (Id_richiedente) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE,
+                FOREIGN KEY (Id_ricevente) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE
+            )
             '''
         ]
         

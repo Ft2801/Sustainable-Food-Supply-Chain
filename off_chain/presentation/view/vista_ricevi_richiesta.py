@@ -5,9 +5,12 @@
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QStandardItemModel, QStandardItem, QIcon
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout,
-                             QPushButton, QMessageBox, QDialog, QDialogButtonBox, QComboBox)
+                             QPushButton, QMessageBox)
 
+from model.richiesta_token_model import RichiestaTokenModel
+from presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
+from session import Session
 
 
 class VistaRiceviRichiesta(QMainWindow):
@@ -16,16 +19,11 @@ class VistaRiceviRichiesta(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.lista_prova = [
-            # Quantità, mittente, destinatario, stato
-            (100, "Azienda 1", "Azienda 2", "in attesa"),
-            (200, "Azienda 3", "Azienda 2", "in attesa"),
-            (150, "Azienda 4", "Azienda 2", "in attesa"),
-            (175, "Azienda 5", "Azienda 2", "in attesa")
-        ]
+        self.controller = ControllerAzienda()
 
-        self.token = 500
+        self.lista_prova : list[RichiestaTokenModel] = self.controller.get_richieste_token()
 
+        self.token = Session()._current_user["token"]
         # Elementi di layout
         self.list_view = QListView()
         self.invia_button = QPushButton("Accetta")
@@ -78,11 +76,11 @@ class VistaRiceviRichiesta(QMainWindow):
 
     def genera_lista(self):
         model = QStandardItemModel()
-        for f in self.lista_prova:
-            item = QStandardItem(f"Quantità: {f[0]},\n"
-                                 f"Mittente richiesta: {f[1]},\n"
-                                 f"Destinatario richiesta: {f[2]},\n"
-                                 f"Stato: {f[3]}")
+        for richiesta in self.lista_prova:
+            item = QStandardItem(f"Quantità: {richiesta.quantita},\n"
+                                 f"Mittente richiesta: {richiesta.mittente},\n"
+                                 f"Destinatario richiesta: {richiesta.destinatario},\n"
+                                 f"Stato: {richiesta.stato}")
             item.setEditable(False)
             item.setFont(QFont("Times Roman", 11))
             model.appendRow(item)
@@ -95,6 +93,8 @@ class VistaRiceviRichiesta(QMainWindow):
             selected_item = selected_index[0].row()
             richiesta = self.lista_prova[selected_item]
 
+            self.controller.update_richiesta_token(richiesta , "Accettata")
+
             QMessageBox.information(self, "Supply Chain", f"{richiesta} accettata")
         else:
             QMessageBox.warning(self, "Nessuna selezione", "Nessun item è stato selezionato.")
@@ -105,6 +105,8 @@ class VistaRiceviRichiesta(QMainWindow):
         if selected_index:
             selected_item = selected_index[0].row()
             richiesta = self.lista_prova[selected_item]
+
+            self.controller.update_richiesta_token(richiesta , "Rifiutata")
 
             QMessageBox.information(self, "Supply Chain", f"{richiesta} rifiutata")
         else:

@@ -4,9 +4,11 @@
 # pylint: disable= trailing-whitespace
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont, QStandardItemModel, QStandardItem, QIcon
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout,
-                             QPushButton, QMessageBox, QDialog, QDialogButtonBox, QComboBox)
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout
+                        )
 
+from model.richiesta_token_model import RichiestaTokenModel
+from presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
 
 
@@ -16,17 +18,9 @@ class VistaRiepilogoOperazioni(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.lista_prova = [
-            # Quantità, mittente, destinatario, stato
-            (100, "Azienda 2", "Azienda 1", "accettata"),
-            (200, "Azienda 2", "Azienda 3", "rifiutata"),
-            (150, "Azienda 2", "Azienda 4", "accettata"),
-            (175, "Azienda 2", "Azienda 5", "accettata"),
-            (100, "Azienda 1", "Azienda 2", "rifiutata"),
-            (200, "Azienda 3", "Azienda 2", "rifiutata"),
-            (150, "Azienda 4", "Azienda 2", "accettata"),
-            (175, "Azienda 5", "Azienda 2", "rifiutata")
-        ]
+        self.controller = ControllerAzienda()
+
+        self.lista_prova : list[RichiestaTokenModel]= self.controller.get_richieste_token()
 
         self.token = 500
 
@@ -74,11 +68,11 @@ class VistaRiepilogoOperazioni(QMainWindow):
 
     def genera_lista(self):
         model = QStandardItemModel()
-        for f in self.lista_prova:
-            item = QStandardItem(f"Quantità: {f[0]},\n"
-                                 f"Mittente: {f[1]},\n"
-                                 f"Destinatario: {f[2]},\n"
-                                 f"Stato: {f[3]}")
+        for richiesta in self.lista_prova:
+            item = QStandardItem(f"Quantità: {richiesta.quantita},\n"
+                                 f"Mittente: {richiesta.mittente},\n"
+                                 f"Destinatario: {richiesta.destinatario},\n"
+                                 f"Stato: {richiesta.stato}")
             item.setEditable(False)
             item.setFont(QFont("Times Roman", 11))
             model.appendRow(item)

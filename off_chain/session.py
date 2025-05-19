@@ -76,6 +76,7 @@ class Session:
                 "username": self._current_user.nome,
                 "role": self._current_user.tipo,
                 "id_azienda" : self._current_user.id_azienda,
+                "token": self._current_user.token,
 
                  # Solo info essenziali
             }

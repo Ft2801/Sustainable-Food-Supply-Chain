@@ -7,6 +7,8 @@ from PyQt5.QtGui import QFont, QStandardItemModel, QStandardItem, QIcon
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout,
                              QPushButton, QMessageBox, QDialog, QDialogButtonBox, QComboBox)
 
+from off_chain.model.richiesta_token_model import RichiestaTokenModel
+from off_chain.presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
 
 
@@ -16,13 +18,9 @@ class VistaInviaRichiesta(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.lista_prova = [
-            # Quantità, mittente, destinatario, stato
-            (100, "Azienda 2", "Azienda 1", "in attesa"),
-            (200, "Azienda 2", "Azienda 3", "in attesa"),
-            (150, "Azienda 2", "Azienda 4", "in attesa"),
-            (175, "Azienda 2", "Azienda 5", "in attesa")
-        ]
+        self.controller = ControllerAzienda()
+
+        self.lista_prova : list[RichiestaTokenModel]= self.controller.get_richieste_token()
 
         self.token = 500
 
@@ -74,11 +72,11 @@ class VistaInviaRichiesta(QMainWindow):
 
     def genera_lista(self):
         model = QStandardItemModel()
-        for f in self.lista_prova:
-            item = QStandardItem(f"Quantità: {f[0]},\n"
-                                 f"Mittente richiesta: {f[1]},\n"
-                                 f"Destinatario richiesta: {f[2]},\n"
-                                 f"Stato: {f[3]}")
+        for richiesta in self.lista_prova:
+            item = QStandardItem(f"Quantità: {richiesta.quantita},\n"
+                                 f"Mittente richiesta: {richiesta.mittente},\n"
+                                 f"Destinatario richiesta: {richiesta.destinatario},\n"
+                                 f"Stato: {richiesta.stato}")
             item.setEditable(False)
             item.setFont(QFont("Times Roman", 11))
             model.appendRow(item)
