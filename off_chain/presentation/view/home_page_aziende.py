@@ -1,3 +1,7 @@
+# pylint: disable= no-name-in-module
+# pylint: disable= import-error
+# pylint: disable= line-too-long
+# pylint: disable= trailing-whitespace
 from PyQt5.QtCore import Qt, QTimer, QEvent
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QGridLayout, QPushButton, QMessageBox, QMenu, \
