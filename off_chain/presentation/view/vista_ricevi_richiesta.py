@@ -21,9 +21,9 @@ class VistaRiceviRichiesta(QMainWindow):
 
         self.controller = ControllerAzienda()
 
-        self.lista_prova : list[RichiestaTokenModel] = self.controller.get_richieste_token()
+        self.lista_prova : list[RichiestaTokenModel] = self.controller.get_richieste_ric_token()
 
-        self.token = Session()._current_user["token"]
+        self.token = Session()._current_user.token
         # Elementi di layout
         self.list_view = QListView()
         self.invia_button = QPushButton("Accetta")
@@ -93,9 +93,17 @@ class VistaRiceviRichiesta(QMainWindow):
             selected_item = selected_index[0].row()
             richiesta = self.lista_prova[selected_item]
 
-            self.controller.update_richiesta_token(richiesta , "Accettata")
+            try:
 
-            QMessageBox.information(self, "Supply Chain", f"{richiesta} accettata")
+                if richiesta.stato != "In attesa":
+                    raise ValueError("Richiesta già accettata o rifiutata.")
+
+                self.controller.update_richiesta_token(richiesta , "Accettata")
+                QMessageBox.information(self, "Supply Chain", f"{richiesta} accettata")
+            except ValueError as e:
+                QMessageBox.warning(self, "Errore", str(e))
+                return
+            
         else:
             QMessageBox.warning(self, "Nessuna selezione", "Nessun item è stato selezionato.")
 

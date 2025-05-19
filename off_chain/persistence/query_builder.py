@@ -2,7 +2,7 @@
 # pylint: disable= import-error
 # pylint: disable= line-too-long
 # pylint: disable= trailing-whitespace
-# # pylint: disable= attribute-defined-outside-init
+# pylint: disable= attribute-defined-outside-init
 from configuration.database import Database
 
 
@@ -14,7 +14,7 @@ class QueryBuilder:
         self.query_table = None
         self.query_type = None
         self.query_select = []
-        self.query_where = []
+        self.query_where = []  # Adesso contiene tuple: (connettivo, field, operator, value)
         self.query_insert = {}
         self.query_update = {}
         self.query_limit = None
@@ -33,7 +33,16 @@ class QueryBuilder:
         return self
 
     def where(self, field, operator, value):
-        self.query_where.append((field, operator, value))
+        if not self.query_where:
+            self.query_where.append(("AND", field, operator, value))  # prima condizione, AND implicito
+        else:
+            self.query_where.append(("AND", field, operator, value))
+        return self
+
+    def or_where(self, field, operator, value):
+        if not self.query_where:
+            raise ValueError("or_where() non può essere chiamato come prima condizione.")
+        self.query_where.append(("OR", field, operator, value))
         return self
 
     def join(self, table, on_field1, on_field2, type=""):
@@ -48,12 +57,11 @@ class QueryBuilder:
     def update(self, **kwargs):
         self.query_type = 'update'
         for k, v in kwargs.items():
-            if isinstance(v, tuple):  
-                self.query_update[k] = v  
+            if isinstance(v, tuple):
+                self.query_update[k] = v
             else:
                 self.query_update[k] = ("?", [v])
         return self
-
 
     def delete(self):
         self.query_type = 'delete'
@@ -68,15 +76,10 @@ class QueryBuilder:
         return self
 
     def group_by(self, *fields):
-        """Aggiunge una clausola GROUP BY alla query."""
         self.query_group_by = list(fields)
         return self
 
     def aggregate(self, outer_function, inner_expression, alias=None):
-        """
-        Aggiunge una funzione di aggregazione alla SELECT.
-        Esempio: aggregate("COALESCE", "SUM(o.importo)", "totale") -> COALESCE(SUM(o.importo)) AS totale
-        """
         agg_query = f"{outer_function}({inner_expression})"
         if alias:
             agg_query += f" AS {alias}"
@@ -106,7 +109,6 @@ class QueryBuilder:
         return query, values
 
     def _build_select_query(self):
-        # Se ci sono funzioni di aggregazione, aggiungile ai campi selezionati
         fields = ", ".join(self.query_select + self.query_aggregates) if self.query_aggregates else ", ".join(self.query_select)
         query = f"SELECT {fields} FROM {self.query_table}"
 
@@ -115,9 +117,13 @@ class QueryBuilder:
 
         values = []
         if self.query_where:
-            where_clauses = [f"{field} {operator} ?" for field, operator, _ in self.query_where]
-            query += " WHERE " + " AND ".join(where_clauses)
-            values = [val for _, _, val in self.query_where]
+            query += " WHERE "
+            conditions = []
+            for i, (logic, field, operator, value) in enumerate(self.query_where):
+                prefix = "" if i == 0 else f" {logic} "
+                conditions.append(f"{prefix}{field} {operator} ?")
+                values.append(value)
+            query += "".join(conditions)
 
         if self.query_group_by:
             query += " GROUP BY " + ", ".join(self.query_group_by)
@@ -148,29 +154,35 @@ class QueryBuilder:
         query = f"UPDATE {self.query_table} SET " + ", ".join(set_clauses)
 
         if self.query_where:
-            where_clauses = [f"{field} {operator} ?" for field, operator, _ in self.query_where]
-            query += " WHERE " + " AND ".join(where_clauses)
-            values += [val for _, _, val in self.query_where]
+            query += " WHERE "
+            where_clauses = []
+            for i, (logic, field, operator, value) in enumerate(self.query_where):
+                prefix = "" if i == 0 else f" {logic} "
+                where_clauses.append(f"{prefix}{field} {operator} ?")
+                values.append(value)
+            query += "".join(where_clauses)
 
         return query, values
-
 
     def _build_delete_query(self):
         query = f"DELETE FROM {self.query_table}"
         values = []
 
         if self.query_where:
-            where_clauses = [f"{field} {operator} ?" for field, operator, _ in self.query_where]
-            query += " WHERE " + " AND ".join(where_clauses)
-            values = [val for _, _, val in self.query_where]
+            query += " WHERE "
+            conditions = []
+            for i, (logic, field, operator, value) in enumerate(self.query_where):
+                prefix = "" if i == 0 else f" {logic} "
+                conditions.append(f"{prefix}{field} {operator} ?")
+                values.append(value)
+            query += "".join(conditions)
 
         return query, values
-    
 
     def execute_and_return_last_id(self):
         db = Database()
         conn = db.conn
-        query_type = self.query_type  # Salva prima che venga resettato!
+        query_type = self.query_type
         query, values = self.get_query()
 
         cursor = conn.cursor()
@@ -180,13 +192,11 @@ class QueryBuilder:
         if query_type == 'insert':
             return cursor.lastrowid
         return None
-    
+
     def execute_and_fetch_one(self):
-        db = Database()  # Singleton
+        db = Database()
         query, values = self.get_query()
         cursor = db.conn.cursor()
         cursor.execute(query, values)
         result = cursor.fetchone()
         return result[0] if result else None
-
-

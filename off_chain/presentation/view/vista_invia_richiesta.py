@@ -7,8 +7,10 @@ from PyQt5.QtGui import QFont, QStandardItemModel, QStandardItem, QIcon
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout,
                              QPushButton, QMessageBox, QDialog, QDialogButtonBox, QComboBox)
 
-from off_chain.model.richiesta_token_model import RichiestaTokenModel
-from off_chain.presentation.controller.company_controller import ControllerAzienda
+from model.richiesta_token_model import RichiestaTokenModel
+from model.company_model import CompanyModel
+from presentation.controller.company_controller import ControllerAzienda
+from session import Session
 from presentation.view import funzioni_utili
 
 
@@ -20,9 +22,10 @@ class VistaInviaRichiesta(QMainWindow):
 
         self.controller = ControllerAzienda()
 
-        self.lista_prova : list[RichiestaTokenModel]= self.controller.get_richieste_token()
+        self.lista_prova : list[RichiestaTokenModel]= self.controller.get_richiesta_inv_token()
+        self.lista_aziende : list[CompanyModel] = self.controller.get_aziende()
 
-        self.token = 500
+        self.token  = Session()._current_user.token
 
         # Elementi di layout
         self.list_view = QListView()
@@ -72,14 +75,17 @@ class VistaInviaRichiesta(QMainWindow):
 
     def genera_lista(self):
         model = QStandardItemModel()
+
         for richiesta in self.lista_prova:
-            item = QStandardItem(f"Quantità: {richiesta.quantita},\n"
-                                 f"Mittente richiesta: {richiesta.mittente},\n"
-                                 f"Destinatario richiesta: {richiesta.destinatario},\n"
-                                 f"Stato: {richiesta.stato}")
-            item.setEditable(False)
-            item.setFont(QFont("Times Roman", 11))
-            model.appendRow(item)
+            if isinstance(richiesta, RichiestaTokenModel):
+                
+                item = QStandardItem(f"Quantità: {richiesta.quantita},\n"
+                                    f"Mittente richiesta: {richiesta.mittente},\n"
+                                    f"Destinatario richiesta: {richiesta.destinatario},\n"
+                                    f"Stato: {richiesta.stato}")
+                item.setEditable(False)
+                item.setFont(QFont("Times Roman", 11))
+                model.appendRow(item)
         self.list_view.setModel(model)
 
     def invia_richiesta(self):
@@ -99,8 +105,8 @@ class VistaInviaRichiesta(QMainWindow):
         layout.addWidget(combo)
 
         combo_aziende = QComboBox(dialog)
-        aziende = ["Azienda 1", "Azienda 3", "Azienda 4", "Azienda 5"]
-        combo_aziende.addItems(aziende)
+        for azienda in self.lista_aziende:
+            combo_aziende.addItem(azienda.nome, azienda.id_azienda)
         layout.addWidget(combo_aziende)
 
         # Aggiungi i pulsanti "Ok" e "Cancel"
@@ -110,15 +116,22 @@ class VistaInviaRichiesta(QMainWindow):
         # Definisci cosa succede quando l'utente clicca su "Ok"
         def on_accept():
             selected_option = combo.currentText()
-            selected_azienda = combo_aziende.currentText()
+            id_azienda_dest = combo_aziende .currentData()
+            nome_azienda_dest = combo_aziende.currentText()
             if selected_option.strip() == "":
                 QMessageBox.warning(dialog, 'Errore', 'Devi selezionare qualcosa!')
             else:
-                self.lista_prova.append((int(selected_option), "Azienda 2", selected_azienda, "in attesa"))
-                self.genera_lista()
                 dialog.accept()
-                QMessageBox.information(self, "Supply Chain",
-                                        "Richiesta inviata correttamente")
+                try:
+                    self.controller.send_richiesta_token(id_azienda_dest, int(selected_option))
+                except ValueError:
+                    QMessageBox.warning(self, "Errore", "Devi selezionare un numero valido.")
+                    return
+                except Exception as e:
+                    QMessageBox.critical(self, "Errore", f"Errore durante l'invio della richiesta: {str(e)}")
+                    return
+                
+                QMessageBox.information(self, "Supply Chain", "Richiesta inviata correttamente")
 
         # Collega i pulsanti alle funzioni
         buttons.accepted.connect(on_accept)

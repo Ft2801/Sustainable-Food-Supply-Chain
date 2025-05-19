@@ -243,6 +243,22 @@ class ControllerAzienda:
     def update_richiesta_token(self, richiesta: RichiestaTokenModel, stato: str):
         try:
             self.richieste.update_richiesta_token(richiesta, stato)
+        except ValueError as e:
+            logger.error(f"Errore {e}", exc_info=True)
+            raise e
         except Exception as e:
             logger.error(f"Errore {e}", exc_info=True)
+
+    def send_richiesta_token(self, id_azienda_ricevente: int, quantita: int):
+        try:
+            self.richieste.send_richiesta_token(Session().current_user["id_azienda"],id_azienda_ricevente, quantita)
+        except Exception as e:
+            logger.error(f"Errore {e}", exc_info=True)
+
+    def get_aziende(self) -> list[CompanyModel]:
+        try:
+            return self.company.get_lista_aziende(tipo = Session().current_user["role"],escludi_azienda=Session().current_user["id_azienda"])
+        except Exception as e:
+            logger.error(f"Errore {e}", exc_info=True)
+            return []
         

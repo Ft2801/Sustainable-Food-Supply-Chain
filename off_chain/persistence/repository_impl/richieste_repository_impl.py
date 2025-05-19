@@ -2,6 +2,7 @@
 # pylint: disable= import-error
 # pylint: disable= line-too-long
 # pylint: disable= trailing-whitespace
+import sqlite3
 from configuration.database import Database
 from model.richiesta_model import RichiestaModel
 from model.richiesta_token_model import RichiestaTokenModel
@@ -184,11 +185,12 @@ class RichiesteRepositoryImpl():
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
             .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
-            .where("r.Id_richiedente", "=", id_azienda)
+            .where("r.Id_ricevente", "=", id_azienda) \
+            .where("r.Stato", "=", db_default_string.STATO_ATTESA)
             query, value = self.query_builder.get_query()
             risultati_raw = self.db.fetch_results(query, value)
 
-            return [RichiestaTokenModel(*r) for r in risultati_raw] if risultati_raw else []
+            return [RichiestaTokenModel(*r) for r in risultati_raw]
         except Exception as e:
             logger.error(f"Errore nel recupero delle richieste di token: {e}", exc_info=True)
             return []
@@ -205,11 +207,11 @@ class RichiesteRepositoryImpl():
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
             .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
-            .where("r.Id_ricevente", "=", id_azienda)
+            .where("r.Id_richiedente", "=", id_azienda)
             query, value = self.query_builder.get_query()
             risultati_raw = self.db.fetch_results(query, value)
 
-            return [RichiestaTokenModel(*r) for r in risultati_raw] if risultati_raw else []
+            return [RichiestaTokenModel(*r) for r in risultati_raw]
         except Exception as e:
             logger.error(f"Errore nel recupero delle richieste di token inviate: {e}", exc_info=True)
             return []
@@ -226,10 +228,15 @@ class RichiesteRepositoryImpl():
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
             .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
-            .where("r.Id_richiedente", "=", id_azienda) \
-            .or_where("r.Id_ricevente", "=", id_azienda)
+            .where("r.Stato", "=", db_default_string.STATO_ACCETTATA)\
+            .or_where("r.Id_richiedente", "=", id_azienda) \
+            .or_where("r.Id_ricevente", "=", id_azienda) 
+            
+
             query, value = self.query_builder.get_query()
             risultati_raw = self.db.fetch_results(query, value)
+
+            print(f"risultati_raw {risultati_raw}")
 
             return [RichiestaTokenModel(*r) for r in risultati_raw] if risultati_raw else []
         except Exception as e:
@@ -249,20 +256,39 @@ class RichiesteRepositoryImpl():
             queries.append((query_mag, value_mag))
 
             query_mag = """UPDATE Azienda SET Token = Token - ? WHERE Id_azienda = ?;""" 
-            value_mag = (richiesta.quantita, richiesta.destinatario)
+            value_mag = (richiesta.quantita, richiesta.id_destinatario)
             queries.append((query_mag, value_mag))
 
             query_mag = """UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?;""" 
-            value_mag = (richiesta.quantita, richiesta.mittente)
+            value_mag = (richiesta.quantita, richiesta.id_mittente)
             queries.append((query_mag, value_mag))
 
             self.db.execute_transaction(queries)
             logger.info(f"Richiesta con ID {richiesta.id_richiesta} aggiornata a {stato}.")
 
-
-
+        
+        except sqlite3.IntegrityError as e:
+            logger.error(f"Errore di integrità nel database: {e}", exc_info=True)
+            raise ValueError("Non disponi di qui token")
         except Exception as e:
             logger.error(f"Errore nell'aggiornamento della richiesta: {e}", exc_info=True)
             return False
+        
+    def send_richiesta_token(self, mittente: int, destinatario: int , quantita : int) -> None:
+        """
+        Invia una richiesta di token.
+        """
+        try:
+            self.query_builder.table("RichiestaToken").insert(
+                id_richiedente = mittente,
+                id_ricevente = destinatario,
+                quantita = quantita,
+                stato = db_default_string.STATO_ATTESA
+            )
+            query, value = self.query_builder.get_query()
+            self.db.execute_query(query, value)
+            logger.info(f"Richiesta di token inviata con successo.")
+        except Exception as e:
+            logger.error(f"Errore nell'invio della richiesta di token: {e}", exc_info=True)
 
          

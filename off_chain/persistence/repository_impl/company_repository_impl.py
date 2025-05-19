@@ -8,6 +8,7 @@ from configuration.log_load_setting import logger
 from model.company_model import CompanyModel
 from persistence.query_builder import QueryBuilder
 from persistence.repository_impl.database_standard import *
+from persistence.repository_impl import db_default_string 
 
 
 class CompanyRepositoryImpl(ABC):
@@ -33,23 +34,25 @@ class CompanyRepositoryImpl(ABC):
         except Exception as e:
             print(e)
             return []
+        
 
     def get_lista_aziende(self, tipo: aziende_enum = None, 
-                          nome : str = None, id : int = None ) -> list[CompanyModel]:
+                          nome : str = None, id : int = None, escludi_azienda : int = None) -> list[CompanyModel]:
         
         self.query_builder.select("*").table("Azienda")
-        #TODO aggiungere colonne
-        #self.query_builder.select("Id_azienda","Tipo","Indirizzo","Nome","Co2_consumata", "Co2_compensata").table("Azienda")
 
 
         if not tipo: 
-                self.query_builder.where("Tipo", "!=" , str(aziende_enum.CERIFICATORE.value))
+                self.query_builder.where("Tipo", "!=" , db_default_string.TIPO_AZIENDA_TRASPORTATORE)
 
         if nome:
             self.query_builder.where("Nome", "=",nome)
 
         if id:
             self.query_builder.where("Id_azienda", "=",id)
+        if escludi_azienda:
+            self.query_builder.where("Id_azienda", "!=", escludi_azienda)
+            
 
         query, value= (self.query_builder.get_query())
         result = self.db.fetch_results(query,value)

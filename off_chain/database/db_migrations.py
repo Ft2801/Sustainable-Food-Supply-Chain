@@ -52,7 +52,7 @@ class DatabaseMigrations:
                 Indirizzo TEXT NOT NULL,
                 Co2_emessa REAL NOT NULL DEFAULT 0,
                 Co2_compensata REAL NOT NULL DEFAULT 0,
-                Token INTEGER NOT NULL DEFAULT 100,
+                Token INTEGER NOT NULL DEFAULT 100 CHECK(Token >= 0),
                 CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (Id_credenziali) REFERENCES Credenziali(Id_credenziali) ON DELETE CASCADE
             )
