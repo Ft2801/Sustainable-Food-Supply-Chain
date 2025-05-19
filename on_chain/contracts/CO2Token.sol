@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
-contract CO2Token {
+import "./IERC20.sol";
+
+/**
+ * @title CO2Token
+ * @dev Implementation of the IERC20 interface for a sustainability token
+ * that rewards eco-friendly operations and penalizes high carbon emissions
+ */
+contract CO2Token is IERC20 {
     string public name = "CO2 Token";
     string public symbol = "CO2";
     uint8 public decimals = 18;
