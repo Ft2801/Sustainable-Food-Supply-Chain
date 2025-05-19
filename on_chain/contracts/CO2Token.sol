@@ -16,10 +16,7 @@ contract CO2Token is IERC20 {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
     
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-    event TokensMinted(address indexed to, uint256 amount);
-    event TokensBurned(address indexed from, uint256 amount);
+    // Events are already defined in the IERC20 interface
     
     function totalSupply() public view returns (uint256) {
         return 1000000 * 10**uint256(decimals); // Initial supply of 1M tokens

@@ -1,8 +1,9 @@
-# interact_contract.py - Uses contract_addresses.json to call functions on the blockchain.
+# interact_contract.py - Interacts with contracts on the blockchain using Hardhat.
 
 import json
 import os
 import time
+import glob
 from web3 import Web3
 from typing import Dict, Any, List
 import sys
@@ -26,37 +27,139 @@ class BlockchainInteractor:
                     raise Exception(f"Failed to connect to Hardhat node: {e}")
                 logger.debug(f"Waiting for Hardhat node... ({i+1}/{max_attempts})")
                 time.sleep(1)
-
-        # Load contract addresses and ABIs
-        contract_data_path = os.path.join(os.path.dirname(__file__), "contract_addresses.json")
-        try:
-            with open(contract_data_path, 'r') as f:
-                self.contract_data = json.load(f)
-                logger.info(f"Successfully loaded contract data from {contract_data_path}")
-        except FileNotFoundError:
-            logger.error(f"Contract data file not found at {contract_data_path}")
-            # Try to look for the file in the parent directory
-            alternative_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "on_chain", "contract_addresses.json")
-            logger.info(f"Trying alternative path: {alternative_path}")
-            try:
-                with open(alternative_path, 'r') as f:
-                    self.contract_data = json.load(f)
-                    logger.info(f"Successfully loaded contract data from alternative path: {alternative_path}")
-            except FileNotFoundError:
-                logger.error(f"Contract data file not found at alternative path: {alternative_path}")
-                raise Exception("Contract data file not found. Please deploy contracts first.")
         
         # Default account for transactions
         self.default_account = self.w3.eth.accounts[0]
         self.w3.eth.default_account = self.default_account
         
-        # Initialize contracts
+        # Load contract ABIs from artifacts directory
+        artifacts_dir = os.path.join(os.path.dirname(__file__), "artifacts", "contracts")
+        logger.info(f"Loading contract ABIs from {artifacts_dir}")
+        
+        # Initialize contracts dictionary
         self.contracts = {}
-        for name, data in self.contract_data['contracts'].items():
-            self.contracts[name] = self.w3.eth.contract(
-                address=data['address'],
-                abi=data['abi']
-            )
+        
+        # Get the latest deployed contracts from the blockchain
+        self._load_contracts_from_artifacts(artifacts_dir)
+
+    def _load_contracts_from_artifacts(self, artifacts_dir):
+        # Mappa per tenere traccia dei contratti trovati
+        contract_abis = {}
+        
+        # Cerca tutti i file JSON nelle sottodirectory di artifacts_dir
+        for root, dirs, files in os.walk(artifacts_dir):
+            for file in files:
+                if file.endswith('.json') and not file.endswith('.dbg.json'):
+                    file_path = os.path.join(root, file)
+                    try:
+                        with open(file_path, 'r') as f:
+                            contract_data = json.load(f)
+                            if 'contractName' in contract_data and 'abi' in contract_data:
+                                contract_name = contract_data['contractName']
+                                contract_abis[contract_name] = contract_data['abi']
+                                logger.info(f"Found ABI for contract {contract_name}")
+                    except Exception as e:
+                        logger.error(f"Error loading contract ABI from {file_path}: {e}")
+        
+        # Ottieni gli indirizzi dei contratti deployati
+        deployed_contracts = self._get_deployed_contracts()
+        
+        # Inizializza i contratti con gli ABI e gli indirizzi
+        for contract_name, contract_address in deployed_contracts.items():
+            if contract_name in contract_abis:
+                self.contracts[contract_name] = self.w3.eth.contract(
+                    address=contract_address,
+                    abi=contract_abis[contract_name]
+                )
+                logger.info(f"Loaded contract {contract_name} at address {contract_address}")
+            else:
+                logger.error(f"ABI not found for contract {contract_name}")
+
+    def _get_deployed_contracts(self):
+        """Ottiene gli indirizzi dei contratti deployati da Hardhat"""
+        # In Hardhat, i contratti vengono deployati in ordine e gli indirizzi sono prevedibili
+        # Il primo contratto deployato ha sempre lo stesso indirizzo
+        deployed_contracts = {}
+        
+        # Ottieni le transazioni del blocco di genesi e dei blocchi successivi
+        # per trovare i contratti deployati
+        try:
+            # Ottieni il numero dell'ultimo blocco
+            latest_block = self.w3.eth.block_number
+            logger.info(f"Scanning {latest_block + 1} blocks for contract deployments")
+            
+            # Cerca le transazioni di creazione dei contratti
+            for block_num in range(latest_block + 1):
+                block = self.w3.eth.get_block(block_num, full_transactions=True)
+                for tx in block.transactions:
+                    # Le transazioni di creazione dei contratti hanno 'to' impostato a None o '0x'
+                    if tx.to is None or tx.to == '0x' or tx.to == '0x0000000000000000000000000000000000000000':
+                        # Ottieni la ricevuta della transazione per vedere se ha creato un contratto
+                        receipt = self.w3.eth.get_transaction_receipt(tx.hash)
+                        if receipt.contractAddress:
+                            # Cerca di determinare il nome del contratto
+                            contract_name = self._get_contract_name_from_code(receipt.contractAddress)
+                            if contract_name:
+                                deployed_contracts[contract_name] = receipt.contractAddress
+                                logger.info(f"Found deployed contract {contract_name} at {receipt.contractAddress}")
+            
+            # Se non sono stati trovati contratti, usa gli indirizzi predefiniti di Hardhat
+            if not deployed_contracts:
+                logger.warning("No deployed contracts found, using default Hardhat addresses")
+                # Questi sono gli indirizzi predefiniti di Hardhat per i primi contratti deployati
+                deployed_contracts = self._get_default_hardhat_addresses()
+            
+            return deployed_contracts
+        except Exception as e:
+            logger.error(f"Error getting deployed contracts: {e}")
+            # In caso di errore, usa gli indirizzi predefiniti di Hardhat
+            return self._get_default_hardhat_addresses()
+    
+    def _get_contract_name_from_code(self, address):
+        """Tenta di determinare il nome del contratto dal suo bytecode"""
+        # Questo è un metodo euristico che potrebbe non funzionare in tutti i casi
+        # In una implementazione reale, dovresti usare un metodo più robusto
+        try:
+            # Ottieni il codice del contratto
+            code = self.w3.eth.get_code(address)
+            code_hex = code.hex()
+            
+            # Controlla se il codice contiene stringhe che possono indicare il nome del contratto
+            contract_names = [
+                "UserRegistry", "ProductRegistry", "OperationRegistry", "SupplyChain", 
+                "SupplyChainCO2", "CompanyRegistry", "CO2Token", "TokenExchange",
+                "ProductRequest", "QualityControl", "SustainabilityMetrics"
+            ]
+            
+            for name in contract_names:
+                # Converti il nome in esadecimale e cerca nel bytecode
+                name_hex = name.encode('utf-8').hex()
+                if name_hex in code_hex:
+                    return name
+            
+            # Se non riesci a determinare il nome, usa l'indirizzo come chiave
+            return f"Contract_{address[:8]}"
+        except Exception as e:
+            logger.error(f"Error getting contract name from code: {e}")
+            return None
+    
+    def _get_default_hardhat_addresses(self):
+        """Restituisce gli indirizzi predefiniti dei contratti in Hardhat"""
+        # Questi sono gli indirizzi predefiniti dei primi contratti deployati in Hardhat
+        # L'ordine dipende dall'ordine di deployment nello script deploy.js
+        return {
+            "UserRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+            "ProductRegistry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            "OperationRegistry": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+            "SupplyChain": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+            "SupplyChainCO2": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+            "CompanyRegistry": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+            "CO2Token": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+            "TokenExchange": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+            "ProductRequest": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+            "QualityControl": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+            "SustainabilityMetrics": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788"
+        }
 
     def register_user(self, name: str, email: str, role: str) -> bool:
         """Registra un nuovo utente nel sistema"""
