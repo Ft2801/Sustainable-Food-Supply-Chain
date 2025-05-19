@@ -100,6 +100,9 @@ class VistaRiceviRichiesta(QMainWindow):
 
                 self.controller.update_richiesta_token(richiesta , "Accettata")
                 QMessageBox.information(self, "Supply Chain", f"{richiesta} accettata")
+                # Aggiorna la lista dopo l'accettazione della richiesta
+                self.lista_prova = self.controller.get_richieste_ric_token()
+                self.genera_lista()
             except ValueError as e:
                 QMessageBox.warning(self, "Errore", str(e))
                 return
@@ -117,6 +120,9 @@ class VistaRiceviRichiesta(QMainWindow):
             self.controller.update_richiesta_token(richiesta , "Rifiutata")
 
             QMessageBox.information(self, "Supply Chain", f"{richiesta} rifiutata")
+            # Aggiorna la lista dopo il rifiuto della richiesta
+            self.lista_prova = self.controller.get_richieste_ric_token()
+            self.genera_lista()
         else:
             QMessageBox.warning(self, "Nessuna selezione", "Nessun item è stato selezionato.")
 

@@ -132,6 +132,9 @@ class VistaInviaRichiesta(QMainWindow):
                     return
                 
                 QMessageBox.information(self, "Supply Chain", "Richiesta inviata correttamente")
+                # Aggiorna la lista dopo l'invio della richiesta
+                self.lista_prova = self.controller.get_richiesta_inv_token()
+                self.genera_lista()
 
         # Collega i pulsanti alle funzioni
         buttons.accepted.connect(on_accept)
