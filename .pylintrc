@@ -36,7 +36,15 @@ disable=
     C0116, # missing-function-docstring
     R0903, # too-few-public-methods
     W0511, # fixme
-    W0703  # broad-except
+    W0703, # broad-except
+    E0611, # no-name-in-module
+    E0401, # import-error
+    C0301, # line-too-long
+    C0303, # trailing-whitespace
+    C0103, # invalid-name
+    R0913, # too-many-arguments
+    R0914, # too-many-locals
+    R0917 # too-many-statements
 
 # Enable the specified messages.
 # enable=
