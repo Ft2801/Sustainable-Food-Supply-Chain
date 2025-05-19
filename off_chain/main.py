@@ -2,6 +2,7 @@
 import sys
 import os
 import time
+import platform
 import subprocess
 import shutil
 
@@ -55,7 +56,10 @@ def start_hardhat_node():
     on_chain_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'on_chain')
     
     # Comando per aprire un nuovo terminale e avviare Hardhat
-    cmd = f'start cmd.exe /k "cd /d {on_chain_dir} && npx hardhat node"'
+    if platform.system() == 'Darwin':  # macOS
+        cmd = f'osascript -e \'tell app \"Terminal\" to do script \"cd {on_chain_dir} && npx hardhat node\"\''
+    else:  # Windows
+        cmd = f'start cmd.exe /k "cd /d {on_chain_dir} && npx hardhat node"'
     
     # Eseguire il comando per aprire un nuovo terminale
     subprocess.run(cmd, shell=True)
