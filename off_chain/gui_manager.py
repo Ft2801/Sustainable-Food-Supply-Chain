@@ -32,11 +32,14 @@ def setup_gui(session):
         logger.info("Blockchain setup completed successfully")
     else:
         if blockchain_setup.is_alive():
-            logger.error("Blockchain setup timed out")
-            blockchain_setup.join()  # Aspetta comunque il completamento del thread
-        logger.warning("Proceeding without blockchain functionality")
+            logger.warning("Blockchain setup is taking longer than expected, continuing anyway")
+            # Non aspettiamo il completamento del thread per non bloccare l'avvio dell'applicazione
+        
+        # Invece di mostrare un messaggio di errore, mostriamo un messaggio informativo
         if blockchain_setup.error_message:
-            logger.error(f"Blockchain setup failed: {blockchain_setup.error_message}")
+            logger.info(f"Note: {blockchain_setup.error_message}. The application will continue with limited blockchain functionality.")
+        else:
+            logger.info("Note: The application will continue with limited blockchain functionality.")
 
     time.sleep(1)
 

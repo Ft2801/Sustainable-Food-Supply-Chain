@@ -1,6 +1,4 @@
 // scripts/deploy.js
-const fs = require('fs');
-const path = require('path');
 
 async function main() {
   console.log("Starting deployment of all contracts...");
@@ -45,45 +43,70 @@ async function main() {
   const supplyChainCO2Address = await supplyChainCO2.getAddress();
   console.log("SupplyChainCO2 deployed to:", supplyChainCO2Address);
   
-  // Get the ABIs from artifacts
-  const userRegistryArtifact = require('../artifacts/contracts/UserRegistry.sol/UserRegistry.json');
-  const productRegistryArtifact = require('../artifacts/contracts/ProductRegistry.sol/ProductRegistry.json');
-  const operationRegistryArtifact = require('../artifacts/contracts/OperationRegistry.sol/OperationRegistry.json');
-  const supplyChainArtifact = require('../artifacts/contracts/SupplyChain.sol/SupplyChain.json');
-  const supplyChainCO2Artifact = require('../artifacts/contracts/SupplyChainCO2.sol/SupplyChainCO2.json');
+  // Deploy CompanyRegistry
+  const CompanyRegistry = await ethers.getContractFactory("CompanyRegistry");
+  console.log("Deploying CompanyRegistry...");
+  const companyRegistry = await CompanyRegistry.deploy();
+  await companyRegistry.waitForDeployment();
+  const companyRegistryAddress = await companyRegistry.getAddress();
+  console.log("CompanyRegistry deployed to:", companyRegistryAddress);
   
-  // Save contract data
-  const contractData = {
-    contracts: {
-      "UserRegistry": {
-        address: userRegistryAddress,
-        abi: userRegistryArtifact.abi
-      },
-      "ProductRegistry": {
-        address: productRegistryAddress,
-        abi: productRegistryArtifact.abi
-      },
-      "OperationRegistry": {
-        address: operationRegistryAddress,
-        abi: operationRegistryArtifact.abi
-      },
-      "SupplyChain": {
-        address: supplyChainAddress,
-        abi: supplyChainArtifact.abi
-      },
-      "SupplyChainCO2": {
-        address: supplyChainCO2Address,
-        abi: supplyChainCO2Artifact.abi
-      }
-    },
-    timestamp: new Date().toISOString(),
-    network: "localhost"
-  };
+  // Deploy CO2Token
+  const CO2Token = await ethers.getContractFactory("CO2Token");
+  console.log("Deploying CO2Token...");
+  const co2Token = await CO2Token.deploy();
+  await co2Token.waitForDeployment();
+  const co2TokenAddress = await co2Token.getAddress();
+  console.log("CO2Token deployed to:", co2TokenAddress);
   
-  const outputPath = path.join(__dirname, '../contract_addresses.json');
-  fs.writeFileSync(outputPath, JSON.stringify(contractData, null, 2));
+  // Deploy TokenExchange (requires CompanyRegistry address)
+  const TokenExchange = await ethers.getContractFactory("TokenExchange");
+  console.log("Deploying TokenExchange...");
+  const tokenExchange = await TokenExchange.deploy(companyRegistryAddress);
+  await tokenExchange.waitForDeployment();
+  const tokenExchangeAddress = await tokenExchange.getAddress();
+  console.log("TokenExchange deployed to:", tokenExchangeAddress);
   
-  console.log(`Contract addresses and ABIs saved to ${outputPath}`);
+  // Deploy ProductRequest
+  const ProductRequest = await ethers.getContractFactory("ProductRequest");
+  console.log("Deploying ProductRequest...");
+  const productRequest = await ProductRequest.deploy();
+  await productRequest.waitForDeployment();
+  const productRequestAddress = await productRequest.getAddress();
+  console.log("ProductRequest deployed to:", productRequestAddress);
+  
+  // Deploy QualityControl
+  const QualityControl = await ethers.getContractFactory("QualityControl");
+  console.log("Deploying QualityControl...");
+  const qualityControl = await QualityControl.deploy();
+  await qualityControl.waitForDeployment();
+  const qualityControlAddress = await qualityControl.getAddress();
+  console.log("QualityControl deployed to:", qualityControlAddress);
+  
+  // Deploy SustainabilityMetrics
+  const SustainabilityMetrics = await ethers.getContractFactory("SustainabilityMetrics");
+  console.log("Deploying SustainabilityMetrics...");
+  const sustainabilityMetrics = await SustainabilityMetrics.deploy();
+  await sustainabilityMetrics.waitForDeployment();
+  const sustainabilityMetricsAddress = await sustainabilityMetrics.getAddress();
+  console.log("SustainabilityMetrics deployed to:", sustainabilityMetricsAddress);
+  
+  // Stampa un riepilogo degli indirizzi dei contratti deployati
+  console.log("\nRiepilogo degli indirizzi dei contratti deployati:");
+  console.log("=============================================");
+  console.log(`UserRegistry: ${userRegistryAddress}`);
+  console.log(`ProductRegistry: ${productRegistryAddress}`);
+  console.log(`OperationRegistry: ${operationRegistryAddress}`);
+  console.log(`SupplyChain: ${supplyChainAddress}`);
+  console.log(`SupplyChainCO2: ${supplyChainCO2Address}`);
+  console.log(`CompanyRegistry: ${companyRegistryAddress}`);
+  console.log(`CO2Token: ${co2TokenAddress}`);
+  console.log(`TokenExchange: ${tokenExchangeAddress}`);
+  console.log(`ProductRequest: ${productRequestAddress}`);
+  console.log(`QualityControl: ${qualityControlAddress}`);
+  console.log(`SustainabilityMetrics: ${sustainabilityMetricsAddress}`);
+  console.log("=============================================");
+  console.log("Deployment completato con successo!");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
