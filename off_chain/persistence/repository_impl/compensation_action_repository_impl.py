@@ -76,10 +76,17 @@ class CompensationActionRepositoryImpl( ABC):
             value_azione =(data,azienda,co2_compensata, nome_azione)
             queries.append((query_azione, value_azione))
 
-            query_update_azienda=""" UPDATE Azienda  SET Co2_compensata = Co2_compensata + ? 
+            # Aggiorna la CO2 compensata dell'azienda
+            query_update_co2=""" UPDATE Azienda SET Co2_compensata = Co2_compensata + ? 
             WHERE Id_azienda = ?;"""
-            value_update= (co2_compensata,azienda)
-            queries.append((query_update_azienda, value_update))
+            value_update_co2 = (co2_compensata, azienda)
+            queries.append((query_update_co2, value_update_co2))
+            
+            # Aggiorna anche i token dell'azienda (1 token per ogni unità di CO2 compensata)
+            query_update_token=""" UPDATE Azienda SET Token = Token + ? 
+            WHERE Id_azienda = ?;"""
+            value_update_token = (int(co2_compensata), azienda)
+            queries.append((query_update_token, value_update_token))
 
 
             self.db.execute_transaction(queries)

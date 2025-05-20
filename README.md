@@ -24,13 +24,15 @@ L'applicazione è divisa in due componenti principali:
 ### Requisiti Generali
 - Git
 - Python 3.8 o superiore
-- Node.js 16.x o superiore
-- npm 8.x o superiore
+- Node.js 14.x o superiore
+- npm 6.x o superiore
 
 ### Per la parte off_chain (Python)
 - PyQt5
-- PostgreSQL
+- SQLite (incluso in Python)
 - Web3.py
+- PyOTP (per autenticazione a due fattori)
+- PyYAML (per file di configurazione)
 
 ### Per la parte on_chain (Blockchain)
 - Hardhat
@@ -42,15 +44,17 @@ L'applicazione è divisa in due componenti principali:
 ### Clonare il Repository
 
 ```bash
-git clone https://github.com/yourusername/Sustainable-Food-Supply-Chain.git
+git clone https://github.com/Ft2801/Sustainable-Food-Supply-Chain.git
 cd Sustainable-Food-Supply-Chain
 ```
 
 ### Installazione Dipendenze off_chain (Python)
 
 ```bash
-pip install PyQt5 web3
+pip install -r requirements.txt
 ```
+
+Il file requirements.txt contiene tutte le dipendenze Python necessarie per l'applicazione.
 
 ### Installazione Dipendenze on_chain (Blockchain)
 
@@ -81,9 +85,7 @@ npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzepp
 
 ## Come Avviare l'Applicazione
 
-### Avvio Automatico (Consigliato)
 
-L'applicazione può essere avviata direttamente dal modulo principale, che gestirà automaticamente tutte le operazioni necessarie:
 
 ```bash
 cd off_chain
@@ -98,57 +100,6 @@ Questo script eseguirà automaticamente le seguenti operazioni:
 4. Configurazione del database
 5. Avvio dell'interfaccia grafica
 
-### Avvio Manuale (Passo-Passo)
-
-Se preferisci avere un maggiore controllo sul processo di avvio, puoi seguire questi passaggi manuali:
-
-#### 1. Installare Hardhat e avviare il nodo
-
-```bash
-# Navigare alla directory on_chain
-cd on_chain
-
-# Installare hardhat (se non già fatto)
-npm install --save-dev hardhat
-
-# Avviare il nodo Hardhat
-npx hardhat node
-```
-
-Questo comando avvierà un nodo Hardhat locale sulla porta 8545. Lascia questa finestra del terminale aperta mentre lavori con l'applicazione.
-
-#### 2. Compilare i contratti
-
-In una nuova finestra del terminale:
-
-```bash
-# Navigare alla directory on_chain
-cd on_chain
-
-# Compilare i contratti
-npx hardhat compile
-```
-
-#### 3. Deployare i contratti
-
-Nella stessa finestra del terminale:
-
-```bash
-# Deployare i contratti sul nodo locale
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-Questo comando deployerà tutti i contratti sul nodo Hardhat locale e creerà il file `contract_addresses.json` con gli indirizzi e le ABI dei contratti.
-
-#### 4. Avviare l'applicazione
-
-```bash
-# Navigare alla directory off_chain
-cd off_chain
-
-# Avviare l'applicazione
-python main.py
-```
 
 ## Struttura del Progetto
 
@@ -203,51 +154,16 @@ on_chain/
 
 ## Funzionalità Blockchain
 
-L'applicazione utilizza Hardhat per simulare una blockchain Ethereum locale. Gli smart contract gestiscono:
+L'applicazione utilizza Hardhat per simulare una blockchain Ethereum locale. Il contratto principale SustainableFoodChain integra diverse funzionalità:
 
-- Registrazione e autenticazione utenti
-- Tracciabilità dei prodotti nella filiera
-- Certificazioni di qualità e sostenibilità
-- Tokenizzazione delle emissioni di CO2
+- **Registro Utenti**: Registrazione e gestione degli utenti nel sistema
+- **Registro Aziende**: Gestione delle aziende di diversi tipi (Agricola, Trasportatore, Trasformatore, Rivenditore, Certificatore)
+- **Token CO2**: Sistema di token per la compensazione delle emissioni di carbonio
+- **Scambio Token**: Meccanismo per lo scambio di token tra aziende per compensare l'impatto ambientale
+- **Certificazioni**: Verifica e registrazione delle certificazioni di sostenibilità
 - Scambio di token tra aziende
 
 I contratti vengono compilati e deployati automaticamente all'avvio dell'applicazione, creando un ambiente blockchain completo per testare e utilizzare tutte le funzionalità del sistema.
 
 ---
 
-## Blockchain Setup with Hardhat
-
-This directory contains the smart contracts and blockchain setup for the Sustainable Food Supply Chain project. The project uses Hardhat for local development and deployment.
-
-## Setup
-
-1. Install dependencies:
-```
-npm install
-```
-
-2. Start a local Hardhat node:
-```
-npm run node
-```
-
-3. In a separate terminal, deploy the contracts:
-```
-npm run deploy
-```
-
-## Project Structure
-
-- `contracts/`: Contains all Solidity smart contracts
-- `scripts/`: Contains deployment scripts
-- `test/`: Contains test files for smart contracts
-- `hardhat.config.js`: Hardhat configuration file
-- `artifacts/`: Contains compiled contract ABIs and bytecode (generated after compilation)
-
-## Using with the Application
-
-The application automatically starts a Hardhat node and deploys contracts when needed. The contract addresses and ABIs are stored in `contract_addresses.json`.
-
----
-
-© 2025 Sustainable Food Supply Chain - Progetto universitario
