@@ -126,10 +126,7 @@ class BlockchainInteractor:
             
             # Controlla se il codice contiene stringhe che possono indicare il nome del contratto
             contract_names = [
-                "UserRegistry", "ProductRegistry", "OperationRegistry", "SupplyChain", 
-                "SupplyChainCO2", "CompanyRegistry", "CO2Token", "TokenExchange",
-                "ProductRequest", "QualityControl", "SustainabilityMetrics"
-            ]
+                "SustainableFoodChain"]
             
             for name in contract_names:
                 # Converti il nome in esadecimale e cerca nel bytecode
@@ -148,17 +145,7 @@ class BlockchainInteractor:
         # Questi sono gli indirizzi predefiniti dei primi contratti deployati in Hardhat
         # L'ordine dipende dall'ordine di deployment nello script deploy.js
         return {
-            "UserRegistry": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-            "ProductRegistry": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
-            "OperationRegistry": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-            "SupplyChain": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
-            "SupplyChainCO2": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-            "CompanyRegistry": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
-            "CO2Token": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
-            "TokenExchange": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
-            "ProductRequest": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
-            "QualityControl": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
-            "SustainabilityMetrics": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788"
+            "SustainableFoodChain": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
         }
 
     def register_user(self, name: str, email: str, role: str) -> bool:
