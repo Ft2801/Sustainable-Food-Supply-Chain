@@ -163,17 +163,17 @@ def generate_js_script(script_type, params):
     '''
     elif script_type == "register_company":
         # Per il registro delle aziende, dobbiamo usare il contratto CompanyRegistry
-        registry_contract_path = "../artifacts/contracts/CompanyRegistry.sol/CompanyRegistry.json"
+        registry_contract_path = "../artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json"
         
         return base_script.replace(contract_path, registry_contract_path) + f'''
-            // Crea un'istanza del contratto CompanyRegistry
+            // Crea un'istanza del contratto SustainableFoodChain
             const contract = new ethers.Contract(
-                "{params['registry_address']}",  // Indirizzo del contratto CompanyRegistry
+                "{params['registry_address']}",  // Indirizzo del contratto SustainableFoodChain
                 contractJson.abi,
                 signer
             );
             
-            console.log(`Usando contratto CompanyRegistry all'indirizzo: {params['registry_address']}`);
+            console.log(`Usando contratto SustainableFoodChain all'indirizzo: {params['registry_address']}`);
             
             // Verifica se l'azienda è già registrata
             try {{
@@ -259,7 +259,7 @@ class BlockchainConfig:
             return
             
         try:
-            contract_names = ["CO2Token", "TokenExchange", "CompanyRegistry", "UserRegistry"]
+            contract_names = ["SustainableFoodChain"]
             # Percorso per i contratti compilati (usando la directory artifacts/contracts come in interact_contract.py)
             artifacts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
                                        "on_chain", "artifacts", "contracts")
@@ -308,19 +308,9 @@ class BlockchainConfig:
                             
                             # Per gli indirizzi, dobbiamo usare quelli trovati da BlockchainInteractor
                             # o quelli predefiniti di Hardhat
-                            if contract_name == "TokenExchange":
-                                self.contract_addresses[contract_name] = "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853"
-                                logger.info(f"Contratto TokenExchange mappato all'indirizzo: {self.contract_addresses[contract_name]}")
-                            elif contract_name == "UserRegistry":
+                            if contract_name == "SustainableFoodChain":
                                 self.contract_addresses[contract_name] = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
                                 logger.info(f"Contratto UserRegistry mappato all'indirizzo: {self.contract_addresses[contract_name]}")
-                            elif contract_name == "CO2Token":
-                                # Dai log, il primo contratto trovato è probabilmente CO2Token
-                                self.contract_addresses[contract_name] = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
-                                logger.info(f"Contratto CO2Token mappato all'indirizzo: {self.contract_addresses[contract_name]}")
-                            elif contract_name == "CompanyRegistry":
-                                self.contract_addresses[contract_name] = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
-                                logger.info(f"Contratto CompanyRegistry mappato all'indirizzo: {self.contract_addresses[contract_name]}")
                             else:
                                 # Indirizzo fittizio per test
                                 self.contract_addresses[contract_name] = f"0x{contract_name}000000000000000000000000000000000000"
@@ -668,9 +658,9 @@ class RichiesteRepositoryImpl():
                 return False
                 
             # Verifica se l'azienda è già registrata
-            if 'CompanyRegistry' not in blockchain_config.contracts:
+            if 'SustainableFoodChain' not in blockchain_config.contracts:
                 # Per scopi di sviluppo, consideriamo l'azienda come registrata anche se il contratto non è disponibile
-                logger.warning(f"Contratto CompanyRegistry non disponibile. Simulazione della registrazione dell'azienda {id_azienda}")
+                logger.warning(f"Contratto SustainableFoodChain non disponibile. Simulazione della registrazione dell'azienda {id_azienda}")
                 
                 # Forziamo la registrazione tramite script diretto, anche se il contratto non è disponibile nell'oggetto blockchain_config
                 # Questo è necessario perché il TokenExchange richiede che le aziende siano effettivamente registrate
@@ -679,7 +669,7 @@ class RichiesteRepositoryImpl():
                 # Continuiamo con la registrazione tramite script diretto
                 # NON ritorniamo qui, ma procediamo con la registrazione
             
-            company_registry = blockchain_config.contracts['CompanyRegistry']
+            company_registry = blockchain_config.contracts['SustainableFoodChain']
             
             # Crea uno script temporaneo per verificare e registrare l'azienda
             scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
@@ -690,14 +680,14 @@ class RichiesteRepositoryImpl():
             # Ottieni l'indirizzo del contratto CompanyRegistry
             # Prima controlla se è disponibile in blockchain_config
             company_registry_address = None
-            if 'CompanyRegistry' in blockchain_config.contracts:
-                company_registry_address = blockchain_config.contracts['CompanyRegistry']['address']
-                logger.info(f"Indirizzo CompanyRegistry ottenuto da blockchain_config: {company_registry_address}")
+            if 'SustainableFoodChain' in blockchain_config.contracts:
+                company_registry_address = blockchain_config.contracts['SustainableFoodChain']['address']
+                logger.info(f"Indirizzo SustainableFoodChain ottenuto da blockchain_config: {company_registry_address}")
             
             # Se non disponibile, usa l'indirizzo hardcoded (tipicamente 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512 per Hardhat)
             if not company_registry_address:
                 company_registry_address = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"  # Indirizzo standard per Hardhat
-                logger.info(f"Usando indirizzo CompanyRegistry hardcoded: {company_registry_address}")
+                logger.info(f"Usando indirizzo SustainableFoodChain hardcoded: {company_registry_address}")
             
             # Mappa il tipo di azienda al tipo nel contratto CompanyRegistry
             company_type_map = {
@@ -782,7 +772,7 @@ class RichiesteRepositoryImpl():
                 # Se l'errore contiene "Company not registered", potrebbe essere un problema con il TokenExchange
                 # ma non con la registrazione stessa, quindi consideriamo l'operazione riuscita
                 elif "Company not registered" in result.stderr:
-                    logger.warning(f"Possibile problema di sincronizzazione tra CompanyRegistry e TokenExchange per l'azienda {id_azienda}")
+                    logger.warning(f"Possibile problema di sincronizzazione di SustainableFoodChain per l'azienda {id_azienda}")
                     # Proviamo a forzare la registrazione una seconda volta
                     logger.info(f"Tentativo aggiuntivo di registrazione per l'azienda {id_azienda}")
                     retry_result = subprocess.run(["node", script_path], capture_output=True, text=True)
@@ -879,8 +869,8 @@ class RichiesteRepositoryImpl():
                     provider_address = blockchain_config.get_account_from_id(richiesta.id_destinatario)
                     requester_address = blockchain_config.get_account_from_id(richiesta.id_mittente)
                     
-                    if provider_address and requester_address and 'TokenExchange' in blockchain_config.contracts:
-                        token_exchange = blockchain_config.contracts['TokenExchange']
+                    if provider_address and requester_address and 'SustainableFoodChain' in blockchain_config.contracts:
+                        token_exchange = blockchain_config.contracts['SustainableFoodChain']
                         
                         # Crea uno script temporaneo per interagire con la blockchain tramite ethers.js
                         scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 

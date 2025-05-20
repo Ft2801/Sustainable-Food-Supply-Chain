@@ -29,7 +29,7 @@ L'applicazione è divisa in due componenti principali:
 
 ### Per la parte off_chain (Python)
 - PyQt5
-- SQLite3
+- PostgreSQL
 - Web3.py
 
 ### Per la parte on_chain (Blockchain)
