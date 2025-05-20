@@ -91,6 +91,7 @@ class CredentialRepositoryImpl(ABC):
             self.db.cur.execute(query_credenziali, (username, hash_password))
             logger.info(f"Inserisco le credenziali del nuovo utente {username}")
             id_credenziali = self.db.cur.lastrowid  # Ottieni l'ID appena creato
+            
             # Seconda INSERT: azienda
             query_azienda = """
                 INSERT INTO Azienda (Id_credenziali, Tipo, Nome, Indirizzo)
@@ -99,7 +100,26 @@ class CredentialRepositoryImpl(ABC):
             self.db.cur.execute(query_azienda, (id_credenziali, tipo, username, indirizzo))
             logger.info(f"Inserisco le informazione dell'azienda collegata all'utente {username}")
 
-            self.db.conn.commit()  # Commit manuale dell'intera transazione
+            # Commit manuale dell'intera transazione
+            self.db.conn.commit()
+            
+            # Ottieni l'ID dell'azienda appena creata
+            query_id_azienda = "SELECT Id_azienda FROM Azienda WHERE Id_credenziali = ?"
+            self.db.cur.execute(query_id_azienda, (id_credenziali,))
+            id_azienda = self.db.cur.fetchone()[0]
+            
+            # Registra l'azienda sulla blockchain
+            try:
+                from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
+                richieste_repo = RichiesteRepositoryImpl()
+                blockchain_registration = richieste_repo.register_company_on_blockchain(id_azienda)
+                if blockchain_registration:
+                    logger.info(f"Azienda {username} registrata con successo sulla blockchain")
+                else:
+                    logger.warning(f"Impossibile registrare l'azienda {username} sulla blockchain. Sarà registrata in seguito.")
+            except Exception as e:
+                logger.warning(f"Errore durante la registrazione dell'azienda sulla blockchain: {str(e)}. L'azienda sarà registrata in seguito.")
+            
             return id_credenziali
 
         except sqlite3.IntegrityError:

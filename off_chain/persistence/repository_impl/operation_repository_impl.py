@@ -247,7 +247,7 @@ class OperationRepositoryImpl(ABC):
             raise Exception(f"Errore nel inserimento: {e}")
 
 
-    def inserisci_prodotto_trasformato(self,id_tipo_prodotto: int, descrizione : str, quantita_prodotta: int, materie_prime_usate: dict , id_azienda: int, co2_consumata : int):
+    def inserisci_prodotto_trasformato(self, id_tipo_prodotto: int, descrizione: str, quantita_prodotta: int, materie_prime_usate: dict, id_azienda: int, co2_consumata: int):
         """
         Salva un prodotto trasformato nel database con le materie prime utilizzate.
         
@@ -258,15 +258,36 @@ class OperationRepositoryImpl(ABC):
 
         try:
             queries = []
-            composizioni = []
             tipo_evento = "trasformazione"
 
-            # 2. Prepara update quantità e composizione
+            # 1. Ottieni il prossimo ID lotto output
+            value_output_lotto = self.get_next_id_lotto_output()
+            
+            # 2. IMPORTANTE: Inserisci PRIMA l'operazione di trasformazione
+            # Questo è necessario per soddisfare il vincolo di chiave esterna in ComposizioneLotto
+            query_operazione, value_op = (
+                self.query_builder.
+                table("Operazione")
+                .insert(id_prodotto=id_tipo_prodotto,
+                        id_azienda=id_azienda,
+                        Tipo=tipo_evento,
+                        Id_lotto=value_output_lotto,
+                        Consumo_CO2=co2_consumata,
+                        quantita=quantita_prodotta)
+                .get_query()
+            )
+            
+            # Aggiungi l'operazione come PRIMA query da eseguire
+            queries.append((query_operazione, value_op))
+            
+            # 3. Aggiungi nuovo lotto al magazzino
+            query_magazzino = "INSERT OR IGNORE INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?, ?)"
+            value = (id_azienda, value_output_lotto, quantita_prodotta)
+            queries.append((query_magazzino, value))
+            
+            # 4. Prepara update quantità materie prime
             for _, (materia, quantita_usata) in materie_prime_usate.items():
-                # 2a. Diminuisci la quantità di materia prima
-
                 if isinstance(materia, ProdottoLottoModel):
-
                     query_update_materia, value = (
                         self.query_builder.
                         table("Magazzino")
@@ -275,56 +296,24 @@ class OperationRepositoryImpl(ABC):
                         .where("quantita", ">=", quantita_usata)
                         .get_query()
                     )
-                    
-
-                queries.append((query_update_materia, value))
-                composizioni.append((materia.id_prodotto, quantita_usata))
-
-
-
-            # 3 Creo la composizione del lotto 
-            value_output_lotto = self.get_next_id_lotto_output()
-
+                    queries.append((query_update_materia, value))
+            
+            # 5. Ora crea le composizioni del lotto (dopo aver creato l'operazione)
             for _, (materia, quantita_usata) in materie_prime_usate.items():
                 if isinstance(materia, ProdottoLottoModel):
-                    query_comp = "INSERT INTO ComposizioneLotto (id_lotto_output,id_lotto_input, quantità_utilizzata) VALUES (?, ?, ?)"
+                    query_comp = "INSERT INTO ComposizioneLotto (id_lotto_output, id_lotto_input, quantità_utilizzata) VALUES (?, ?, ?)"
                     params = (value_output_lotto, materia.id_lotto, quantita_usata)
-
                     queries.append((query_comp, params))
 
-            # Aggiungo nuovo lotto al magazzino
-            query_magazzino = " INSERT OR IGNORE INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?,?)"
-            value = (id_azienda,value_output_lotto,quantita_prodotta)
-            queries.append((query_magazzino, value))
-
-
-            # 6. Inserisci operazione di trasformazione
-            query_operazione, value_op = (
-                self.query_builder.
-                table("Operazione")
-                .insert(id_prodotto=id_tipo_prodotto,
-                        id_azienda = id_azienda,
-                        Tipo =tipo_evento,
-                        Id_lotto = value_output_lotto,
-                        Consumo_CO2 = co2_consumata,
-                        quantita = quantita_prodotta)
-                .get_query()
-            )
-
-            queries.append((query_operazione, value_op))
-
-            token = self.token_opeazione(co2_consumata,tipo_evento,id_tipo_prodotto)
-
-            value_update= (co2_consumata,token,id_azienda)
+            # 6. Aggiorna i token e CO2 dell'azienda
+            token = self.token_opeazione(co2_consumata, tipo_evento, id_tipo_prodotto)
+            value_update = (co2_consumata, token, id_azienda)
             queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
-
             
-    
-                
-            # 3. Esegui la transazione iniziale (prodotti + materie prime)
+            # 7. Esegui la transazione
             self.db.execute_transaction(queries)
 
-            return self.recupera_soglia(tipo_evento ,id_tipo_prodotto)
+            return self.recupera_soglia(tipo_evento, id_tipo_prodotto)
 
         except sqlite3.IntegrityError as e:
             print("IntegrityError:", e)

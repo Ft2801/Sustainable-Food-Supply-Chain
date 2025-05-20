@@ -31,6 +31,10 @@
                 const accounts = await provider.listAccounts();
                 signer = provider.getSigner(accounts[0]);
             }
+            
+            // Verifica che il provider sia connesso
+            const blockNumber = await provider.getBlockNumber();
+            console.log(`Provider connesso. Blocco corrente: ${blockNumber}`);
     
             // Crea un'istanza del contratto
             const contract = new ethers.Contract(
@@ -40,7 +44,7 @@
             );
             
             // Esegui la transazione
-            const tx = await contract.acceptTokenRequest(24);
+            const tx = await contract.acceptTokenRequest(41);
             console.log("Transaction hash:", tx.hash);
             
             // Attendi la conferma della transazione

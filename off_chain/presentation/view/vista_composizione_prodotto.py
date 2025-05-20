@@ -15,8 +15,8 @@ class VistaCreaProdottoTrasformato(QDialog):
 
     operazione_aggiunta = pyqtSignal()
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.setWindowTitle("Crea Nuovo Prodotto Trasformato")
         self.controller = ControllerAzienda()
         
@@ -81,7 +81,7 @@ class VistaCreaProdottoTrasformato(QDialog):
                         "Quantità usata",
                         f"Quanta quantità usare di {materia.nome}?",
                         min=1,
-                        max= materia.quantita,  # Placeholder per la quantità disponibile
+                        max=int(materia.quantita),  # Convert float to int for QInputDialog.getInt()
                     )
                     if succ:
                         self.quantita_usata_per_materia[materia.id_prodotto] = (materia, quantita)
