@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListVie
                              QPushButton, QMessageBox)
 
 from model.richiesta_token_model import RichiestaTokenModel
+from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
 from session import Session
@@ -23,7 +24,9 @@ class VistaRiceviRichiesta(QMainWindow):
 
         self.lista_prova : list[RichiestaTokenModel] = self.controller.get_richieste_ric_token()
 
-        self.token = Session()._current_user.token
+        self.controllerAut = ControllerAutenticazione()
+
+        self.token = self.controllerAut.get_user().token
         # Elementi di layout
         self.list_view = QListView()
         self.invia_button = QPushButton("Accetta")

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListVie
                         )
 
 from model.richiesta_token_model import RichiestaTokenModel
-from session import Session
+from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
 
@@ -22,8 +22,9 @@ class VistaRiepilogoOperazioni(QMainWindow):
         self.controller = ControllerAzienda()
 
         self.lista_prova : list[RichiestaTokenModel]= self.controller.get_operazioni_token()
+        self.controllerAut = ControllerAutenticazione()
 
-        self.token = Session()._current_user.token
+        self.token = self.controllerAut.get_user().token
 
         # Elementi di layout
         self.list_view = QListView()
