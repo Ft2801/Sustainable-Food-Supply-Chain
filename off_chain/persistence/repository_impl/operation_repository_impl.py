@@ -50,6 +50,7 @@ class OperationRepositoryImpl(ABC):
     def get_operazioni_by_azienda(self, azienda: int) -> list[OperazioneEstesaModel]:
         """Restituisce la lista di tutte le operazioni effettuate da una certa azienda """
 
+        # Utilizziamo una query senza la colonna descrizione per sicurezza
         query, value = (
             self.query_builder
                 .select(
@@ -59,7 +60,7 @@ class OperationRepositoryImpl(ABC):
                     "Operazione.Data_operazione",
                     "Operazione.Consumo_CO2",
                     "Operazione.Tipo",
-                    "Operazione.quantita",
+                    "Operazione.quantita"
                 )
                 .table("Operazione")
                 .join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto")
@@ -67,26 +68,32 @@ class OperationRepositoryImpl(ABC):
                 .get_query()
         )
 
-
         try:
             results = self.db.fetch_results(query, value)
-            operazioni_estese = [
-                    OperazioneEstesaModel(
+            if results is None:
+                logger.error("No results returned from database")
+                return []
+                
+            operazioni_estese = []
+            for row in results:
+                try:
+                    operazione = OperazioneEstesaModel(
                         id_operazione=row[0],
                         id_prodotto=row[1],
                         nome_prodotto=row[2],
                         data_operazione=row[3],
                         consumo_co2=row[4],
                         nome_operazione=row[5],
-                        quantita_prodotto=row[6],                 
-            )
-            for row in results
-            ]
-
+                        quantita_prodotto=row[6]
+                    )
+                    operazioni_estese.append(operazione)
+                except Exception as e:
+                    logger.error(f"Error creating OperazioneEstesaModel: {e} for row: {row}", exc_info=True)
+            
             return operazioni_estese   
         except Exception as e:
-            logger.error(f"Error fetching operations by company qui: {e}", exc_info=True)
-            return[]
+            logger.error(f"Error fetching operations by company: {e}", exc_info=True)
+            return []
     
 
 

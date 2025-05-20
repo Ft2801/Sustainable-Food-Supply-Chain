@@ -55,11 +55,7 @@ class AggiungiOperazioneView(QDialog):
                 self.input_combo_prodotto.addItem(prodotto.Nome_prodotto, prodotto.Id_prodotto)  # nome visibile, ID come userData
             layout.addWidget(self.input_combo_prodotto)
 
-            self.input_descrizione = QLineEdit()
-            self.input_descrizione.setPlaceholderText("Descrizione aggiuntiva (es. 'biologiche')")
-            self.input_descrizione.setMaxLength(50)
-            layout.addWidget(QLabel("Descrizione prodotto:"))
-            layout.addWidget(self.input_descrizione)
+            # Campo descrizione rimosso
 
 
             self.input_quantita = QDoubleSpinBox()
@@ -164,7 +160,8 @@ class AggiungiOperazioneView(QDialog):
                     return
                 
                 id_prodotto_base = self.input_combo_prodotto.currentData()
-                descrizione = self.input_descrizione.text().strip()
+                # Descrizione rimossa
+                descrizione = ""  # Valore vuoto per la descrizione
 
                 if not id_prodotto_base:
                     QMessageBox.warning(self, "Errore", "Seleziona una tipologia di prodotto.")
@@ -175,7 +172,7 @@ class AggiungiOperazioneView(QDialog):
                     data=data,
                     co2=co2,
                     id_tipo_prodotto=id_prodotto_base,
-                    descrizione=descrizione,
+                    descrizione=descrizione,  # Passiamo una stringa vuota
                     quantita=quantita
                 )
 

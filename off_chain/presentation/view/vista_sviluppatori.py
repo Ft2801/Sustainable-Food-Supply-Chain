@@ -38,10 +38,11 @@ class VistaSviluppatori(QMainWindow):
         
         # Add developer information (placeholder - replace with actual developer info)
         self._add_developer(developers_layout, "Developer 1", "Gianluca Baldelli", "S1121772@studenti.univpm.it")
-        self._add_developer(developers_layout, "Developer 2", "Domenico La Porta", "S1125535@studenti.univpm.it")
-        self._add_developer(developers_layout, "Developer 3", "Luca Marcianesi", "S1127075@studenti.univpm.it")
-        self._add_developer(developers_layout, "Developer 4", "Catalina Martha Quispe Ipurre", "S1121594@studenti.univpm.it")
-        self._add_developer(developers_layout, "Developer 5", "Fabio Tempera", "S1125574@studenti.univpm.it")
+        self._add_developer(developers_layout, "Developer 2", "Fabio Tempera", "S1125574@studenti.univpm.it")
+        self._add_developer(developers_layout, "Developer 3", "Domenico La Porta", "S1125535@studenti.univpm.it")
+        self._add_developer(developers_layout, "Developer 4", "Luca Marcianesi", "S1127075@studenti.univpm.it")
+        self._add_developer(developers_layout, "Developer 5", "Catalina Martha Quispe Ipurre", "S1121594@studenti.univpm.it")
+        
         
         main_layout.addLayout(developers_layout)
         
