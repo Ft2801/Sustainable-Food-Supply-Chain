@@ -175,7 +175,7 @@ class OperationRepositoryImpl(ABC):
             logger.info(f"Operazione registrata con successo.")
         except Exception as e:
             logger.error(f"Errore durante l'inserimento del prodotto: {str(e)}")
-            raise Exception(f"Errore nel inserimento: {e}")
+            raise Exception(f"Errore nell'inserimento: {e}")
 
 
     def inserisci_operazione_trasporto(self, id_azienda_trasporto: int,id_lotto_input: int, id_prodotto: int, id_azienda_richiedente: int, id_azienda_ricevente: int, quantita: int, co2_emessa: float):
@@ -323,18 +323,24 @@ class OperationRepositoryImpl(ABC):
             # Se c'è un errore, rollback dell'intera transazione
             self.db.conn.rollback()
             raise Exception(f"Errore durante la creazione del prodotto trasformato: {e}")
-
+         
 
     def get_next_id_lotto_output(self):
         try:
-            result = self.db.fetch_one("SELECT IFNULL(MAX(id_lotto_output), 0) + 1 FROM ComposizioneLotto;")
-            value_output_lotto = result or 1
+            # Ottieni il massimo ID lotto dalla tabella ComposizioneLotto
+            max_composizione = self.db.fetch_one("SELECT IFNULL(MAX(id_lotto_output), 0) FROM ComposizioneLotto;")
+            
+            # Ottieni il massimo ID lotto dalla tabella Operazione
+            max_operazione = self.db.fetch_one("SELECT IFNULL(MAX(Id_lotto), 0) FROM Operazione;")
+            
+            # Usa il massimo tra i due valori e aggiungi 1
+            max_id = max(max_composizione or 0, max_operazione or 0)
+            value_output_lotto = max_id + 1
+            
             return value_output_lotto
         except Exception as e:
-            raise ValueError("Erroe nell'ottenimento del nuovo id lotto")
-         
-
-    
+            logger.error(f"Errore nell'ottenimento del nuovo id lotto: {str(e)}")
+            raise ValueError(f"Errore nell'ottenimento del nuovo id lotto: {str(e)}")
 
     def token_opeazione(self,co2_consumata :int,tipo_operazione: str, id_prodotto: int) -> int:
         try:
