@@ -257,7 +257,7 @@ class ControllerAzienda:
 
     def get_aziende(self) -> list[CompanyModel]:
         try:
-            return self.company.get_lista_aziende(tipo = Session().current_user["role"],escludi_azienda=Session().current_user["id_azienda"])
+            return self.company.get_lista_aziende(escludi_azienda=Session().current_user["id_azienda"])
         except Exception as e:
             logger.error(f"Errore {e}", exc_info=True)
             return []
