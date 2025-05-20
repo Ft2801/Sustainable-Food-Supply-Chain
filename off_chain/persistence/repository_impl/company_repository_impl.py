@@ -43,7 +43,7 @@ class CompanyRepositoryImpl(ABC):
 
 
         if not tipo: 
-                self.query_builder.where("Tipo", "!=" , db_default_string.TIPO_AZIENDA_TRASPORTATORE)
+                self.query_builder.where("Tipo", "!=" , db_default_string.TIPO_AZIENDA_CERTIFICATORE)
 
         if nome:
             self.query_builder.where("Nome", "=",nome)
