@@ -49,7 +49,7 @@ class VistaRiepilogoOperazioni(QMainWindow):
         main_layout.setSpacing(20)
         main_layout.setAlignment(Qt.AlignCenter)  # Centra verticalmente
 
-        label = QLabel(f"Token posseduti: {500}\n"
+        label = QLabel(f"Token posseduti: {str(self.token)}\n"
                        f"Riepilogo operazioni")
 
         funzioni_utili.insert_label(label, main_layout)
