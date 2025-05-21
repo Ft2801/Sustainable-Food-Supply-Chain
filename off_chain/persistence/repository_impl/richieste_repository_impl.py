@@ -612,7 +612,8 @@ class RichiesteRepositoryImpl():
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
             .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
-            .where("(r.Id_richiedente = ? OR r.Id_ricevente = ?)", None, [id_azienda, id_azienda])
+            .where("r.Id_richiedente" ,"=", id_azienda) \
+            .or_where("r.Id_ricevente", "=" , id_azienda) \
             
             query, value = self.query_builder.get_query()
             logger.info(f"Query: {query}")
