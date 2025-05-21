@@ -207,7 +207,7 @@ class OperationRepositoryImpl(ABC):
             if quantita_disponibile < quantita:
                 raise Exception( f"Quantità insufficiente: disponibile {quantita_disponibile}, richiesta {quantita}.")
             
-            
+            #vendita
             value_output_lotto = self.get_next_id_lotto_output()
 
             query = "INSERT INTO ComposizioneLotto (id_lotto_output,id_lotto_input, quantità_utilizzata) VALUES (?, ?, ?)"
@@ -222,16 +222,30 @@ class OperationRepositoryImpl(ABC):
 
             queries.append((query,params))
 
-            logger.info(f"Operazione di trasporto inserita con successo.")
+            #Trasporto
+            lotto_vendita : int = value_output_lotto + 1
+            query = "INSERT INTO ComposizioneLotto (id_lotto_output,id_lotto_input, quantità_utilizzata) VALUES (?, ?, ?)"
+            params = (lotto_vendita, value_output_lotto, quantita)  
+
+            queries.append((query,params))
+            
+       
+
+            query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
+            params = (id_azienda_ricevente,id_prodotto, lotto_vendita, quantita, 0,db_default_string.TIPO_OP_VENDITA)
+
+            queries.append((query,params))
+
+            
 
         
-
+            # Aggiornamento del magazzino
             query = "INSERT INTO Magazzino(id_azienda,id_lotto,quantita) VALUES(?,?,?)"
             params = (id_azienda_richiedente,value_output_lotto,quantita)
 
             queries.append((query,params))
 
-            # Aggiornamento
+            
             query_mag = """UPDATE Magazzino SET quantita = quantita - ? WHERE id_lotto = ?;""" 
             value_mag = (quantita, id_lotto_input)
             queries.append((query_mag, value_mag))
@@ -245,6 +259,8 @@ class OperationRepositoryImpl(ABC):
 
 
             self.db.execute_transaction(queries)
+
+            logger.info(f"Operazione di trasporto inserita con successo.")
 
 
             logger.info( f"Aggiornamento riuscito: {quantita} sottratti dal lotto {id_lotto_input}.")
