@@ -44,6 +44,42 @@ contract SustainableFoodChain is ReentrancyGuard {
     event RequestCancelled(uint256 indexed requestId, address indexed requester);
     event SustainabilityVerified(uint256 indexed requestId, address indexed verifier, bool verified);
     
+    // Eventi Operazioni
+    event OperationCreated(
+        uint256 indexed operationId,
+        address indexed companyAddress,
+        OperationType operationType,
+        uint256 timestamp,
+        string description,
+        uint256 batchId
+    );
+    
+    // Eventi Azioni Compensative
+    event CompensationActionCreated(
+        uint256 indexed actionId,
+        address indexed companyAddress,
+        string actionType,
+        uint256 timestamp,
+        uint256 co2Reduction,
+        string description
+    );
+    
+    // Eventi Lotti
+    event BatchCreated(
+        uint256 indexed batchId,
+        address indexed producerAddress,
+        string productName,
+        uint256 quantity,
+        uint256 timestamp,
+        string metadata
+    );
+    event BatchTransferred(
+        uint256 indexed batchId,
+        address indexed fromAddress,
+        address indexed toAddress,
+        uint256 timestamp
+    );
+    
     // ======== STRUTTURE DATI ========
     // User Registry
     struct User {
@@ -85,6 +121,43 @@ contract SustainableFoodChain is ReentrancyGuard {
         bool isSustainabilityVerified;
     }
     
+    // Operazioni
+    enum OperationType { Production, Processing, Transport, Sale }
+    
+    struct Operation {
+        uint256 id;
+        address companyAddress;
+        OperationType operationType;
+        uint256 timestamp;
+        string description;
+        uint256 batchId;  // ID del lotto associato all'operazione
+        bool isValid;     // Flag per verificare se l'operazione è valida
+    }
+    
+    // Azioni Compensative
+    struct CompensationAction {
+        uint256 id;
+        address companyAddress;
+        string actionType;       // Tipo di azione compensativa (es. "Piantumazione", "Energia rinnovabile")
+        uint256 timestamp;
+        uint256 co2Reduction;    // Riduzione di CO2 in kg
+        string description;     // Descrizione dettagliata dell'azione
+        bool isVerified;        // Flag per verificare se l'azione è stata verificata
+    }
+    
+    // Lotti
+    struct Batch {
+        uint256 id;
+        address currentOwner;    // Proprietario attuale del lotto
+        address producer;       // Produttore originale del lotto
+        string productName;     // Nome del prodotto
+        uint256 quantity;       // Quantità del prodotto nel lotto
+        uint256 creationTimestamp;
+        string metadata;        // Metadati aggiuntivi in formato JSON
+        uint256[] operationIds; // IDs delle operazioni associate a questo lotto
+        bool isActive;          // Flag per verificare se il lotto è attivo
+    }
+    
     // ======== STATO ========
     // User Registry
     mapping(address => User) private users;
@@ -105,6 +178,21 @@ contract SustainableFoodChain is ReentrancyGuard {
     // Token Exchange
     mapping(uint256 => TokenRequest) public requests;
     uint256 public nextRequestId = 1;
+    
+    // Operazioni
+    mapping(uint256 => Operation) public operations;
+    uint256 public nextOperationId = 1;
+    mapping(address => uint256[]) private companyOperations; // Operazioni per azienda
+    
+    // Azioni Compensative
+    mapping(uint256 => CompensationAction) public compensationActions;
+    uint256 public nextCompensationActionId = 1;
+    mapping(address => uint256[]) private companyCompensationActions; // Azioni compensative per azienda
+    
+    // Lotti
+    mapping(uint256 => Batch) public batches;
+    uint256 public nextBatchId = 1;
+    mapping(address => uint256[]) private companyBatches; // Lotti per azienda
     
     // ======== MODIFICATORI ========
     modifier onlyRegisteredUser() {
@@ -190,9 +278,9 @@ contract SustainableFoodChain is ReentrancyGuard {
     }
 
     function getUser(address _userAddress) external view returns (
-        string memory name,
-        string memory email,
-        string memory role,
+        string memory userName,
+        string memory userEmail,
+        string memory userRole,
         bool isActive,
         uint256 registrationDate
     ) {
@@ -238,7 +326,7 @@ contract SustainableFoodChain is ReentrancyGuard {
     }
     
     function getCompany(address _companyAddress) external view onlyRegisteredCompany(_companyAddress) returns (
-        string memory name,
+        string memory companyName,
         address owner,
         CompanyType companyType,
         string memory location,
@@ -280,6 +368,399 @@ contract SustainableFoodChain is ReentrancyGuard {
         companies[msg.sender].sustainabilityCertifications = _certifications;
         emit CertificationsUpdated(msg.sender, _certifications);
     }
+
+    /**
+     * @dev Verifica se un'azienda è registrata nel sistema
+     * @param company Indirizzo dell'azienda da verificare
+     * @return true se l'azienda è registrata, false altrimenti
+     */
+    function isRegistered(address company) public view returns (bool) {
+        return isCompanyAddressRegistered[company];
+    }
+    
+    // ======== FUNZIONI PER OPERAZIONI ========
+    /**
+     * @dev Registra una nuova operazione sulla blockchain
+     * @param operationType Tipo di operazione (Production, Processing, Transport, Sale)
+     * @param description Descrizione dell'operazione
+     * @param batchId ID del lotto associato all'operazione (0 se non associato a un lotto esistente)
+     * @return ID dell'operazione creata
+     */
+    function registerOperation(
+        OperationType operationType,
+        string memory description,
+        uint256 batchId
+    ) public onlyRegisteredCompany(msg.sender) returns (uint256) {
+        uint256 operationId = nextOperationId;
+        nextOperationId++;
+        
+        operations[operationId] = Operation({
+            id: operationId,
+            companyAddress: msg.sender,
+            operationType: operationType,
+            timestamp: block.timestamp,
+            description: description,
+            batchId: batchId,
+            isValid: true
+        });
+        
+        // Aggiungi l'operazione all'elenco delle operazioni dell'azienda
+        companyOperations[msg.sender].push(operationId);
+        
+        // Se l'operazione è associata a un lotto esistente, aggiorna il lotto
+        if (batchId > 0 && batches[batchId].isActive) {
+            batches[batchId].operationIds.push(operationId);
+        }
+        
+        emit OperationCreated(
+            operationId,
+            msg.sender,
+            operationType,
+            block.timestamp,
+            description,
+            batchId
+        );
+        
+        return operationId;
+    }
+    
+    /**
+     * @dev Ottiene le operazioni di un'azienda
+     * @param companyAddress Indirizzo dell'azienda
+     * @return Array di ID delle operazioni dell'azienda
+     */
+    function getCompanyOperations(address companyAddress) external view returns (uint256[] memory) {
+        return companyOperations[companyAddress];
+    }
+    
+    /**
+     * @dev Ottiene i dettagli di un'operazione
+     * @param operationId ID dell'operazione
+     * @return id ID dell'operazione
+     * @return companyAddress Indirizzo dell'azienda che ha effettuato l'operazione
+     * @return operationType Tipo di operazione
+     * @return timestamp Timestamp dell'operazione
+     * @return description Descrizione dell'operazione
+     * @return batchId ID del lotto associato all'operazione
+     * @return isValid Flag che indica se l'operazione è valida
+     */
+    function getOperation(uint256 operationId) external view returns (
+        uint256 id,
+        address companyAddress,
+        OperationType operationType,
+        uint256 timestamp,
+        string memory description,
+        uint256 batchId,
+        bool isValid
+    ) {
+        Operation memory operation = operations[operationId];
+        require(operation.id > 0, "Operation does not exist");
+        
+        return (
+            operation.id,
+            operation.companyAddress,
+            operation.operationType,
+            operation.timestamp,
+            operation.description,
+            operation.batchId,
+            operation.isValid
+        );
+    }
+    
+    // ======== FUNZIONI PER AZIONI COMPENSATIVE ========
+    /**
+     * @dev Registra una nuova azione compensativa sulla blockchain
+     * @param actionType Tipo di azione compensativa
+     * @param co2Reduction Riduzione di CO2 in kg
+     * @param description Descrizione dettagliata dell'azione
+     * @return ID dell'azione compensativa creata
+     */
+    function registerCompensationAction(
+        string calldata actionType,
+        uint256 co2Reduction,
+        string calldata description
+    ) external onlyRegisteredCompany(msg.sender) returns (uint256) {
+        uint256 actionId = nextCompensationActionId;
+        nextCompensationActionId++;
+        
+        compensationActions[actionId] = CompensationAction({
+            id: actionId,
+            companyAddress: msg.sender,
+            actionType: actionType,
+            timestamp: block.timestamp,
+            co2Reduction: co2Reduction,
+            description: description,
+            isVerified: false  // L'azione deve essere verificata da un'autorità competente
+        });
+        
+        // Aggiungi l'azione all'elenco delle azioni dell'azienda
+        companyCompensationActions[msg.sender].push(actionId);
+        
+        emit CompensationActionCreated(
+            actionId,
+            msg.sender,
+            actionType,
+            block.timestamp,
+            co2Reduction,
+            description
+        );
+        
+        return actionId;
+    }
+    
+    /**
+     * @dev Verifica un'azione compensativa
+     * @param actionId ID dell'azione compensativa
+     * @param isVerified Flag che indica se l'azione è verificata
+     */
+    function verifyCompensationAction(uint256 actionId, bool isVerified) external onlyRegisteredCompany(msg.sender) {
+        CompensationAction storage action = compensationActions[actionId];
+        require(action.id > 0, "Action does not exist");
+        
+        // Solo l'azienda che ha registrato l'azione o un'autorità certificata può verificarla
+        // In una versione più completa, si potrebbe aggiungere un ruolo di verificatore
+        require(msg.sender == action.companyAddress, "Not authorized");
+        
+        action.isVerified = isVerified;
+        
+        // Se l'azione è verificata, aumentiamo il punteggio di sostenibilità dell'azienda
+        if (isVerified) {
+            uint256 currentScore = companies[action.companyAddress].sustainabilityScore;
+            // Aumento del punteggio basato sulla riduzione di CO2
+            uint256 scoreIncrease = action.co2Reduction / 1000;  // 1 punto ogni 1000 kg di CO2 ridotta
+            uint256 newScore = currentScore + scoreIncrease;
+            require(newScore <= 100, "Score must be between 0 and 100");
+            companies[action.companyAddress].sustainabilityScore = newScore;
+            emit SustainabilityScoreUpdated(action.companyAddress, currentScore, newScore);
+        }
+    }
+    
+    /**
+     * @dev Ottiene le azioni compensative di un'azienda
+     * @param companyAddress Indirizzo dell'azienda
+     * @return Array di ID delle azioni compensative dell'azienda
+     */
+    function getCompanyCompensationActions(address companyAddress) external view returns (uint256[] memory) {
+        return companyCompensationActions[companyAddress];
+    }
+    
+    /**
+     * @dev Ottiene i dettagli di un'azione compensativa
+     * @param actionId ID dell'azione compensativa
+     * @return id ID dell'azione compensativa
+     * @return companyAddress Indirizzo dell'azienda che ha effettuato l'azione
+     * @return actionType Tipo di azione compensativa
+     * @return timestamp Timestamp dell'azione
+     * @return co2Reduction Riduzione di CO2 in kg
+     * @return description Descrizione dettagliata dell'azione
+     * @return isVerified Flag che indica se l'azione è stata verificata
+     */
+    function getCompensationAction(uint256 actionId) external view returns (
+        uint256 id,
+        address companyAddress,
+        string memory actionType,
+        uint256 timestamp,
+        uint256 co2Reduction,
+        string memory description,
+        bool isVerified
+    ) {
+        CompensationAction memory action = compensationActions[actionId];
+        require(action.id > 0, "Action does not exist");
+        
+        return (
+            action.id,
+            action.companyAddress,
+            action.actionType,
+            action.timestamp,
+            action.co2Reduction,
+            action.description,
+            action.isVerified
+        );
+    }
+    
+    // ======== FUNZIONI PER LOTTI ========
+    /**
+     * @dev Crea un nuovo lotto di prodotti
+     * @param productName Nome del prodotto
+     * @param quantity Quantità del prodotto
+     * @param metadata Metadati aggiuntivi in formato JSON
+     * @return ID del lotto creato
+     */
+    function createBatch(
+        string calldata productName,
+        uint256 quantity,
+        string calldata metadata
+    ) external onlyRegisteredCompany(msg.sender) returns (uint256) {
+        uint256 batchId = nextBatchId;
+        nextBatchId++;
+        
+        // Inizializza un array vuoto per gli ID delle operazioni
+        uint256[] memory emptyOperationIds = new uint256[](0);
+        
+        batches[batchId] = Batch({
+            id: batchId,
+            currentOwner: msg.sender,
+            producer: msg.sender,  // Il creatore è il produttore originale
+            productName: productName,
+            quantity: quantity,
+            creationTimestamp: block.timestamp,
+            metadata: metadata,
+            operationIds: emptyOperationIds,
+            isActive: true
+        });
+        
+        // Aggiungi il lotto all'elenco dei lotti dell'azienda
+        companyBatches[msg.sender].push(batchId);
+        
+        emit BatchCreated(
+            batchId,
+            msg.sender,
+            productName,
+            quantity,
+            block.timestamp,
+            metadata
+        );
+        
+        // Registra automaticamente un'operazione di produzione per questo lotto
+        string memory description = string(abi.encodePacked("Produzione iniziale del lotto ", toString(batchId)));
+        registerOperation(
+            OperationType.Production,
+            description,
+            batchId
+        );
+        
+        return batchId;
+    }
+    
+    /**
+     * @dev Trasferisce un lotto da un'azienda a un'altra
+     * @param batchId ID del lotto da trasferire
+     * @param toAddress Indirizzo dell'azienda destinataria
+     * @param operationType Tipo di operazione associata al trasferimento
+     * @param description Descrizione dell'operazione
+     */
+    function transferBatch(
+        uint256 batchId,
+        address toAddress,
+        OperationType operationType,
+        string calldata description
+    ) external onlyRegisteredCompany(msg.sender) {
+        Batch storage batch = batches[batchId];
+        require(batch.id > 0, "Batch does not exist");
+        require(batch.isActive, "Batch is not active");
+        require(batch.currentOwner == msg.sender, "Not the batch owner");
+        require(isCompanyAddressRegistered[toAddress], "Recipient not a registered company");
+        
+        // Registra l'operazione di trasferimento
+        uint256 operationId = registerOperation(
+            operationType,
+            description,
+            batchId
+        );
+        
+        // Aggiorna il proprietario del lotto
+        address previousOwner = batch.currentOwner;
+        batch.currentOwner = toAddress;
+        
+        // Aggiungi il lotto all'elenco dei lotti dell'azienda destinataria
+        companyBatches[toAddress].push(batchId);
+        
+        emit BatchTransferred(
+            batchId,
+            previousOwner,
+            toAddress,
+            block.timestamp
+        );
+    }
+    
+    /**
+     * @dev Ottiene i lotti di un'azienda
+     * @param companyAddress Indirizzo dell'azienda
+     * @return Array di ID dei lotti dell'azienda
+     */
+    function getCompanyBatches(address companyAddress) external view returns (uint256[] memory) {
+        return companyBatches[companyAddress];
+    }
+    
+    /**
+     * @dev Ottiene i dettagli di un lotto
+     * @param batchId ID del lotto
+     * @return id ID del lotto
+     * @return currentOwner Proprietario attuale del lotto
+     * @return producer Produttore originale del lotto
+     * @return productName Nome del prodotto
+     * @return quantity Quantità del prodotto
+     * @return creationTimestamp Timestamp di creazione del lotto
+     * @return metadata Metadati aggiuntivi
+     * @return isActive Flag che indica se il lotto è attivo
+     */
+    function getBatch(uint256 batchId) external view returns (
+        uint256 id,
+        address currentOwner,
+        address producer,
+        string memory productName,
+        uint256 quantity,
+        uint256 creationTimestamp,
+        string memory metadata,
+        bool isActive
+    ) {
+        Batch memory batch = batches[batchId];
+        require(batch.id > 0, "Batch does not exist");
+        
+        return (
+            batch.id,
+            batch.currentOwner,
+            batch.producer,
+            batch.productName,
+            batch.quantity,
+            batch.creationTimestamp,
+            batch.metadata,
+            batch.isActive
+        );
+    }
+    
+    /**
+     * @dev Ottiene le operazioni associate a un lotto
+     * @param batchId ID del lotto
+     * @return Array di ID delle operazioni associate al lotto
+     */
+    function getBatchOperations(uint256 batchId) external view returns (uint256[] memory) {
+        Batch memory batch = batches[batchId];
+        require(batch.id > 0, "Batch does not exist");
+        
+        return batch.operationIds;
+    }
+    
+    /**
+     * @dev Funzione di utilità per convertire un uint in string
+     * @param value Valore da convertire
+     * @return Rappresentazione in stringa del valore
+     */
+    function toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0";
+        }
+        
+        uint256 temp = value;
+        uint256 digits;
+        
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        
+        bytes memory buffer = new bytes(digits);
+        
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        
+        return string(buffer);
+    }
+    
+
     
     function getCompaniesByType(CompanyType _companyType) external view returns (address[] memory) {
         uint256 count = 0;

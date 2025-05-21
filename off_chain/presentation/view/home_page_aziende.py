@@ -202,21 +202,18 @@ class HomePage(QMainWindow):
 
     # Aggiunta Domenico
     def invia_richiesta(self):
-        self.inactivity_timer.stop()
         self.hide()
         self.vista_invia_richieste = VistaInviaRichiesta()
         self.vista_invia_richieste.closed.connect(self.mostra)
         self.vista_invia_richieste.show()
 
     def ricevi_richiesta(self):
-        self.inactivity_timer.stop()
         self.hide()
         self.vista_ricevi_richieste = VistaRiceviRichiesta()
         self.vista_ricevi_richieste.closed.connect(self.mostra)
         self.vista_ricevi_richieste.show()
 
     def riepilogo_richieste(self):
-        self.inactivity_timer.stop()
         self.hide()
         self.vista_riepilogo = VistaRiepilogoOperazioni()
         self.vista_riepilogo.closed.connect(self.mostra)
@@ -228,3 +225,7 @@ class HomePage(QMainWindow):
         self.welcome_label.setText(
             f"Ciao {Session().current_user['username']} !\nBenvenuto in SupplyChain.\nPrego selezionare un'opzione dal menu"
         )
+        
+    def mostra(self):
+        """Mostra la finestra principale"""
+        self.show()

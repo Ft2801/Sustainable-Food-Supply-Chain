@@ -44,7 +44,7 @@
             );
             
             // Esegui la transazione
-            const tx = await contract.acceptTokenRequest(45);
+            const tx = await contract.rejectTokenRequest(44, "Richiesta rifiutata dall'utente");
             console.log("Transaction hash:", tx.hash);
             
             // Attendi la conferma della transazione

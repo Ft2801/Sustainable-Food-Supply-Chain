@@ -163,7 +163,8 @@ def generate_js_script(script_type, params):
     '''
     elif script_type == "register_company":
         # Per il registro delle aziende, dobbiamo usare il contratto CompanyRegistry
-        registry_contract_path = "../artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json"
+        # Utilizziamo il percorso assoluto per evitare problemi di path relativi
+        registry_contract_path = "../../on_chain/artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json"
         
         return base_script.replace(contract_path, registry_contract_path) + f'''
             // Crea un'istanza del contratto SustainableFoodChain
@@ -266,25 +267,45 @@ class BlockchainConfig:
             
             logger.info(f"Cercando contratti in: {artifacts_dir}")
             
-            # Ottieni gli indirizzi dei contratti deployati
-            # Usiamo il modulo interact_contract per ottenere gli indirizzi corretti
-            try:
-                sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "on_chain"))
-                from interact_contract import BlockchainInteractor
-                interactor = BlockchainInteractor()
-                
-                # Ottieni i contratti dal BlockchainInteractor
-                for contract_name, contract in interactor.contracts.items():
-                    if contract_name in contract_names:
-                        self.contract_addresses[contract_name] = contract.address
-                        self.contract_abis[contract_name] = contract.abi
-                        logger.info(f"Contratto {contract_name} caricato da BlockchainInteractor con indirizzo: {contract.address}")
-            except Exception as e:
-                logger.warning(f"Errore nell'utilizzo di BlockchainInteractor: {e}")
-                logger.warning("Utilizzando il metodo alternativo per caricare i contratti")
-                
-                # Metodo alternativo: cerca i file JSON nelle sottodirectory di artifacts_dir
-                for contract_name in contract_names:
+            # Prima di tutto, cerchiamo l'indirizzo del contratto nel file contract_address.json
+            # che viene creato dallo script di deployment
+            contract_address_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                                              "off_chain", "contract_address.json")
+            
+            # Se il file esiste, leggiamo gli indirizzi dei contratti da lì
+            if os.path.exists(contract_address_file):
+                try:
+                    with open(contract_address_file, 'r') as f:
+                        contract_addresses_data = json.load(f)
+                        for contract_name in contract_names:
+                            if contract_name in contract_addresses_data:
+                                self.contract_addresses[contract_name] = contract_addresses_data[contract_name]
+                                logger.info(f"Indirizzo del contratto {contract_name} caricato dal file contract_address.json: {self.contract_addresses[contract_name]}")
+                except Exception as e:
+                    logger.warning(f"Errore nella lettura del file contract_address.json: {e}")
+            else:
+                logger.warning("File contract_address.json non trovato, utilizzo metodi alternativi per caricare gli indirizzi dei contratti")
+            
+            # Se non abbiamo trovato gli indirizzi nel file, proviamo con BlockchainInteractor
+            if not all(contract_name in self.contract_addresses for contract_name in contract_names):
+                try:
+                    sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "on_chain"))
+                    from interact_contract import BlockchainInteractor
+                    interactor = BlockchainInteractor()
+                    
+                    # Ottieni i contratti dal BlockchainInteractor
+                    for contract_name, contract in interactor.contracts.items():
+                        if contract_name in contract_names and contract_name not in self.contract_addresses:
+                            self.contract_addresses[contract_name] = contract.address
+                            self.contract_abis[contract_name] = contract.abi
+                            logger.info(f"Contratto {contract_name} caricato da BlockchainInteractor con indirizzo: {contract.address}")
+                except Exception as e:
+                    logger.warning(f"Errore nell'utilizzo di BlockchainInteractor: {e}")
+                    logger.warning("Utilizzando il metodo alternativo per caricare i contratti")
+            
+            # Carica gli ABI dai file JSON nelle sottodirectory di artifacts_dir
+            for contract_name in contract_names:
+                if contract_name not in self.contract_abis:
                     try:
                         # Cerca il file JSON corrispondente al contratto
                         contract_files = []
@@ -306,19 +327,20 @@ class BlockchainConfig:
                             self.contract_abis[contract_name] = contract_data['abi']
                             logger.info(f"ABI per il contratto {contract_name} trovato in {file_path}")
                             
-                            # Per gli indirizzi, dobbiamo usare quelli trovati da BlockchainInteractor
-                            # o quelli predefiniti di Hardhat
-                            if contract_name == "SustainableFoodChain":
-                                self.contract_addresses[contract_name] = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-                                logger.info(f"Contratto UserRegistry mappato all'indirizzo: {self.contract_addresses[contract_name]}")
-                            else:
-                                # Indirizzo fittizio per test
-                                self.contract_addresses[contract_name] = f"0x{contract_name}000000000000000000000000000000000000"
-                            
-                            logger.info(f"Contratto {contract_name} configurato con indirizzo: {self.contract_addresses[contract_name]}")
+                            # Se non abbiamo ancora l'indirizzo del contratto, usiamo quello predefinito di Hardhat
+                            if contract_name not in self.contract_addresses:
+                                if contract_name == "SustainableFoodChain":
+                                    # Usa l'indirizzo predefinito di Hardhat
+                                    self.contract_addresses[contract_name] = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+                                    logger.info(f"Contratto {contract_name} mappato all'indirizzo predefinito di Hardhat: {self.contract_addresses[contract_name]}")
+                                else:
+                                    # Indirizzo fittizio per test
+                                    self.contract_addresses[contract_name] = f"0x{contract_name}000000000000000000000000000000000000"
+                                    logger.info(f"Contratto {contract_name} mappato a un indirizzo fittizio: {self.contract_addresses[contract_name]}")
                         else:
                             logger.warning(f"Nessun file trovato per il contratto {contract_name}")
                     except Exception as e:
+                        logger.error(f"Errore nel caricamento del contratto {contract_name}: {e}")
                         logger.warning(f"Errore nel caricamento del contratto {contract_name}: {e}")
         except Exception as e:
             logger.warning(f"Errore nel caricamento dei contratti: {e}")
@@ -673,7 +695,7 @@ class RichiesteRepositoryImpl():
             
             # Crea uno script temporaneo per verificare e registrare l'azienda
             scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
-                                    "on_chain", "scripts")
+                                    "off_chain", "temp_scripts")
             os.makedirs(scripts_dir, exist_ok=True)
             script_path = os.path.join(scripts_dir, "register_company.js")
             
