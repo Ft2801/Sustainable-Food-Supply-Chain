@@ -34,8 +34,7 @@ class CredentialRepositoryImpl(ABC):
     def get_user(self, user: str) -> Union[UserModel, None]:
         try:
             query,value = ( 
-                self.query_builder.select("*").table("Credenziali").where("Username", "=",user).get_query())
-            logger.info(f"{self.db.fetch_results(query,value)}")    
+                self.query_builder.select("*").table("Credenziali").where("Username", "=",user).get_query())    
             return UserModel(*self.db.fetch_results(query,value)[0])
         except Exception as e:
             logger.warning(f"Errore durante il recupero delle credenziali nel rep: {str(e)}")

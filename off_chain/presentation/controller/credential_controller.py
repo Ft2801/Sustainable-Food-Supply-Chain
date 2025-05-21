@@ -40,7 +40,6 @@ class ControllerAutenticazione:
         try:
             self.sessione.can_log()
             credenziali = self.credential.get_user(username)
-            logger.info(f"Username inserito: {username}, Password inserita: {password}")
 
             if credenziali is not None:
                 if credenziali.password == UserModel.hash_password(password):
