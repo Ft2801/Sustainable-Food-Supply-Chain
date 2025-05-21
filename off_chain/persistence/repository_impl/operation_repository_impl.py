@@ -218,9 +218,10 @@ class OperationRepositoryImpl(ABC):
        
 
             query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
-            params = (id_azienda_trasporto,id_prodotto, value_output_lotto, quantita, co2_emessa,evento)
+            params = (id_azienda_trasporto,id_prodotto, value_output_lotto, quantita, 0,db_default_string.TIPO_OP_VENDITA)
 
             queries.append((query,params))
+
 
             #Trasporto
             lotto_vendita : int = value_output_lotto + 1
@@ -232,7 +233,7 @@ class OperationRepositoryImpl(ABC):
        
 
             query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
-            params = (id_azienda_ricevente,id_prodotto, lotto_vendita, quantita, 0,db_default_string.TIPO_OP_VENDITA)
+            params = (id_azienda_ricevente,id_prodotto, lotto_vendita, quantita, co2_emessa,evento)
 
             queries.append((query,params))
 
@@ -241,7 +242,7 @@ class OperationRepositoryImpl(ABC):
         
             # Aggiornamento del magazzino
             query = "INSERT INTO Magazzino(id_azienda,id_lotto,quantita) VALUES(?,?,?)"
-            params = (id_azienda_richiedente,value_output_lotto,quantita)
+            params = (id_azienda_richiedente,lotto_vendita,quantita)
 
             queries.append((query,params))
 
