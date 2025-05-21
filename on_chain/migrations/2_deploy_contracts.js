@@ -1,5 +1,5 @@
-const OperationRegistry = artifacts.require("OperationRegistry");
+const SustainableFoodChain = artifacts.require("SustainableFoodChain");
 
 module.exports = function (deployer) {
-  deployer.deploy(OperationRegistry);
+  deployer.deploy(SustainableFoodChain);
 };

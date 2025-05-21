@@ -28,7 +28,7 @@ def generate_js_script(script_type, params):
         Script JavaScript come stringa
     """
     # Utilizza il percorso artifacts/contracts come in interact_contract.py
-    contract_path = "../artifacts/contracts/TokenExchange.sol/TokenExchange.json"
+    contract_path = "../artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json"
     
     # Script base compatibile con ethers.js v5 e v6
     base_script = f'''
@@ -605,12 +605,13 @@ class RichiesteRepositoryImpl():
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
             .join("Azienda AS rice", "rice.Id_azienda", "r.Id_ricevente") \
-            .where("r.Stato", "=", db_default_string.STATO_ACCETTATA)\
-            .or_where("r.Id_richiedente", "=", id_azienda) \
-            .or_where("r.Id_ricevente", "=", id_azienda) 
+            .where("(r.Id_richiedente = ? OR r.Id_ricevente = ?)", None, [id_azienda, id_azienda])
             
             query, value = self.query_builder.get_query()
+            logger.info(f"Query: {query}")
+            logger.info(f"Valori: {value}")
             risultati_raw = self.db.fetch_results(query, value)
+            logger.info(f"Risultati: {risultati_raw}")
             logger.info(f"Operazioni token recuperate dal database: {len(risultati_raw) if risultati_raw else 0}")
             
             # Tenta di inizializzare la connessione blockchain (ma non blocca se fallisce)
@@ -619,15 +620,11 @@ class RichiesteRepositoryImpl():
                 if blockchain_config.blockchain_available:
                     logger.info("Blockchain disponibile, tentativo di recupero operazioni token dalla blockchain")
                     # Implementazione futura: recupero operazioni dalla blockchain
-                    # Questo codice è commentato per evitare errori, ma mostra come potrebbe essere implementato
-                    # in futuro quando la blockchain sarà pienamente integrata
-                    """
                     eth_address = blockchain_config.get_account_from_id(id_azienda)
-                    if eth_address and 'TokenExchange' in blockchain_config.contracts:
-                        token_exchange = blockchain_config.contracts['TokenExchange']
-                        sustainable_requests = token_exchange.functions.getSustainableRequests(0, False).call()
-                        # Elaborazione dei risultati...
-                    """
+                    if eth_address and 'SustainableFoodChain' in blockchain_config.contracts:
+                        contract = blockchain_config.contracts['SustainableFoodChain']
+                        # TODO: implementare la chiamata corretta al contratto
+                        # per ora usiamo solo i risultati del database locale
             except Exception as e:
                 logger.warning(f"Errore nel tentativo di recupero dalla blockchain: {e}")
                 # Continua con i risultati del database locale
@@ -820,14 +817,13 @@ class RichiesteRepositoryImpl():
     def update_richiesta_token(self, richiesta: RichiestaTokenModel, stato : str) -> None:
         """
         Aggiorna lo stato di una richiesta di token nel database locale.
-        Se la blockchain è disponibile, tenta di sincronizzare anche lì.
         """
         try:
             # Aggiornamento nel database locale
             queries = []
             
             # Aggiornamento dello stato
-            query_mag = """UPDATE RichiestaToken SET stato = ? WHERE id_richiesta = ?;""" 
+            query_mag = "UPDATE RichiestaToken SET Stato = ? WHERE Id_richiesta = ?"
             value_mag = (stato, richiesta.id_richiesta)
             queries.append((query_mag, value_mag))
             
@@ -844,131 +840,25 @@ class RichiesteRepositoryImpl():
                     raise ValueError(f"L'azienda {richiesta.destinatario} non ha token sufficienti. Disponibili: {token_disponibili}, Richiesti: {richiesta.quantita}")
                 
                 # Sottrai token dall'azienda destinataria (fornitore di token)
-                query_mag = """UPDATE Azienda SET Token = Token - ? WHERE Id_azienda = ? AND Token >= ?;""" 
+                query_mag = "UPDATE Azienda SET Token = Token - ? WHERE Id_azienda = ? AND Token >= ?"
                 value_mag = (richiesta.quantita, richiesta.id_destinatario, richiesta.quantita)
                 queries.append((query_mag, value_mag))
                 
                 # Aggiungi token all'azienda mittente (richiedente di token)
-                query_mag = """UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?;""" 
+                query_mag = "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?"
                 value_mag = (richiesta.quantita, richiesta.id_mittente)
                 queries.append((query_mag, value_mag))
             
-            # Esegui la transazione nel database locale
+            # Esegui tutte le query in una singola transazione
             self.db.execute_transaction(queries)
-            logger.info(f"Richiesta con ID {richiesta.id_richiesta} aggiornata a {stato} nel database locale.")
-            
-            # Sincronizzazione con la blockchain (OBBLIGATORIA per lo scambio di token)
-            blockchain_config = BlockchainConfig()
-            if not blockchain_config.blockchain_available and stato == db_default_string.STATO_ACCETTATA:
-                # Se la blockchain non è disponibile e stiamo cercando di accettare una richiesta,
-                # dobbiamo bloccare l'operazione
-                logger.error("Impossibile completare l'operazione: la blockchain non è disponibile")
-                raise ValueError("La blockchain è obbligatoria per lo scambio di token. Impossibile completare l'operazione.")
-            
-            if blockchain_config.blockchain_available:
-                logger.info("Blockchain disponibile, sincronizzazione dell'aggiornamento")
-                try:
-                    # Assicurati che entrambe le aziende siano registrate sulla blockchain
-                    logger.info(f"Verifica e registrazione delle aziende sulla blockchain")
-                    
-                    # Registra l'azienda destinataria (fornitore)
-                    provider_registered = self.register_company_on_blockchain(richiesta.id_destinatario)
-                    if not provider_registered:
-                        logger.warning(f"Impossibile registrare l'azienda fornitrice (ID: {richiesta.id_destinatario}) sulla blockchain. Continuando in modalità solo database.")
-                        # In ambiente di sviluppo, continuiamo comunque
-                        logger.info(f"Continuazione dell'operazione in modalità sviluppo nonostante l'errore di registrazione dell'azienda fornitrice")
-                        # NON solleviamo un'eccezione qui, ma continuiamo
-                    
-                    # Registra l'azienda mittente (richiedente)
-                    requester_registered = self.register_company_on_blockchain(richiesta.id_mittente)
-                    if not requester_registered:
-                        logger.warning(f"Impossibile registrare l'azienda richiedente (ID: {richiesta.id_mittente}) sulla blockchain. Continuando in modalità solo database.")
-                        # In ambiente di sviluppo, continuiamo comunque
-                        logger.info(f"Continuazione dell'operazione in modalità sviluppo nonostante l'errore di registrazione dell'azienda richiedente")
-                        # NON solleviamo un'eccezione qui, ma continuiamo
-                    
-                    # Ottieni gli indirizzi Ethereum delle aziende
-                    provider_address = blockchain_config.get_account_from_id(richiesta.id_destinatario)
-                    requester_address = blockchain_config.get_account_from_id(richiesta.id_mittente)
-                    
-                    if provider_address and requester_address and 'SustainableFoodChain' in blockchain_config.contracts:
-                        token_exchange = blockchain_config.contracts['SustainableFoodChain']
-                        
-                        # Crea uno script temporaneo per interagire con la blockchain tramite ethers.js
-                        scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
-                                                "on_chain", "scripts")
-                        os.makedirs(scripts_dir, exist_ok=True)
-                        
-                        if stato == db_default_string.STATO_ACCETTATA:
-                            # Script per accettare la richiesta di token
-                            script_path = os.path.join(scripts_dir, "accept_token_request.js")
-                            
-                            # Prepara i parametri per lo script
-                            script_params = {
-                                'contract_address': token_exchange['address'],
-                                'request_id': richiesta.id_richiesta
-                            }
-                            
-                            # Genera lo script
-                            script_content = generate_js_script("accept_token", script_params)
-                            
-                            # Scrivi lo script su file
-                            with open(script_path, 'w') as f:
-                                f.write(script_content)
-                            
-                            # Esegui lo script Node.js
-                            logger.info(f"Esecuzione dello script per accettare la richiesta di token: {script_path}")
-                            result = subprocess.run(["node", script_path], capture_output=True, text=True)
-                            
-                            if result.returncode == 0:
-                                logger.info(f"Transazione di accettazione completata: {result.stdout}")
-                            else:
-                                logger.error(f"Errore nell'esecuzione dello script: {result.stderr}")
-                                raise ValueError(f"Errore nella transazione blockchain: {result.stderr}")
-                                
-                        elif stato == db_default_string.STATO_RIFIUTATA:
-                            # Script per rifiutare la richiesta di token
-                            script_path = os.path.join(scripts_dir, "reject_token_request.js")
-                            
-                            # Prepara i parametri per lo script
-                            script_params = {
-                                'contract_address': token_exchange['address'],
-                                'request_id': richiesta.id_richiesta,
-                                'reason': "Richiesta rifiutata dall'utente"
-                            }
-                            
-                            # Genera lo script
-                            script_content = generate_js_script("reject_token", script_params)
-                            
-                            # Scrivi lo script su file
-                            with open(script_path, 'w') as f:
-                                f.write(script_content)
-                            
-                            # Esegui lo script Node.js
-                            logger.info(f"Esecuzione dello script per rifiutare la richiesta di token: {script_path}")
-                            result = subprocess.run(["node", script_path], capture_output=True, text=True)
-                            
-                            if result.returncode == 0:
-                                logger.info(f"Transazione di rifiuto completata: {result.stdout}")
-                            else:
-                                logger.warning(f"Errore nell'esecuzione dello script: {result.stderr}")
-                                # Per il rifiuto, possiamo continuare con l'aggiornamento locale
-                except Exception as e:
-                    logger.error(f"Errore nella sincronizzazione con la blockchain: {e}")
-                    # Se c'è un errore nella blockchain durante l'accettazione, dobbiamo bloccare l'operazione
-                    if stato == db_default_string.STATO_ACCETTATA:
-                        raise ValueError(f"Errore nella sincronizzazione con la blockchain: {e}")
-                    # Per il rifiuto, possiamo continuare con l'aggiornamento locale
-        
-        except sqlite3.IntegrityError as e:
-            logger.error(f"Errore di integrità nel database: {e}", exc_info=True)
-            raise ValueError("Non disponi di token sufficienti")
+            logger.info(f"Richiesta token {richiesta.id_richiesta} aggiornata a {stato}")
         except Exception as e:
-            logger.error(f"Errore nell'aggiornamento della richiesta: {e}", exc_info=True)
+            logger.error(f"Errore nell'aggiornamento della richiesta: {e}")
             raise e
-        
-    def send_richiesta_token(self, mittente: int, destinatario: int, quantita: int) -> str:
-        """Invia una richiesta di token da un'azienda a un'altra
+
+    def send_richiesta_token(self, mittente: int, destinatario: int, quantita: int):
+        """
+        Invia una richiesta di token da un'azienda a un'altra
         
         Args:
             mittente: ID dell'azienda mittente
@@ -979,76 +869,12 @@ class RichiesteRepositoryImpl():
             ID della richiesta creata
         """
         try:
-            # Verifica che le aziende esistano
-            query_mittente = "SELECT Nome, Tipo FROM Azienda WHERE Id_azienda = ?"
-            mittente_info = self.db.fetch_one(query_mittente, (mittente,))
-            
-            query_dest = "SELECT Nome, Tipo FROM Azienda WHERE Id_azienda = ?"
-            dest_info = self.db.fetch_one(query_dest, (destinatario,))
-            
-            if not mittente_info or not dest_info:
-                raise ValueError("Azienda mittente o destinataria non trovata")
-            
-            # Verifica che le aziende non siano di tipo 'Certificatore'
-            if mittente_info[1] == 'Certificatore':
-                raise ValueError("Le aziende di tipo 'Certificatore' non possono inviare richieste di token")
-            
-            if dest_info[1] == 'Certificatore':
-                raise ValueError("Le aziende di tipo 'Certificatore' non possono ricevere richieste di token")
-            
-            # Verifica che la quantità sia valida
-            if quantita <= 0:
-                raise ValueError("La quantità deve essere maggiore di zero")
-            
-            # Inserisci la richiesta nel database locale
-            # Lasciamo che SQLite generi automaticamente l'ID
-            query = """INSERT INTO RichiestaToken (Id_richiedente, Id_ricevente, Quantita, Stato)
-                       VALUES (?, ?, ?, ?)"""
-            self.db.execute_query(query, (mittente, destinatario, quantita, "In attesa"))
-            
-            # Ottieni l'ID della richiesta appena inserita
-            id_query = "SELECT last_insert_rowid()"
-            result = self.db.fetch_one(id_query)
-            
-            # Gestisci il caso in cui il risultato sia già un intero o una tupla
-            if isinstance(result, tuple):
-                id_richiesta = result[0]
-            else:
-                id_richiesta = result
-                
-            logger.info(f"ID della richiesta inserita: {id_richiesta}")
-            
-            logger.info(f"Richiesta di token inserita nel database locale da {mittente_info[0]} a {dest_info[0]}")
-            
-            # Simula la registrazione sulla blockchain
-            logger.info(f"Simulazione della registrazione della richiesta {id_richiesta} sulla blockchain")
-            
-            # In una versione futura, qui verrà implementata la vera registrazione sulla blockchain
-            # Per ora, utilizziamo un ID fittizio per la richiesta sulla blockchain
-            blockchain_request_id = "123456"
-            
-            # Prima di aggiornare, verifichiamo se la colonna blockchain_request_id esiste
-            try:
-                # Verifica se la colonna esiste
-                check_query = "PRAGMA table_info(RichiestaToken)"
-                columns = self.db.fetch_all(check_query)
-                column_names = [col[1] for col in columns]
-                
-                if 'blockchain_request_id' in column_names:
-                    # Aggiorna il record locale con l'ID della richiesta sulla blockchain
-                    update_query = "UPDATE RichiestaToken SET blockchain_request_id = ? WHERE Id_richiesta = ?"
-                    self.db.execute_query(update_query, (blockchain_request_id, id_richiesta))
-                    logger.info(f"Aggiornato blockchain_request_id per la richiesta {id_richiesta}")
-                else:
-                    logger.info(f"La colonna blockchain_request_id non esiste nella tabella RichiestaToken, l'aggiornamento viene saltato")
-            except Exception as e:
-                # Se c'è un errore, lo logghiamo ma continuiamo
-                logger.warning(f"Impossibile aggiornare blockchain_request_id: {e}")
-                # Non solleviamo un'eccezione qui, poiché non è un errore critico
-            
-            logger.info(f"Richiesta di token {id_richiesta} registrata con successo")
+            # Crea la richiesta nel database locale
+            query = "INSERT INTO RichiestaToken (Id_richiedente, Id_ricevente, Quantita, Stato) VALUES (?, ?, ?, ?)"
+            values = (mittente, destinatario, quantita, db_default_string.STATO_ATTESA)
+            id_richiesta = self.db.execute_query(query, values)
+            logger.info(f"Creata richiesta token {id_richiesta} da {mittente} a {destinatario} per {quantita} token")
             return id_richiesta
-            
         except Exception as e:
-            logger.error(f"Errore nell'invio della richiesta di token: {e}", exc_info=True)
-            raise ValueError(f"Errore nell'invio della richiesta di token: {e}")
+            logger.error(f"Errore nell'invio della richiesta: {e}")
+            raise e
