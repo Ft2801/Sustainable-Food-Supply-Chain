@@ -117,7 +117,7 @@ if __name__ == "__main__":
     compile_and_deploy_contracts()
     
     # Configure the database before starting the graphical interface
-    setup_database()
+    #setup_database()
     
     # Create a session
     session = Session()
