@@ -17,6 +17,7 @@ class OperazioneEstesaModel:
     nome_prodotto : str
     quantita_prodotto : int
     consumo_co2 : float
+    blockchain_registered: bool = False  # Indica se l'operazione è registrata sulla blockchain
     descrizione : str = ""  # Campo per la descrizione aggiuntiva del prodotto
     
 

@@ -378,17 +378,36 @@ class BlockchainConfig:
         """Ottiene l'indirizzo Ethereum associato all'ID azienda"""
         if not self.blockchain_available:
             return None
-            
+        
         try:
-            # Cerca l'indirizzo associato all'azienda nel database o nel registro aziendale
-            # Per ora usiamo una simulazione, ma in futuro dovremmo implementare una query
-            # al contratto CompanyRegistry o a un database locale che mappa gli ID alle aziende
+            # Importa il modulo per la gestione degli account Hardhat
+            import sys
+            import os
+            sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+            from database.assign_hardhat_accounts import get_company_address, assign_account_to_company
             
-            # Simulazione: restituisce un indirizzo fittizio basato sull'ID azienda
-            return f"0x{id_azienda:040x}"  # Indirizzo fittizio basato sull'ID
+            # Verifica se l'azienda ha già un indirizzo assegnato
+            address = get_company_address(id_azienda)
+            
+            if address:
+                logger.info(f"Indirizzo Ethereum già assegnato all'azienda {id_azienda}: {address}")
+                return address
+            
+            # Se l'azienda non ha un indirizzo, assegnane uno nuovo
+            logger.info(f"Assegnazione di un nuovo indirizzo Ethereum all'azienda {id_azienda}")
+            address = assign_account_to_company(id_azienda)
+            
+            if address:
+                logger.info(f"Nuovo indirizzo Ethereum assegnato all'azienda {id_azienda}: {address}")
+                return address
+            
+            # Se non è stato possibile assegnare un indirizzo, usa l'indirizzo fittizio come fallback
+            logger.warning(f"Impossibile assegnare un indirizzo Ethereum all'azienda {id_azienda}, uso indirizzo fittizio")
+            return f"0x{id_azienda:040x}"  # Indirizzo fittizio basato sull'ID come fallback
         except Exception as e:
             logger.warning(f"Errore nel recupero dell'indirizzo Ethereum: {e}")
-            return None
+            # Fallback: indirizzo fittizio basato sull'ID
+            return f"0x{id_azienda:040x}"
 
 class RichiesteRepositoryImpl():
     def __init__(self):

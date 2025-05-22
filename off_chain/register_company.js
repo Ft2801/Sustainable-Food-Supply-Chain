@@ -47,8 +47,8 @@
             
             // Verifica se l'azienda è già registrata
             try {
-                const isRegistered = await contract.isCompanyAddressRegistered("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65");
-                console.log(`Verifica registrazione per l'indirizzo 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65: ${isRegistered ? 'Registrato' : 'Non registrato'}`);
+                const isRegistered = await contract.isCompanyAddressRegistered("0x0000000000000000000000000000000000000017");
+                console.log(`Verifica registrazione per l'indirizzo 0x0000000000000000000000000000000000000017: ${isRegistered ? 'Registrato' : 'Non registrato'}`);
                 if (isRegistered) {
                     console.log("L'azienda è già registrata sulla blockchain");
                     process.exit(0);
@@ -58,13 +58,13 @@
                 // Continuiamo comunque con la registrazione
             }
             
-            console.log(`Registrazione dell'azienda c di tipo 1 in corso...`);
+            console.log(`Registrazione dell'azienda a di tipo 0 in corso...`);
             
             // Esegui la transazione di registrazione
             const tx = await contract.registerCompany(
-                "c",
-                1,  // Tipo di azienda (enum: 0=Producer, 1=Processor, 2=Distributor, 3=Retailer, 4=Other)
-                "r",
+                "a",
+                0,  // Tipo di azienda (enum: 0=Producer, 1=Processor, 2=Distributor, 3=Retailer, 4=Other)
+                "a",
                 "{}"
             );
             console.log("Transaction hash:", tx.hash);
@@ -80,7 +80,7 @@
             
             // Verifica nuovamente la registrazione dopo la transazione
             try {
-                const isRegisteredAfter = await contract.isCompanyAddressRegistered("0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65");
+                const isRegisteredAfter = await contract.isCompanyAddressRegistered("0x0000000000000000000000000000000000000017");
                 console.log("Verifica finale: l'azienda è " + (isRegisteredAfter ? "correttamente registrata" : "potrebbe richiedere più tempo per essere visibile"));
             } catch (verifyError) {
                 console.warn("Impossibile verificare la registrazione, ma la transazione è stata confermata:", verifyError.message);
