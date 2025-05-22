@@ -3,6 +3,7 @@ from eth_account.messages import encode_defunct
 from web3 import Web3
 import json
 import os
+import sqlite3
 from session import Session
 from persistence.repository_impl.credential_repository_impl import CredentialRepositoryImpl
 from configuration.log_load_setting import logger
@@ -17,6 +18,8 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 # Percorso diretto all'ABI del contratto negli artifacts
 ABI_PATH = os.path.join(PROJECT_ROOT, "on_chain", "artifacts", "contracts", "SustainableFoodChain.sol", "SustainableFoodChain.json")
 ADDRESS_PATH = os.path.join(PROJECT_ROOT, "on_chain", "contract_address.json")
+# Definizione diretta del percorso del database
+DATABASE_PATH = os.path.join(PROJECT_ROOT, 'off_chain', 'database', 'database.db')
 
 # Web3 setup
 w3 = Web3(Web3.HTTPProvider(NODE_URL))
@@ -49,7 +52,7 @@ class BlockchainController:
             logger.error(f"Errore nell'ottenimento dell'utente: {e}")
             raise Exception(f"Errore nel recupero utente: {str(e)}") from e
 
-    def invia_operazione(self, private_key, operation_type, description, batch_id):
+    def invia_operazione(self, private_key, operation_type, description, batch_id, id_operazione=None):
         account = Account.from_key(private_key)
         sender = account.address
 
@@ -83,4 +86,22 @@ class BlockchainController:
                 raise Exception("Errore nella firma della transazione: formato non supportato")
         
         tx_hash = w3.eth.send_raw_transaction(raw_tx)
+        
+        # Se è stato fornito l'ID dell'operazione, aggiorna il suo stato nel database
+        if id_operazione is not None:
+            try:
+                # Aggiorna lo stato dell'operazione nel database
+                conn = sqlite3.connect(DATABASE_PATH)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                    (id_operazione,)
+                )
+                conn.commit()
+                conn.close()
+                logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
+            except Exception as e:
+                logger.error(f"Errore nell'aggiornamento dello stato dell'operazione: {e}")
+                # Non solleviamo l'eccezione qui per non interrompere il flusso principale
+        
         return tx_hash.hex()

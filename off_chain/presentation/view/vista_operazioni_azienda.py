@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
     QHeaderView, QPushButton, QHBoxLayout, QMessageBox, QInputDialog
 )
+from PyQt5.QtGui import QColor
 from model.operation_estesa_model import OperazioneEstesaModel 
 from presentation.view.vista_composizione_prodotto import VistaCreaProdottoTrasformato
 from presentation.controller.company_controller import ControllerAzienda
@@ -39,8 +40,8 @@ class OperazioniAziendaView(QWidget):
         layout.addWidget(self.filtro_input)
 
         self.tabella = QTableWidget()
-        self.tabella.setColumnCount(4)
-        self.tabella.setHorizontalHeaderLabels(["Tipo", "Data", "Prodotto", "CO2"])
+        self.tabella.setColumnCount(5)  # Aggiunto una colonna per lo stato blockchain
+        self.tabella.setHorizontalHeaderLabels(["Tipo", "Data", "Prodotto", "CO2", "Su Blockchain"])
         self.tabella.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabella.setSortingEnabled(True)
 
@@ -103,6 +104,16 @@ class OperazioniAziendaView(QWidget):
             # Colonna CO2
             co2_str = str(oper.consumo_co2) if hasattr(oper, 'consumo_co2') else ''
             self.tabella.setItem(row, 3, QTableWidgetItem(co2_str))
+            
+            # Colonna Stato Blockchain
+            blockchain_status = "Sì" if hasattr(oper, 'blockchain_registered') and oper.blockchain_registered else "No"
+            item = QTableWidgetItem(blockchain_status)
+            # Imposta il colore di sfondo in base allo stato
+            if blockchain_status == "Sì":
+                item.setBackground(QColor(200, 255, 200))  # Verde chiaro
+            else:
+                item.setBackground(QColor(255, 200, 200))  # Rosso chiaro
+            self.tabella.setItem(row, 4, item)
 
     def apri_aggiungi_operazione(self):
         if Session().current_user["role"] == "Trasformatore":
@@ -155,7 +166,7 @@ class OperazioniAziendaView(QWidget):
             private_key, ok = QInputDialog.getText(
                 self, 
                 "Chiave privata", 
-                "Inserisci la tua chiave privata per firmare la transazione:\n(Nota: in un'app reale, questo dovrebbe essere gestito in modo più sicuro)",
+                "Inserisci la tua chiave privata per firmare la transazione:",
                 QLineEdit.Password
             )
             
@@ -184,7 +195,8 @@ class OperazioniAziendaView(QWidget):
                 private_key,
                 operation_type,
                 description,
-                batch_id
+                batch_id,
+                operazione.id_operazione  # Passa l'ID dell'operazione per aggiornare lo stato
             )
             
             # Mostra conferma all'utente

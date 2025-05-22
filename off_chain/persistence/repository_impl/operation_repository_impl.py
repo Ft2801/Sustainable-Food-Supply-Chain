@@ -60,7 +60,8 @@ class OperationRepositoryImpl(ABC):
                     "Operazione.Data_operazione",
                     "Operazione.Consumo_CO2",
                     "Operazione.Tipo",
-                    "Operazione.quantita"
+                    "Operazione.quantita",
+                    "Operazione.blockchain_registered"
                 )
                 .table("Operazione")
                 .join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto")
@@ -84,7 +85,8 @@ class OperationRepositoryImpl(ABC):
                         data_operazione=row[3],
                         consumo_co2=row[4],
                         nome_operazione=row[5],
-                        quantita_prodotto=row[6]
+                        quantita_prodotto=row[6],
+                        blockchain_registered=bool(row[7]) if len(row) > 7 else False
                     )
                     operazioni_estese.append(operazione)
                 except Exception as e:
