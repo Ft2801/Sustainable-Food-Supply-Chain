@@ -36,7 +36,14 @@ class CredentialRepositoryImpl(ABC):
             query,value = ( 
                 self.query_builder.select("Id_credenziali","Username","Password" )
                 .table("Credenziali").where("Username", "=",user).get_query())    
-            return UserModel(*self.db.fetch_results(query,value)[0])
+            results = self.db.fetch_results(query,value)
+            
+            # Verifica se ci sono risultati prima di tentare di accedere all'elemento [0]
+            if results and len(results) > 0:
+                return UserModel(*results[0])
+            else:
+                logger.warning(f"Nessun utente trovato con username: {user}")
+                return None
         except Exception as e:
             logger.warning(f"Errore durante il recupero delle credenziali nel rep: {str(e)}")
             return None
@@ -64,11 +71,11 @@ class CredentialRepositoryImpl(ABC):
             self.db.cur.execute("BEGIN TRANSACTION;")  # Inizio transazione manuale
             # Prima INSERT: credenziali
             query_credenziali = """
-                INSERT INTO Credenziali (Username, Password,address)
-                VALUES (?, ?);
+                INSERT INTO Credenziali (Username, Password, address)
+                VALUES (?, ?, ?);
             """
-            adress = "pippo" #TODO  Cambiare con l'indirizzo
-            self.db.cur.execute(query_credenziali, (username, hash_password,adress))
+            address = indirizzo #TODO  Cambiare con l'indirizzo
+            self.db.cur.execute(query_credenziali, (username, hash_password,address))
             logger.info(f"Inserisco le credenziali del nuovo utente {username}")
             id_credenziali = self.db.cur.lastrowid  # Ottieni l'ID appena creato
             

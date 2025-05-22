@@ -46,20 +46,38 @@ class BlockchainInteractor:
         # Mappa per tenere traccia dei contratti trovati
         contract_abis = {}
         
-        # Cerca tutti i file JSON nelle sottodirectory di artifacts_dir
-        for root, dirs, files in os.walk(artifacts_dir):
-            for file in files:
-                if file.endswith('.json') and not file.endswith('.dbg.json'):
-                    file_path = os.path.join(root, file)
-                    try:
-                        with open(file_path, 'r') as f:
-                            contract_data = json.load(f)
-                            if 'contractName' in contract_data and 'abi' in contract_data:
-                                contract_name = contract_data['contractName']
-                                contract_abis[contract_name] = contract_data['abi']
-                                logger.info(f"Found ABI for contract {contract_name}")
-                    except Exception as e:
-                        logger.error(f"Error loading contract ABI from {file_path}: {e}")
+        # Percorso diretto al file SustainableFoodChain.json
+        main_contract_path = os.path.join(artifacts_dir, "SustainableFoodChain.sol", "SustainableFoodChain.json")
+        
+        # Verifica se il file esiste
+        if os.path.exists(main_contract_path):
+            try:
+                with open(main_contract_path, 'r') as f:
+                    contract_data = json.load(f)
+                    if 'contractName' in contract_data and 'abi' in contract_data:
+                        contract_name = contract_data['contractName']
+                        contract_abis[contract_name] = contract_data['abi']
+                        logger.info(f"Found ABI for main contract {contract_name}")
+            except Exception as e:
+                logger.error(f"Error loading main contract ABI from {main_contract_path}: {e}")
+        else:
+            logger.warning(f"Main contract file not found at {main_contract_path}")
+            
+            # Fallback: cerca tutti i file JSON nelle sottodirectory di artifacts_dir
+            logger.info("Falling back to searching all JSON files in artifacts directory")
+            for root, dirs, files in os.walk(artifacts_dir):
+                for file in files:
+                    if file.endswith('.json') and not file.endswith('.dbg.json'):
+                        file_path = os.path.join(root, file)
+                        try:
+                            with open(file_path, 'r') as f:
+                                contract_data = json.load(f)
+                                if 'contractName' in contract_data and 'abi' in contract_data:
+                                    contract_name = contract_data['contractName']
+                                    contract_abis[contract_name] = contract_data['abi']
+                                    logger.info(f"Found ABI for contract {contract_name}")
+                        except Exception as e:
+                            logger.error(f"Error loading contract ABI from {file_path}: {e}")
         
         # Ottieni gli indirizzi dei contratti deployati
         deployed_contracts = self._get_deployed_contracts()

@@ -153,6 +153,25 @@ def deploy_contracts():
             logger.info("Assuming contracts are already deployed")
             return True
         
+        # Compila i contratti prima del deployment
+        logger.info("Compiling contracts with Hardhat...")
+        try:
+            # Compila i contratti con npx hardhat compile
+            compile_result = subprocess.run(
+                ["npx", "hardhat", "compile"],
+                cwd=on_chain_dir,
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            if compile_result.returncode == 0:
+                logger.info("Contract compilation successful")
+            else:
+                logger.warning(f"Contract compilation failed: {compile_result.stderr}")
+        except Exception as e:
+            logger.warning(f"Error compiling contracts: {str(e)}")
+        
         # Run the deployment script
         logger.info("Deploying contracts with Hardhat...")
         
@@ -171,6 +190,65 @@ def deploy_contracts():
                 
                 if result.returncode == 0:
                     logger.info(f"Contract deployment successful with npx hardhat")
+                    
+                    # Salva l'ABI del contratto nel file contract_abi.json
+                    try:
+                        # Percorso del file contract_abi.json
+                        contract_abi_path = os.path.join(on_chain_dir, "contract_abi.json")
+                        
+                        # Directory dei contratti compilati (artifacts)
+                        contracts_dir = os.path.join(on_chain_dir, "artifacts", "contracts", "SustainableFoodChain.sol")
+                        
+                        # Possibili nomi del file del contratto principale
+                        contract_names = ["SustainableFoodChain.json"]
+                        contract_json_path = None
+                        
+                        # Cerca il file del contratto principale
+                        for name in contract_names:
+                            path = os.path.join(contracts_dir, name)
+                            if os.path.exists(path):
+                                contract_json_path = path
+                                logger.info(f"Found contract file: {name}")
+                                break
+                        
+                        # Se non troviamo il file specifico, cerchiamo tutti i file JSON nella cartella
+                        if not contract_json_path:
+                            logger.info("Main contract file not found, searching for alternatives...")
+                            for file in os.listdir(contracts_dir):
+                                if file.endswith(".json"):
+                                    # Leggi il file e verifica se contiene un ABI
+                                    file_path = os.path.join(contracts_dir, file)
+                                    try:
+                                        with open(file_path, 'r') as f:
+                                            data = json.load(f)
+                                            if "abi" in data and len(data["abi"]) > 0:
+                                                contract_json_path = file_path
+                                                logger.info(f"Using {file} as source for ABI")
+                                                break
+                                    except Exception as e:
+                                        logger.warning(f"Error reading file {file}: {str(e)}")
+                        
+                        if contract_json_path:
+                            # Leggi il file JSON del contratto
+                            with open(contract_json_path, 'r') as f:
+                                contract_data = json.load(f)
+                            
+                            # Estrai l'ABI
+                            abi = contract_data.get("abi", [])
+                            
+                            # Salva l'ABI nel file contract_abi.json
+                            with open(contract_abi_path, 'w') as f:
+                                json.dump({
+                                    "description": "contract_abi.json - Interface that allows Python to interact with the contract.",
+                                    "abi": abi
+                                }, f, indent=4)
+                            
+                            logger.info(f"Contract ABI saved to {contract_abi_path}")
+                        else:
+                            logger.warning("No contract file with valid ABI found")
+                    except Exception as e:
+                        logger.warning(f"Error saving contract ABI: {str(e)}")
+                    
                     return True
                 else:
                     logger.warning(f"Contract deployment with npx hardhat failed: {result.stderr}")

@@ -9,8 +9,14 @@ from configuration.log_load_setting import logger
 
 # CONFIGURAZIONE
 NODE_URL = "http://127.0.0.1:8545"  # Nodo Hardhat
-ABI_PATH = os.path.join(os.path.dirname(__file__), "../../on_chain/build/SupplyChainContract.json")
-ADDRESS_PATH = os.path.join(os.path.dirname(__file__), "../../on_chain/contract/address.json")
+
+# Ottieni il percorso assoluto alla directory del progetto
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+
+# Usa percorsi assoluti per i file di configurazione
+# Percorso diretto all'ABI del contratto negli artifacts
+ABI_PATH = os.path.join(PROJECT_ROOT, "on_chain", "artifacts", "contracts", "SustainableFoodChain.sol", "SustainableFoodChain.json")
+ADDRESS_PATH = os.path.join(PROJECT_ROOT, "on_chain", "contract_address.json")
 
 # Web3 setup
 w3 = Web3(Web3.HTTPProvider(NODE_URL))
@@ -26,7 +32,7 @@ class BlockchainController:
             address_json = json.load(f)
             contract_address = address_json.get("SustainableFoodChain")
             if not contract_address:
-                raise ValueError("Indirizzo del contratto non trovato nel file address.json sotto la chiave 'SustainableFoodChain'.")
+                raise ValueError("Indirizzo del contratto non trovato nel file contract_address.json sotto la chiave 'SustainableFoodChain'.")
 
         self.contract = w3.eth.contract(address=Web3.to_checksum_address(contract_address), abi=abi)
 
@@ -62,5 +68,19 @@ class BlockchainController:
         })
 
         signed_tx = w3.eth.account.sign_transaction(tx, private_key=private_key)
-        tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+        
+        # Gestisci sia le versioni vecchie che nuove di Web3.py
+        try:
+            # Versione più recente di Web3.py
+            raw_tx = signed_tx.raw_transaction
+        except AttributeError:
+            try:
+                # Versione precedente di Web3.py
+                raw_tx = signed_tx.rawTransaction
+            except AttributeError:
+                # Se entrambi falliscono, mostra un errore dettagliato
+                logger.error(f"Errore: l'oggetto SignedTransaction non ha né l'attributo raw_transaction né rawTransaction. Attributi disponibili: {dir(signed_tx)}")
+                raise Exception("Errore nella firma della transazione: formato non supportato")
+        
+        tx_hash = w3.eth.send_raw_transaction(raw_tx)
         return tx_hash.hex()

@@ -12,8 +12,8 @@ from configuration.database import Database
 from session import Session
 
 # Import the modules we've created
-from blockchain_manager import blockchain_interactor
 from gui_manager import setup_gui
+from database.register_companies_on_blockchain import register_all_companies_on_blockchain
 
 def setup_database():
     try:
@@ -117,7 +117,12 @@ if __name__ == "__main__":
     compile_and_deploy_contracts()
     
     # Configure the database before starting the graphical interface
-    #setup_database()
+    setup_database()
+    
+    # Registra tutte le aziende sulla blockchain
+    logger.info("Avvio del processo di registrazione delle aziende sulla blockchain")
+    success_count, total_count = register_all_companies_on_blockchain()
+    logger.info(f"Registrazione completata: {success_count}/{total_count} aziende registrate con successo")
     
     # Create a session
     session = Session()

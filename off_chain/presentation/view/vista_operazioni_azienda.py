@@ -5,12 +5,13 @@
 import datetime
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
-    QHeaderView, QPushButton
+    QHeaderView, QPushButton, QHBoxLayout, QMessageBox, QInputDialog
 )
 from model.operation_estesa_model import OperazioneEstesaModel 
 from presentation.view.vista_composizione_prodotto import VistaCreaProdottoTrasformato
 from presentation.controller.company_controller import ControllerAzienda
 from presentation.view.vista_aggiungi_operazione import AggiungiOperazioneView
+from presentation.controller.blockchain_controller import BlockchainController
 from session import Session
 
 
@@ -49,9 +50,21 @@ class OperazioniAziendaView(QWidget):
         self.aggiorna_tabella()
         self.setWindowTitle("Operazioni Azienda")
 
+        # Crea un layout orizzontale per i bottoni
+        button_layout = QHBoxLayout()
+        
+        # Bottone per aggiungere operazioni
         self.bottone_aggiungi = QPushButton("Aggiungi Operazione")
         self.bottone_aggiungi.clicked.connect(self.apri_aggiungi_operazione)
-        layout.addWidget(self.bottone_aggiungi)
+        button_layout.addWidget(self.bottone_aggiungi)
+        
+        # Bottone per deployare operazioni sulla blockchain
+        self.bottone_deploy = QPushButton("Registra su Blockchain")
+        self.bottone_deploy.clicked.connect(self.deploy_operazione_blockchain)
+        button_layout.addWidget(self.bottone_deploy)
+        
+        # Aggiungi il layout dei bottoni al layout principale
+        layout.addLayout(button_layout)
 
     def filtra_operazioni(self, testo):
         try:
@@ -105,3 +118,85 @@ class OperazioniAziendaView(QWidget):
     def ricarica_operazioni(self):
         self.operazioni = self.controller.lista_operazioni(self.id_azienda)
         self.filtra_operazioni(self.filtro_input.text())
+        
+    def deploy_operazione_blockchain(self):
+        # Verifica se è stata selezionata un'operazione
+        selected_items = self.tabella.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Nessuna selezione", "Seleziona un'operazione dalla tabella prima di procedere.")
+            return
+        
+        # Ottieni la riga selezionata
+        selected_row = selected_items[0].row()
+        
+        # Recupera l'operazione selezionata
+        operazione = self.operazioni_filtrate[selected_row]
+        
+        # Chiedi conferma all'utente
+        risposta = QMessageBox.question(
+            self, 
+            "Conferma registrazione", 
+            f"Vuoi registrare l'operazione '{operazione.nome_operazione}' sulla blockchain?\n\n" 
+            f"Prodotto: {operazione.nome_prodotto}\n" 
+            f"Data: {operazione.data_operazione}\n" 
+            f"CO2: {operazione.consumo_co2}",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if risposta == QMessageBox.No:
+            return
+        
+        try:
+            # Ottieni la chiave privata dell'utente
+            # In un'applicazione reale, questo dovrebbe essere gestito in modo più sicuro
+            blockchain_controller = BlockchainController()
+            
+            # Ottieni la chiave privata (in un'app reale, questo dovrebbe essere più sicuro)
+            private_key, ok = QInputDialog.getText(
+                self, 
+                "Chiave privata", 
+                "Inserisci la tua chiave privata per firmare la transazione:\n(Nota: in un'app reale, questo dovrebbe essere gestito in modo più sicuro)",
+                QLineEdit.Password
+            )
+            
+            if not ok or not private_key:
+                return
+            
+            # Mappa il tipo di operazione al valore enum usato nel contratto
+            operation_type_map = {
+                "Produzione": 0,  # OperationType.Production
+                "Trasformazione": 1,  # OperationType.Processing
+                "Trasporto": 2,  # OperationType.Transport
+                "Vendita": 3   # OperationType.Sale
+            }
+            
+            # Determina il tipo di operazione
+            operation_type = operation_type_map.get(operazione.nome_operazione, 0)
+            
+            # Crea la descrizione dell'operazione
+            description = f"Prodotto: {operazione.nome_prodotto}, CO2: {operazione.consumo_co2}"
+            
+            # Batch ID (0 se non associato a un lotto)
+            batch_id = 0  # Modifica se hai un ID lotto associato all'operazione
+            
+            # Invia l'operazione alla blockchain
+            tx_hash = blockchain_controller.invia_operazione(
+                private_key,
+                operation_type,
+                description,
+                batch_id
+            )
+            
+            # Mostra conferma all'utente
+            QMessageBox.information(
+                self,
+                "Operazione registrata",
+                f"L'operazione è stata registrata sulla blockchain con successo!\n\nHash transazione: {tx_hash}"
+            )
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Errore",
+                f"Si è verificato un errore durante la registrazione dell'operazione sulla blockchain:\n{str(e)}"
+            )
