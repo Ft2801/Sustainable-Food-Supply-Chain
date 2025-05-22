@@ -4,13 +4,16 @@
 # pylint: disable= trailing-whitespace
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
-    QHeaderView, QPushButton, QDateEdit
+    QHeaderView, QPushButton, QDateEdit, QMessageBox, QHBoxLayout, QInputDialog
 )
+from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt, QDate
 from datetime import datetime
+import sqlite3
 
 from model.compensation_action_model import CompensationActionModel 
 from presentation.controller.company_controller import ControllerAzienda
+from presentation.controller.blockchain_controller import BlockchainController
 from presentation.view.vista_aggiungi_az_compensativa import VistaAggiungiAzioneCompensativa
 from session import Session
 
@@ -53,8 +56,8 @@ class AzioniAziendaView(QWidget):
         self.data_a.dateChanged.connect(self.filtra_operazioni)
 
         self.tabella = QTableWidget()
-        self.tabella.setColumnCount(3)
-        self.tabella.setHorizontalHeaderLabels(["Tipo", "CO2 compensata", "Data"])
+        self.tabella.setColumnCount(4)  # Aggiunta colonna per lo stato blockchain
+        self.tabella.setHorizontalHeaderLabels(["Tipo", "CO2 compensata", "Data", "Su Blockchain"])
         self.tabella.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabella.setSortingEnabled(True)
         layout.addWidget(self.tabella)
@@ -62,9 +65,21 @@ class AzioniAziendaView(QWidget):
         self.setLayout(layout)
         self.setWindowTitle("Azione Compensativa Azienda")
 
+        # Crea un layout orizzontale per i bottoni
+        button_layout = QHBoxLayout()
+        
+        # Bottone per aggiungere azioni compensative
         self.bottone_aggiungi = QPushButton("Aggiungi Azione Compensativa")
         self.bottone_aggiungi.clicked.connect(self.apri_aggiungi_operazione)
-        layout.addWidget(self.bottone_aggiungi)
+        button_layout.addWidget(self.bottone_aggiungi)
+        
+        # Bottone per registrare azioni sulla blockchain
+        self.bottone_deploy = QPushButton("Registra su Blockchain")
+        self.bottone_deploy.clicked.connect(self.deploy_azione_blockchain)
+        button_layout.addWidget(self.bottone_deploy)
+        
+        # Aggiungi il layout dei bottoni al layout principale
+        layout.addLayout(button_layout)
 
         self.aggiorna_tabella()
 
@@ -106,6 +121,16 @@ class AzioniAziendaView(QWidget):
             self.tabella.setItem(row, 1, item_co2)
 
             self.tabella.setItem(row, 2, QTableWidgetItem(str(op.data_azione)))
+            
+            # Colonna Stato Blockchain
+            blockchain_status = "Sì" if hasattr(op, 'blockchain_registered') and op.blockchain_registered else "No"
+            item = QTableWidgetItem(blockchain_status)
+            # Imposta il colore di sfondo in base allo stato
+            if blockchain_status == "Sì":
+                item.setBackground(QColor(200, 255, 200))  # Verde chiaro
+            else:
+                item.setBackground(QColor(255, 200, 200))  # Rosso chiaro
+            self.tabella.setItem(row, 3, item)
 
     def apri_aggiungi_operazione(self):
         self.finestra_aggiungi = VistaAggiungiAzioneCompensativa(self)
@@ -118,3 +143,75 @@ class AzioniAziendaView(QWidget):
             self.filtra_operazioni()
         except Exception as e:
             print(f"[ERRORE ricarica]: {e}")
+
+    def deploy_azione_blockchain(self):
+        # Verifica se è stata selezionata un'azione compensativa
+        selected_items = self.tabella.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Nessuna selezione", "Seleziona un'azione compensativa dalla tabella prima di procedere.")
+            return
+        
+        # Ottieni la riga selezionata
+        selected_row = selected_items[0].row()
+        
+        # Recupera l'azione selezionata
+        azione = self.azioni_compensative_filtrate[selected_row]
+        
+        # Chiedi conferma all'utente
+        risposta = QMessageBox.question(
+            self, 
+            "Conferma registrazione", 
+            f"Vuoi registrare l'azione compensativa '{azione.nome_azione}' sulla blockchain?\n\n" 
+            f"CO2 compensata: {azione.co2_compensata}\n" 
+            f"Data: {azione.data_azione}",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if risposta == QMessageBox.No:
+            return
+        
+        try:
+            # Ottieni la chiave privata dell'utente
+            blockchain_controller = BlockchainController()
+            
+            # Ottieni la chiave privata
+            private_key, ok = QInputDialog.getText(
+                self, 
+                "Chiave privata", 
+                "Inserisci la tua chiave privata per firmare la transazione:",
+                QLineEdit.Password
+            )
+            
+            if not ok or not private_key:
+                return
+            
+            # Crea la descrizione dell'azione compensativa
+            description = f"Azione compensativa: {azione.nome_azione}, CO2 compensata: {azione.co2_compensata}"
+            
+            # Invia l'azione alla blockchain usando il metodo specifico per azioni compensative
+            tx_hash = blockchain_controller.invia_azione_compensativa(
+                private_key,
+                azione.nome_azione,  # Tipo di azione compensativa
+                azione.co2_compensata,  # Quantità di CO2 compensata
+                description,
+                azione.id_azione  # Passa l'ID dell'azione per aggiornare lo stato
+            )
+            
+            # Lo stato dell'azione nel database viene aggiornato automaticamente dal metodo invia_azione_compensativa
+            
+            # Mostra conferma all'utente
+            QMessageBox.information(
+                self,
+                "Azione registrata",
+                f"L'azione compensativa è stata registrata sulla blockchain con successo!\n\nHash transazione: {tx_hash}"
+            )
+            
+            # Ricarica le azioni per mostrare lo stato aggiornato
+            self.ricarica_operazioni()
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Errore",
+                f"Si è verificato un errore durante la registrazione dell'azione sulla blockchain:\n{str(e)}"
+            )

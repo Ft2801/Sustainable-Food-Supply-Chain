@@ -12,5 +12,6 @@ class CompensationActionModel:
     id_azienda: int = None
     co2_compensata: float = None
     nome_azione: str = None
+    blockchain_registered: bool = False  # Indica se l'azione è registrata sulla blockchain
 
 

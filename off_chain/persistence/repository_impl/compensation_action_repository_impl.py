@@ -24,7 +24,7 @@ class CompensationActionRepositoryImpl( ABC):
         try:
 
 
-            self.query_builder.select("Id_azione","Id_azienda","Data","Co2_compensata","Nome_azione").table("Azioni_compensative").where("Id_azienda", "=", id_azienda)
+            self.query_builder.select("Id_azione","Id_azienda","Data","Co2_compensata","Nome_azione","blockchain_registered").table("Azioni_compensative").where("Id_azienda", "=", id_azienda)
 
             if data_start and data_end:
                 self.query_builder.where("Data", ">", data_start).where("Data", "<", data_end)
@@ -42,7 +42,8 @@ class CompensationActionRepositoryImpl( ABC):
                         id_azienda=row[1],
                         data_azione=row[2],
                         co2_compensata=row[3],
-                        nome_azione=row[4],               
+                        nome_azione=row[4],
+                        blockchain_registered=bool(row[5]) if len(row) > 5 else False,
                 )
                 for row in results
                 ]
