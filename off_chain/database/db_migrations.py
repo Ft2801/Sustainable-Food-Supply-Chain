@@ -175,7 +175,8 @@ class DatabaseMigrations:
             CREATE TABLE  Credenziali (
                 Id_credenziali INTEGER PRIMARY KEY AUTOINCREMENT,
                 Username TEXT UNIQUE NOT NULL,
-                Password TEXT NOT NULL                
+                Password TEXT NOT NULL,
+                address TEXT NOT NULL              
             )
             ''',
             '''
@@ -326,16 +327,16 @@ class DatabaseMigrations:
         try:
             # Seed delle credenziali
             SEED_CREDENZIALI = [
-                ("aaa", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("ttt", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("trasf", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("riv","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("cert","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45")
+                ("aaa", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
+                ("ttt", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"),
+                ("trasf", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x90F79bf6EB2c4f870365E785982E1f101E93b906"),
+                ("riv","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"),
+                ("cert","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc")
             ]
 
-            for username, password in SEED_CREDENZIALI:
+            for username, password , address in SEED_CREDENZIALI:
                 db.execute_query("""
-                    INSERT OR IGNORE INTO Credenziali (Username, Password)
+                    INSERT OR IGNORE INTO Credenziali (Username, Password,address)
                     VALUES (?, ?)
                 """, (username, password))
 
