@@ -167,7 +167,8 @@ class DatabaseMigrations:
             'DROP TABLE IF EXISTS Prodotto',   # No dependencies
             'DROP TABLE IF EXISTS Soglie',     # No dependencies
             'DROP TABLE IF EXISTS Azienda',    # Depends on Credenziali
-            'DROP TABLE IF EXISTS Credenziali' # No dependencies
+            'DROP TABLE IF EXISTS Credenziali', # No dependencies
+            'DROP TABLE IF EXISTS RichiestaToken'
         ]
 
         TABLE_CREATION_QUERIES = [
@@ -176,7 +177,7 @@ class DatabaseMigrations:
                 Id_credenziali INTEGER PRIMARY KEY AUTOINCREMENT,
                 Username TEXT UNIQUE NOT NULL,
                 Password TEXT NOT NULL,
-                address TEXT NOT NULL              
+                Address TEXT NOT NULL              
             )
             ''',
             '''
@@ -336,9 +337,9 @@ class DatabaseMigrations:
 
             for username, password , address in SEED_CREDENZIALI:
                 db.execute_query("""
-                    INSERT OR IGNORE INTO Credenziali (Username, Password,address)
-                    VALUES (?, ?)
-                """, (username, password))
+                    INSERT OR IGNORE INTO Credenziali (Username, Password, Address)
+                    VALUES (?, ?, ?)
+                """, (username, password, address))
 
             # Ottieni gli ID delle credenziali inserite
             credenziali = db.fetch_results("SELECT Id_credenziali, Username FROM Credenziali")
