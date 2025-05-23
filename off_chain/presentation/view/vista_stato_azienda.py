@@ -109,6 +109,10 @@ class VistaStatoAzienda(QMainWindow):
             funzioni_utili.add_field_to_form(self.co2_risparmiata_totale_label, self.co2_risparmiata_totale_input,
                                              form_layout)
             
+            self.co2_risparmiata_totale_input.setReadOnly(True)
+            funzioni_utili.add_field_to_form(self.addresslabel, self.addressinput,
+                                             form_layout)
+            
             self.token_label_input.setReadOnly(True)
             funzioni_utili.add_field_to_form(self.token_label, self.token_label_input,
                                              form_layout)
