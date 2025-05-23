@@ -24,7 +24,6 @@ def verifica():
         signature = data["signature"]
         address = data["address"]
 
-        nome = data["nome"]
         tipo = data["tipo"]
         indirizzo = data["indirizzo"]
         username = data["username"]

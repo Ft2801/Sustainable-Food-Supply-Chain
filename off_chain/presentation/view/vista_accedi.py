@@ -6,13 +6,15 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 from PyQt5.QtWidgets import QWidget, QFormLayout, QHBoxLayout, QMainWindow, QAction, QCheckBox, QStackedWidget, \
     QComboBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from off_chain.model.credential_model import UserModel
 from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.view import funzioni_utili
 from presentation.view.home_page_aziende import HomePage
 from presentation.view.home_page_certificatore import HomePageCertificatore
 from presentation.view.home_page_guest import HomePageGuest
 from session import Session
-import pyotp
+import sys
+import subprocess
 
 ''''
 Class for authentication view main
@@ -309,6 +311,8 @@ class VistaAccedi(QMainWindow):
                 QMessageBox.warning(
                     self, "SupplyChain", "Conferma password errata!")
             else:
+                self.apri_html(
+                    username, tipo, indirizzo, password)
                 success, message, secret_key = self.controller.registrazione(
                     username, password, tipo, indirizzo
                 )
@@ -353,41 +357,21 @@ class VistaAccedi(QMainWindow):
 #############################################################################################################
 
 
-class SecretKeyDialog(QDialog):
-    def __init__(self, secret_key):
-        super().__init__()
-        self.secret_key = secret_key  # La chiave segreta dell'utente
-        self.setWindowTitle("Inserisci la chiave segreta nell'app di autenticazione")
+    def apri_html(self,nome, tipo, indirizzo, username, password):
+            try:
 
-        # Crea l'oggetto TOTP usando la chiave segreta
-        self.totp = pyotp.TOTP(self.secret_key)
+                UserModel.validate_password(self.password.text())
+                hash_psw = UserModel.hash_password(self.password.text())
+            except Exception as e:
+                QMessageBox.critical(self, "Errore", str(e))
+                return
+            dati = {
+                "tipo": self.tipo.currentText(),
+                "indirizzo": self.indirizzo.text(),
+                "username": self.username.text(),
+                "password": hash_psw
+            }
 
-        # Layout e widget per la finestra di dialogo
-        layout = QVBoxLayout()
-        self.label = QLabel(f"Chiave segreta: {self.secret_key}\nInserisci questa chiave nell'app di autenticazione.")
-        self.instruction_label = QLabel("Una volta inserita, inserisci il codice OTP generato.")
-        self.otp_input = QLineEdit()
-        self.confirm_button = QPushButton("Conferma")
-        self.confirm_button.setEnabled(
-            False)  # Disabilita il pulsante fino a quando non viene inserito un codice valido
-        self.confirm_button.clicked.connect(self.confirm_secret_key)
-
-        layout.addWidget(self.label)
-        layout.addWidget(self.instruction_label)
-        layout.addWidget(self.otp_input)
-        layout.addWidget(self.confirm_button)
-
-        self.setLayout(layout)
-
-        # Convalida del codice OTP mentre viene inserito
-        self.otp_input.textChanged.connect(self.check_otp)
-
-    def confirm_secret_key(self):
-        """Procedi con la registrazione se il codice OTP è corretto"""
-        otp_code = self.otp_input.text()
-        if self.totp.verify(otp_code):
-            QMessageBox.information(self, "Successo", "Codice OTP corretto. Registrazione completata.")
-            self.accept()  # Procedi con la registrazione
-        else:
-            QMessageBox.warning(self, "Errore", "Codice OTP errato. Inserisci un codice valido.")
-            self.otp_input.clear()  # Pulisce il campo di inserimento OTP
+            url = f"http://localhost:5000/firma.html?tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
+            chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+            subprocess.Popen([chrome_path, url])

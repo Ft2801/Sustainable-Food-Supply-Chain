@@ -66,8 +66,7 @@ class CredentialRepositoryImpl(ABC):
 
     def register(self, username: str, password: str, tipo: aziende_enum, indirizzo: str, blockchain_address: str) -> int:
         try:
-            UserModel.validate_password(password)
-            hash_password = UserModel.hash_password(password= password)
+            
             self.db.cur.execute("BEGIN TRANSACTION;")  # Inizio transazione manuale
             # Prima INSERT: credenziali
             query_credenziali = """
@@ -75,7 +74,7 @@ class CredentialRepositoryImpl(ABC):
                 VALUES (?, ?, ?);
             """
 
-            self.db.cur.execute(query_credenziali, (username, hash_password,blockchain_address))
+            self.db.cur.execute(query_credenziali, (username, password,blockchain_address))
             logger.info(f"Inserisco le credenziali del nuovo utente {username}")
             id_credenziali = self.db.cur.lastrowid  # Ottieni l'ID appena creato
             

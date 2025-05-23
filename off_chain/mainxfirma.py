@@ -1,6 +1,7 @@
 import sys
 import subprocess
 from PyQt5.QtWidgets import QApplication, QWidget, QFormLayout, QLineEdit, QComboBox, QPushButton, QMessageBox
+from model.credential_model import UserModel
 
 class RegistroAzienda(QWidget):
     def __init__(self):
@@ -31,12 +32,19 @@ class RegistroAzienda(QWidget):
         self.setLayout(self.layout)
 
     def apri_html(self):
+        try:
+
+            UserModel.validate_password(self.password.text())
+            hash_psw = UserModel.hash_password(self.password.text())
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", str(e))
+            return
         dati = {
             "nome": self.nome.text(),
             "tipo": self.tipo.currentText(),
             "indirizzo": self.indirizzo.text(),
             "username": self.username.text(),
-            "password": self.password.text()
+            "password": hash_psw
         }
 
         url = f"http://localhost:5000/firma.html?nome={dati['nome']}&tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
