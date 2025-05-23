@@ -24,7 +24,7 @@ class OperazioniAziendaView(QWidget):
         self.controller = ControllerAzienda()
         
 
-        self.operazioni : list[OperazioneEstesaModel]= self.controller.lista_operazioni(self.id_azienda) # Mock data
+        self.operazioni : list[OperazioneEstesaModel]= self.controller.lista_operazioni(self.id_azienda)
         self.operazioni_filtrate = self.operazioni.copy()
 
         self.init_ui()
@@ -162,42 +162,14 @@ class OperazioniAziendaView(QWidget):
             # In un'applicazione reale, questo dovrebbe essere gestito in modo più sicuro
             blockchain_controller = BlockchainController()
             
-            # Ottieni la chiave privata (in un'app reale, questo dovrebbe essere più sicuro)
-            private_key, ok = QInputDialog.getText(
-                self, 
-                "Chiave privata", 
-                "Inserisci la tua chiave privata per firmare la transazione:",
-                QLineEdit.Password
+            blockchain_controller.firma_operazione(
+                operazione.nome_operazione,
+                operazione.quantita_prodotto,
+                operazione.consumo_co2,
+                operazione.nome_prodotto,
+
             )
             
-            if not ok or not private_key:
-                return
-            
-            # Mappa il tipo di operazione al valore enum usato nel contratto
-            operation_type_map = {
-                "Produzione": 0,  # OperationType.Production
-                "Trasformazione": 1,  # OperationType.Processing
-                "Trasporto": 2,  # OperationType.Transport
-                "Vendita": 3   # OperationType.Sale
-            }
-            
-            # Determina il tipo di operazione
-            operation_type = operation_type_map.get(operazione.nome_operazione, 0)
-            
-            # Crea la descrizione dell'operazione
-            description = f"Prodotto: {operazione.nome_prodotto}, CO2: {operazione.consumo_co2}"
-            
-            # Batch ID (0 se non associato a un lotto)
-            batch_id = 0  # Modifica se hai un ID lotto associato all'operazione
-            
-            # Invia l'operazione alla blockchain
-            tx_hash = blockchain_controller.invia_operazione(
-                private_key,
-                operation_type,
-                description,
-                batch_id,
-                operazione.id_operazione  # Passa l'ID dell'operazione per aggiornare lo stato
-            )
             
             # Mostra conferma all'utente
             QMessageBox.information(
@@ -212,3 +184,4 @@ class OperazioniAziendaView(QWidget):
                 "Errore",
                 f"Si è verificato un errore durante la registrazione dell'operazione sulla blockchain:\n{str(e)}"
             )
+            return

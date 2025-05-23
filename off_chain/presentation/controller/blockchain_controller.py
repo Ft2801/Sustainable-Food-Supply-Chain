@@ -7,6 +7,8 @@ import sqlite3
 from session import Session
 from persistence.repository_impl.credential_repository_impl import CredentialRepositoryImpl
 from configuration.log_load_setting import logger
+import subprocess
+import requests
 
 # CONFIGURAZIONE
 NODE_URL = "http://127.0.0.1:8545"  # Nodo Hardhat
@@ -44,6 +46,30 @@ class BlockchainController:
         message = encode_defunct(text=challenge)
         recovered = Account.recover_message(message, signature=signature)
         return recovered.lower() == address_eth.lower()
+    
+
+    def firma_operazione(self,tipo, quantita, unita, prodotto):
+
+        account = self.get_adress()  # Funzione che recupera account locale
+
+        messaggio = f"Conferma operazione {tipo} di {quantita} {unita} di {prodotto}"
+        messaggio_encoded = messaggio.replace(" ", "%20")
+
+        url = f"http://localhost:5000/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&quantita={quantita}&unita={unita}&prodotto={prodotto}"
+        chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        proc = subprocess.Popen([chrome_path, url])
+        proc.wait()
+
+        # Dopo la chiusura interrogo il backend per conoscere l'esito
+        try:
+            res = requests.get(f"http://localhost:5000/esito_operazione/{account}")
+            esito = res.json()["esito"]
+        except Exception as e:
+            raise Exception(f"Errore durante la richiesta dell'esito: {str(e)}")
+
+
+
+
 
     def get_adress(self):
         try:
@@ -107,56 +133,47 @@ class BlockchainController:
         
         return tx_hash.hex()
 
-    def invia_operazione(self, private_key, operation_type, description, batch_id, id_operazione=None):
-        account = Account.from_key(private_key)
-        sender = account.address
-
-        nonce = w3.eth.get_transaction_count(sender)
-        gas_price = w3.eth.gas_price
-
-        tx = self.contract.functions.registerOperation(
-            operation_type,
-            description,
-            batch_id
-        ).build_transaction({
-            'from': sender,
-            'nonce': nonce,
-            'gasPrice': gas_price,
-            'gas': 500000,
-        })
-
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key=private_key)
-        
-        # Gestisci sia le versioni vecchie che nuove di Web3.py
+    def invia_operazione(self, operation_type, description, batch_id, id_operazione):
+        """Registra un'operazione sulla blockchain"""
         try:
-            # Versione più recente di Web3.py
-            raw_tx = signed_tx.raw_transaction
-        except AttributeError:
-            try:
-                # Versione precedente di Web3.py
-                raw_tx = signed_tx.rawTransaction
-            except AttributeError:
-                # Se entrambi falliscono, mostra un errore dettagliato
-                logger.error(f"Errore: l'oggetto SignedTransaction non ha né l'attributo raw_transaction né rawTransaction. Attributi disponibili: {dir(signed_tx)}")
-                raise Exception("Errore nella firma della transazione: formato non supportato")
+            # Ottieni l'account dall'indirizzo blockchain dell'utente corrente
+            account = self.get_adress()
+            nonce = w3.eth.get_transaction_count(account)
+            gas_price = w3.eth.gas_price
+
+            tx = self.contract.functions.registerOperation(
+                operation_type,
+                description,
+                batch_id,
+                id_operazione
+            ).build_transaction({
+                'from': account,
+                'nonce': nonce,
+                'gasPrice': gas_price,
+                'gas': 300000,
+            })
+
+            # Firma e invia la transazione
+            tx_hash = w3.eth.send_transaction(tx)
+            
+            # Aggiorna lo stato dell'operazione nel database
+            if id_operazione is not None:
+                try:
+                    conn = sqlite3.connect(DATABASE_PATH)
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                        (id_operazione,)
+                    )
+                    conn.commit()
+                    conn.close()
+                    logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
+                except Exception as e:
+                    logger.error(f"Errore nell'aggiornamento dello stato dell'operazione: {e}")
+                    # Non solleviamo l'eccezione qui per non interrompere il flusso principale
+            
+            return tx_hash.hex()
         
-        tx_hash = w3.eth.send_raw_transaction(raw_tx)
-        
-        # Se è stato fornito l'ID dell'operazione, aggiorna il suo stato nel database
-        if id_operazione is not None:
-            try:
-                # Aggiorna lo stato dell'operazione nel database
-                conn = sqlite3.connect(DATABASE_PATH)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
-                    (id_operazione,)
-                )
-                conn.commit()
-                conn.close()
-                logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
-            except Exception as e:
-                logger.error(f"Errore nell'aggiornamento dello stato dell'operazione: {e}")
-                # Non solleviamo l'eccezione qui per non interrompere il flusso principale
-        
-        return tx_hash.hex()
+        except Exception as e:
+            logger.error(f"Errore durante l'invio dell'operazione sulla blockchain: {e}")
+            raise Exception(f"Errore durante l'invio dell'operazione sulla blockchain: {str(e)}")

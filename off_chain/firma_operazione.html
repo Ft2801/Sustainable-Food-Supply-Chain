@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firma Operazione</title>
+</head>
+<body>
+  <script>
+    async function firma() {
+      if (typeof window.ethereum === 'undefined') {
+        alert("⚠️ MetaMask non è installato.");
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const messaggio = decodeURIComponent(urlParams.get("messaggio"));
+      const tipo = urlParams.get("tipo");
+      const quantita = urlParams.get("quantita");
+      const unita = urlParams.get("unita");
+      const prodotto = urlParams.get("prodotto");
+      const operation_type = urlParams.get("operation_type");
+      const batch_id = urlParams.get("batch_id");
+      const id_operazione = urlParams.get("id_operazione");
+
+      try {
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+
+        const signature = await ethereum.request({
+          method: 'personal_sign',
+          params: [messaggio, address],
+        });
+
+        const res = await fetch("http://localhost:5000/conferma_operazione", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messaggio,
+            tipo,
+            quantita,
+            unita,
+            prodotto,
+            address,
+            signature,
+            operation_type,
+            batch_id,
+            id_operazione
+          })
+        });
+
+        const json = await res.json();
+        alert(json.message);
+        window.close();
+      } catch (err) {
+        alert("Errore durante la firma: " + err.message);
+        console.error(err);
+      }
+    }
+
+    window.onload = firma;
+  </script>
+</body>
+</html>
