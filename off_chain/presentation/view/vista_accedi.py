@@ -316,7 +316,6 @@ class VistaAccedi(QMainWindow):
                     self.apri_html(
                         username=username, password=password,
                         tipo=tipo, indirizzo=indirizzo)
-                    self.close()
                     QMessageBox.information(
                         self, "SupplyChain", "Registrazione in corso...")
                 except Exception as e:
@@ -378,4 +377,11 @@ class VistaAccedi(QMainWindow):
             proc = subprocess.Popen([chrome_path, url])
             proc.wait()
 
-            # Attendere che l'utente firmi il messaggio
+
+            self.section_switcher.setChecked(False)  # Switch alla schermata di login
+            self.reset()  # Reset dei campi
+            QMessageBox.information(
+                self, 
+                "SupplyChain", 
+                "Registrazione completata! Ora puoi effettuare il login con le tue credenziali."
+            )
