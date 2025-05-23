@@ -27,7 +27,7 @@ class VistaStatoAzienda(QMainWindow):
         self.callback = callback
         self.controller = ControllerAutenticazione()
         azienda : CompanyModel = self.controller.get_user()
-        address = self.controller.blockchainconroller.get_adress(azienda.id_azienda)
+        address = self.controller.blockchainconroller.get_adress()
         
 
         # Elementi di layout
