@@ -316,6 +316,8 @@ class VistaAccedi(QMainWindow):
                     self.apri_html(
                         username=username, password=password,
                         tipo=tipo, indirizzo=indirizzo)
+                    QMessageBox.information(
+                        self, "SupplyChain", "Registrazione in corso...")
                 except Exception as e:
                     QMessageBox.warning(
                         self, "SupplyChain", f"Errore durante la registrazione: {e}")
@@ -372,4 +374,14 @@ class VistaAccedi(QMainWindow):
 
             url = f"http://localhost:5000/firma.html?tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
             chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-            subprocess.Popen([chrome_path, url])
+            proc = subprocess.Popen([chrome_path, url])
+            proc.wait()
+
+
+            self.section_switcher.setChecked(False)  # Switch alla schermata di login
+            self.reset()  # Reset dei campi
+            QMessageBox.information(
+                self, 
+                "SupplyChain", 
+                "Registrazione completata! Ora puoi effettuare il login con le tue credenziali."
+            )
