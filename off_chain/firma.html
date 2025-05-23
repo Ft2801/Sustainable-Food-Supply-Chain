@@ -15,24 +15,18 @@
       return;
     }
 
-    // Definizione del messaggio
     const message = "Autenticazione SupplyChain";
-
-    // Richiesta account utente
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
     const address = accounts[0];
 
-    // Conversione in esadecimale
     const hexMessage = '0x' + [...message].map(c =>
       c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
 
-    // Firma con MetaMask
     const signature = await ethereum.request({
       method: 'personal_sign',
       params: [hexMessage, address],
     });
 
-    // Estrazione dei dati dalla query string (parametri passati da PyQt)
     const urlParams = new URLSearchParams(window.location.search);
     const nome = urlParams.get("nome");
     const tipo = urlParams.get("tipo");
@@ -40,12 +34,11 @@
     const username = urlParams.get("username");
     const password = urlParams.get("password");
 
-    // Invio al backend Flask
     const res = await fetch("http://localhost:5000/verifica", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        message,       
+        message,
         address,
         signature,
         nome,
@@ -57,9 +50,16 @@
     });
 
     const json = await res.json();
-    alert(json.message);
+    alert(json.message);  // Mostra l’esito
+
+    // Dopo conferma alert → chiudi la finestra
+    window.close();
   }
+
+  // Esegui automaticamente all’apertura della pagina
+  window.onload = firma;
 </script>
+
 
 </body>
 </html>
