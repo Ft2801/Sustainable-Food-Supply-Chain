@@ -311,16 +311,15 @@ class VistaAccedi(QMainWindow):
                 QMessageBox.warning(
                     self, "SupplyChain", "Conferma password errata!")
             else:
-                self.apri_html(
-                    username, tipo, indirizzo, password)
-                success, message, secret_key = self.controller.registrazione(
-                    username, password, tipo, indirizzo
-                )
-                if success:
-                    QMessageBox.information(self, "Successo", message)
-                    self.reset()
-                else:
-                    QMessageBox.warning(self, "Errore", message)
+                try:
+
+                    self.apri_html(
+                        username=username, password=password,
+                        tipo=tipo, indirizzo=indirizzo)
+                except Exception as e:
+                    QMessageBox.warning(
+                        self, "SupplyChain", f"Errore durante la registrazione: {e}")
+        
 
     '''
     Allow the user to change the password visibility
@@ -357,18 +356,17 @@ class VistaAccedi(QMainWindow):
 #############################################################################################################
 
 
-    def apri_html(self,nome, tipo, indirizzo, username, password):
+    def apri_html(self, tipo, indirizzo, username, password):
             try:
 
-                UserModel.validate_password(self.password.text())
-                hash_psw = UserModel.hash_password(self.password.text())
+                UserModel.validate_password(password)
+                hash_psw = UserModel.hash_password(password)
             except Exception as e:
-                QMessageBox.critical(self, "Errore", str(e))
-                return
+                raise e
             dati = {
-                "tipo": self.tipo.currentText(),
-                "indirizzo": self.indirizzo.text(),
-                "username": self.username.text(),
+                "tipo": tipo,
+                "indirizzo": indirizzo,
+                "username": username,
                 "password": hash_psw
             }
 
