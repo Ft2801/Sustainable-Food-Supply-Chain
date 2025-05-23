@@ -27,6 +27,7 @@ class VistaStatoAzienda(QMainWindow):
         self.callback = callback
         self.controller = ControllerAutenticazione()
         azienda : CompanyModel = self.controller.get_user()
+        address = self.controller.blockchainconroller.get_adress(azienda.id_azienda)
         
 
         # Elementi di layout
@@ -38,6 +39,9 @@ class VistaStatoAzienda(QMainWindow):
 
         self.tipo_label = QLabel("Tipo")
         self.tipo_input = QLineEdit(str(azienda.tipo))
+
+        self.addresslabel = QLabel("Indirizzo Blockchain")
+        self.addressinput = QLineEdit(str(address))
 
         self.co2_consumata_totale_label = QLabel("CO2 consumata totale")
         self.co2_consumata_totale_input = QLineEdit(str(azienda.co2_consumata))
