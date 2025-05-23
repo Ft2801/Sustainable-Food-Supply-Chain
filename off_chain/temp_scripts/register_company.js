@@ -38,12 +38,12 @@
     
             // Crea un'istanza del contratto SustainableFoodChain
             const contract = new ethers.Contract(
-                "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",  // Indirizzo del contratto SustainableFoodChain
+                "0x5FbDB2315678afecb367f032d93F642f64180aa3",  // Indirizzo del contratto SustainableFoodChain
                 contractJson.abi,
                 signer
             );
             
-            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`);
+            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0x5FbDB2315678afecb367f032d93F642f64180aa3`);
             
             // Verifica se l'azienda è già registrata
             try {
@@ -58,13 +58,13 @@
                 // Continuiamo comunque con la registrazione
             }
             
-            console.log(`Registrazione dell'azienda F di tipo 0 in corso...`);
+            console.log(`Registrazione dell'azienda P di tipo 1 in corso...`);
             
             // Esegui la transazione di registrazione
             const tx = await contract.registerCompany(
-                "F",
-                0,  // Tipo di azienda (enum: 0=Producer, 1=Processor, 2=Distributor, 3=Retailer, 4=Other)
-                "b",
+                "P",
+                1,  // Tipo di azienda (enum: 0=Producer, 1=Processor, 2=Distributor, 3=Retailer, 4=Other)
+                "p",
                 "{}"
             );
             console.log("Transaction hash:", tx.hash);
