@@ -144,8 +144,7 @@ class BlockchainController:
             tx = self.contract.functions.registerOperation(
                 operation_type,
                 description,
-                batch_id,
-                id_operazione
+                batch_id
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
