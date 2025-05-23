@@ -11,18 +11,21 @@ from persistence.repository_impl.credential_repository_impl import CredentialRep
 from session import Session
 from model.company_model import CompanyModel
 from model.credential_model import UserModel
+from presentation.controller.blockchain_controller import BlockchainController
 
 class ControllerAutenticazione:
 
     def __init__(self):
         self.credential = CredentialRepositoryImpl()
+        self.blockchainconroller = BlockchainController()
         logger.info("BackEnd: Successful initialization of 'class instances' for repository implements")
         self.sessione = Session()
 
-    def registrazione(self, username, password, tipo, indirizzo):
+    def registrazione(self, username, password, tipo, indirizzo, blockchain_address : str):
         """Tenta di aggiungere un utente, gestendo eventuali errori."""
         try:
-            self.credential.register(username, password, tipo, indirizzo)
+
+            self.credential.register(username, password, tipo, indirizzo,blockchain_address)
             return True, "Utente registrato con successo!", None # Aggiunto None per coerenza
         except PasswordTooShortError as e:
             return False, str(e), None

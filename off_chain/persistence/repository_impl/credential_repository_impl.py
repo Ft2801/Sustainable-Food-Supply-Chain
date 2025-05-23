@@ -64,7 +64,7 @@ class CredentialRepositoryImpl(ABC):
             return False
 
 
-    def register(self, username: str, password: str, tipo: aziende_enum, indirizzo: str):
+    def register(self, username: str, password: str, tipo: aziende_enum, indirizzo: str, blockchain_address: str) -> int:
         try:
             UserModel.validate_password(password)
             hash_password = UserModel.hash_password(password= password)
@@ -74,8 +74,8 @@ class CredentialRepositoryImpl(ABC):
                 INSERT INTO Credenziali (Username, Password, address)
                 VALUES (?, ?, ?);
             """
-            address = indirizzo #TODO  Cambiare con l'indirizzo
-            self.db.cur.execute(query_credenziali, (username, hash_password,address))
+
+            self.db.cur.execute(query_credenziali, (username, hash_password,blockchain_address))
             logger.info(f"Inserisco le credenziali del nuovo utente {username}")
             id_credenziali = self.db.cur.lastrowid  # Ottieni l'ID appena creato
             
