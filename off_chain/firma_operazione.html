@@ -14,12 +14,13 @@
       const urlParams = new URLSearchParams(window.location.search);
       const messaggio = decodeURIComponent(urlParams.get("messaggio"));
       const tipo = urlParams.get("tipo");
+      const operation_type = urlParams.get("op");
+      const batch_id = urlParams.get("lotto");
+      
+      /*const id_operazione = urlParams.get("id_operazione");
       const quantita = urlParams.get("quantita");
       const unita = urlParams.get("unita");
-      const prodotto = urlParams.get("prodotto");
-      const operation_type = urlParams.get("operation_type");
-      const batch_id = urlParams.get("batch_id");
-      const id_operazione = urlParams.get("id_operazione");
+      const prodotto = urlParams.get("prodotto");"""*/
 
       try {
         const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
@@ -34,16 +35,12 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            messaggio,
-            tipo,
-            quantita,
-            unita,
-            prodotto,
-            address,
+            address ,
+            messaggio ,
             signature,
             operation_type,
             batch_id,
-            id_operazione
+            id_operazione,
           })
         });
 

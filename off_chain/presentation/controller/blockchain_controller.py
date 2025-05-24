@@ -47,12 +47,13 @@ class BlockchainController:
         recovered = Account.recover_message(message, signature=signature)
         return recovered.lower() == address_eth.lower()
     
+    
 
-    def firma_operazione(self,tipo, quantita, unita, prodotto):
+    def firma_operazione(self,tipo, id_lotto, id_operazione):
 
         account = self.get_adress()  # Funzione che recupera account locale
 
-        messaggio = f"Conferma operazione {tipo} di {quantita} {unita} di {prodotto}"
+        messaggio = f"Conferma operazione {tipo} sil lotto {id_lotto} con id op {id_operazione}"
         messaggio_encoded = messaggio.replace(" ", "%20")
 
         url = f"http://localhost:5000/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&quantita={quantita}&unita={unita}&prodotto={prodotto}"
@@ -140,6 +141,7 @@ class BlockchainController:
             account = self.get_adress()
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
+
 
             tx = self.contract.functions.registerOperation(
                 operation_type,

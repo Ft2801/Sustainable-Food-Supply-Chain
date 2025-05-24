@@ -64,9 +64,9 @@ def conferma_operazione():
         messaggio = data["messaggio"]
         signature = data["signature"]
 
-        operation_type = 0
-        batch_id = 0  # Placeholder, da sostituire con il valore corretto
-        id_operazione = 0  # Placeholder, da sostituire con il valore corretto
+        operation_type = ["operation_type"]
+        batch_id = ["batch_id"]  # Placeholder, da sostituire con il valore corretto
+        id_operazione = ["id_operazione"]  # Placeholder, da sostituire con il valore corretto
 
         # Verifica firma
         eth_message = encode_defunct(text=messaggio)
