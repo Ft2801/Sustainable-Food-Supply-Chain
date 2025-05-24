@@ -80,7 +80,7 @@ class ControllerAutenticazione:
             return self.credential.get_azienda_by_id(Session().current_user["id_azienda"])
         except Exception as e: # W0719: Cattura eccezione generica
             logger.error(f"Errore nel'ottenimento del utente {e}")
-            raise Exception(f"Errore nel recupero utente: {str(e)}") from e # W0707
+            raise Exception(f"Errore nel recupero utente nella funzione getuser: {str(e)}") from e # W0707
 
     def verifica_password(self, old_password: str) -> bool:
         try:
