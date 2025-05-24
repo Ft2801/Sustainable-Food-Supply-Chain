@@ -161,7 +161,7 @@ class CredentialRepositoryImpl(ABC):
             raise Exception(f"Errore nel cambio della password {e}")
         
 
-    def get_adrress_by_id(self, id: int) -> str:
+    def get_address_by_id(self, id: int) -> str:
         try:
             query = "SELECT address FROM Credenziali WHERE Id_credenziali = ?"
             value = (id,)
