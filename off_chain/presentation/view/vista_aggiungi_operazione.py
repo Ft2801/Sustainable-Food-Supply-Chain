@@ -118,8 +118,8 @@ class AggiungiOperazioneView(QDialog):
         self.input_valore = QDoubleSpinBox()
         self.input_valore.setMinimum(0.0)            
         self.input_valore.setMaximum(9999.99)       
-        self.input_valore.setDecimals(2)          
-        self.input_valore.setSingleStep(0.1)                    
+        self.input_valore.setDecimals(0)          
+        self.input_valore.setSingleStep(1)                    
         layout.addWidget(QLabel("Inserisci un valore CO2:"))
         layout.addWidget(self.input_valore)
 
