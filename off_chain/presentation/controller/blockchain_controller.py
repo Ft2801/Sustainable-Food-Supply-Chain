@@ -73,7 +73,7 @@ class BlockchainController:
 
     def get_adress(self):
         try:
-            return self.controller.get_adrress_by_id(Session()._current_user["id_azienda"])
+            return self.controller.get_adrress_by_id(Session().current_user["id_azienda"])
         except Exception as e:
             logger.error(f"Errore nell'ottenimento dell'utente: {e}")
             raise Exception(f"Errore nel recupero utente: {str(e)}") from e
