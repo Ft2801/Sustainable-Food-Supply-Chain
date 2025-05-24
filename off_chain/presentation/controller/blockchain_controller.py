@@ -204,9 +204,9 @@ class BlockchainController:
             logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
-                operation_type_int,
+                1,
                 description,
-                batch_id_int
+                1
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
