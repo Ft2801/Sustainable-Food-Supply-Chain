@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QMessageBox, QMenu, QAction
 )
 
+from presentation.view.vista_contratti_deploy import OperazioniCompanyView
 from presentation.view.vista_richieste import VisualizzaRichiesteView
 from presentation.view.vista_magazzino import VisualizzaMagazzinoView
 from presentation.controller.company_controller import ControllerAzienda
@@ -182,7 +183,7 @@ class HomePage(QMainWindow):
         self.vista_azioni.show()
 
     def show_magazzino(self):
-        self.vista_magazzino = VisualizzaMagazzinoView()
+        self.vista_magazzino = OperazioniCompanyView()
         self.vista_magazzino.show()
 
     def show_stato(self):

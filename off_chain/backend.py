@@ -23,35 +23,50 @@ def firma_html():
 @app.route("/verifica", methods=["POST"])
 def verifica():
     data = request.json
-    print("Dati ricevuti:", data)  # Debug utile
+    print("Dati ricevuti:", data)  # Debug dei dati
 
     try:
+        # Verifica che tutti i campi necessari siano presenti
+        required_fields = ["message", "signature", "address", "tipo", "indirizzo", "username", "password"]
+        for field in required_fields:
+            if field not in data:
+                return jsonify({"message": f"Campo mancante: {field}"}), 400
+
         message = data["message"]
         signature = data["signature"]
         address = data["address"]
-
         tipo = data["tipo"]
         indirizzo = data["indirizzo"]
         username = data["username"]
         password = data["password"]
 
+        # Verifica della firma
         eth_message = encode_defunct(text=message)
         recovered = Account.recover_message(eth_message, signature=signature)
 
         if recovered.lower() != address.lower():
-            return jsonify({"message": "Firma non valida."}), 400
+            return jsonify({"message": "Firma non valida"}), 400
         
+        # Registrazione dell'azienda
         controller = ControllerAutenticazione()
-        controller.registrazione(
+        success = controller.registrazione(
             username=username,
             password=password,
-            indirizzo=indirizzo,
             tipo=tipo,
+            indirizzo=indirizzo,
             blockchain_address=address
         )
 
-        return jsonify({"message": "Registrazione completata!", "address": address})
+        if not success:
+            return jsonify({"message": "Errore nella registrazione"}), 400
+
+        return jsonify({
+            "message": "Registrazione completata con successo!",
+            "address": address
+        })
+        
     except Exception as e:
+        print("Errore durante la verifica:", str(e))  # Debug dell'errore
         return jsonify({"message": f"Errore nella registrazione: {str(e)}"}), 400
     
 

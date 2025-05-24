@@ -148,6 +148,8 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     // ======== STATO ========
     mapping(address => User) private users;
     mapping(address => bool) private isUserRegistered;
+    mapping(address => uint256[]) public companyOperations;
+
     
     mapping(address => Company) public companies;
     address[] public registeredCompanyAddresses; // Mantenuto per query on-chain
@@ -157,7 +159,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     
     mapping(uint256 => Operation) public operations;
     uint256 public nextOperationId = 1;
-    mapping(address => uint256[]) private companyOperations;
     
     mapping(uint256 => CompensationAction) public compensationActions;
     uint256 public nextCompensationActionId = 1;
@@ -329,12 +330,15 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     // ======== FUNZIONI PER OPERAZIONI, AZIONI COMPENSATIVE, LOTTI ========
     // (Queste sezioni rimangono strutturalmente simili, ma l'interazione con i token è cambiata)
 
-    function registerOperation(
+    event DebugOperation(uint256 operationId, address sender);
+
+    function registerOperation( 
         OperationType operationType,
         string memory description,
-        uint256 batchId // 0 se non associato a un lotto
-    ) public onlyRegisteredCompany(msg.sender) returns (uint256) {
+        uint256 batchId
+    ) public returns (uint256) {
         uint256 operationId = nextOperationId++;
+
         operations[operationId] = Operation(
             operationId,
             msg.sender,
@@ -344,10 +348,10 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             batchId,
             true
         );
+
         companyOperations[msg.sender].push(operationId);
-        if (batchId > 0 && batches[batchId].id > 0 && batches[batchId].isActive) {
-            batches[batchId].operationIds.push(operationId);
-        }
+        emit DebugOperation(operationId, msg.sender);
+
         emit OperationCreated(operationId, msg.sender, operationType, block.timestamp, description, batchId);
         return operationId;
     }
