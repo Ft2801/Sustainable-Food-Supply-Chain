@@ -51,7 +51,7 @@ class BlockchainController:
 
     def firma_operazione(self,tipo, id_lotto, id_operazione):
 
-        account = self.get_adress()  # Funzione che recupera account locale
+        account = self.get_address()  # Funzione che recupera account locale
 
         messaggio = f"Conferma operazione {tipo} sil lotto {id_lotto} con id op {id_operazione}"
         messaggio_encoded = messaggio.replace(" ", "%20")
