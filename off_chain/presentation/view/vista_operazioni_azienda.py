@@ -169,14 +169,6 @@ class OperazioniAziendaView(QWidget):
 
             )
             
-            
-            # Mostra conferma all'utente
-            QMessageBox.information(
-                self,
-                "Operazione registrata",
-                f"L'operazione è stata registrata sulla blockchain con successo!\n\nHash transazione: {tx_hash}"
-            )
-            
         except Exception as e:
             QMessageBox.critical(
                 self,
