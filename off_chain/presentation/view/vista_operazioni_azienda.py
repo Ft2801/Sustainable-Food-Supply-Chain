@@ -163,10 +163,9 @@ class OperazioniAziendaView(QWidget):
             blockchain_controller = BlockchainController()
             
             blockchain_controller.firma_operazione(
-                operazione.nome_operazione,
-                operazione.quantita_prodotto,
-                operazione.consumo_co2,
-                operazione.nome_prodotto,
+                tipo="Trasformazione",
+                id_lotto=1,
+                id_operazione=1
 
             )
             

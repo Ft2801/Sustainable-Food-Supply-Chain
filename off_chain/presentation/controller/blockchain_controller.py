@@ -56,7 +56,7 @@ class BlockchainController:
         messaggio = f"Conferma operazione {tipo} sil lotto {id_lotto} con id op {id_operazione}"
         messaggio_encoded = messaggio.replace(" ", "%20")
 
-        url = f"http://localhost:5000/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&quantita={quantita}&unita={unita}&prodotto={prodotto}"
+        url = f"http://localhost:5000/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&lotto={id_lotto}&op={id_operazione}"
         chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
         proc = subprocess.Popen([chrome_path, url])
         proc.wait()
