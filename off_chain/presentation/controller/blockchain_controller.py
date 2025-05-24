@@ -150,7 +150,7 @@ class BlockchainController:
         """Registra un'operazione sulla blockchain"""
         try:
             # Ottieni l'account dall'indirizzo blockchain dell'utente corrente
-            account = self.get_adress()
+            account = self.get_address()
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
 
