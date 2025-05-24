@@ -56,7 +56,7 @@ class BlockchainController:
         messaggio = f"Conferma operazione {tipo} sil lotto {id_lotto} con id op {id_operazione}"
         messaggio_encoded = messaggio.replace(" ", "%20")
 
-        url = f"http://localhost:5000/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&lotto={id_lotto}&op={id_operazione}"
+        url = f"http://localhost:5001/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&lotto={id_lotto}&op={id_operazione}"
         # Rileva il sistema operativo e apri il browser in modo appropriato
         import platform
         import webbrowser
@@ -78,7 +78,7 @@ class BlockchainController:
 
         # Dopo la chiusura interrogo il backend per conoscere l'esito
         try:
-            res = requests.get(f"http://localhost:5000/esito_operazione/{account}")
+            res = requests.get(f"http://localhost:5001/esito_operazione/{account}")
             esito = res.json()["esito"]
         except Exception as e:
             raise Exception(f"Errore durante la richiesta dell'esito: {str(e)}")
@@ -204,15 +204,9 @@ class BlockchainController:
             logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
-<<<<<<< Updated upstream
                 operation_type_int,
                 description,
                 batch_id_int
-=======
-                1,
-                description,
-                1
->>>>>>> Stashed changes
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,

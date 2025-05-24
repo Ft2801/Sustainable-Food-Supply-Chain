@@ -105,7 +105,7 @@
         </div>
       </div>
     </div>
-
+ 
 <script>
   async function firma() {
     try {
@@ -113,35 +113,35 @@
         document.getElementById('loadingStatus').style.display = 'none';
         document.getElementById('successStatus').style.display = 'none';
         document.getElementById('errorStatus').style.display = 'none';
-
+ 
         if (typeof window.ethereum === 'undefined') {
             throw new Error("MetaMask non è installato.");
         }
-
+ 
         // Mostra loading
         document.getElementById('loadingStatus').style.display = 'block';
-
+ 
         const message = "Autenticazione SupplyChain";
         const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
         const address = accounts[0];
-
+ 
         const signature = await ethereum.request({
             method: 'personal_sign',
             params: [message, address],
         });
-
+ 
         const urlParams = new URLSearchParams(window.location.search);
         const tipo = urlParams.get("tipo");
         const indirizzo = urlParams.get("indirizzo");
         const username = urlParams.get("username");
         const password = urlParams.get("password");
-
+ 
         // Verifica che tutti i parametri necessari siano presenti
         if (!tipo || !indirizzo || !username || !password) {
             throw new Error("Parametri mancanti nell'URL");
         }
-
-        const res = await fetch("http://localhost:5000/verifica", {
+ 
+        const res = await fetch("http://localhost:5001/verifica", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -154,13 +154,13 @@
                 password
             })
         });
-
+ 
         const json = await res.json();
         
         if (!res.ok) {
             throw new Error(json.message || 'Errore durante la verifica');
         }
-
+ 
         // Mostra successo
         document.getElementById('loadingStatus').style.display = 'none';
         document.getElementById('successStatus').style.display = 'block';
@@ -170,7 +170,7 @@
             alert(json.message);
             window.close();
         }, 1000);
-
+ 
     } catch (error) {
         // Mostra errore
         document.getElementById('loadingStatus').style.display = 'none';
@@ -179,57 +179,10 @@
         console.error('Errore:', error);
     }
 }
-
-<<<<<<< Updated upstream
-    const message = "Autenticazione SupplyChain";
-    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-    const address = accounts[0];
-
-    const hexMessage = '0x' + [...message].map(c =>
-      c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
-
-    const signature = await ethereum.request({
-      method: 'personal_sign',
-      params: [hexMessage, address],
-    });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const nome = urlParams.get("nome");
-    const tipo = urlParams.get("tipo");
-    const indirizzo = urlParams.get("indirizzo");
-    const username = urlParams.get("username");
-    const password = urlParams.get("password");
-
-    const res = await fetch("http://localhost:5001/verifica", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        address,
-        signature,
-        nome,
-        tipo,
-        indirizzo,
-        username,
-        password
-      })
-    });
-
-    const json = await res.json();
-    alert(json.message);  // Mostra l’esito
-
-    // Dopo conferma alert → chiudi la finestra
-    window.close();
-  }
-
-  // Esegui automaticamente all’apertura della pagina
-  window.onload = firma;
-=======
-// Esegui automaticamente all'apertura della pagina
-window.onload = firma;
->>>>>>> Stashed changes
+ 
+    // Esegui automaticamente all'apertura della pagina
+    window.onload = firma;
 </script>
-
-
+ 
 </body>
 </html>
