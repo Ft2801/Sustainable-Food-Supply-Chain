@@ -2,9 +2,14 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from eth_account.messages import encode_defunct
 from eth_account import Account
+import os
+import socket
+import json
 from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.controller.blockchain_controller import BlockchainController
 
+# Ottieni il percorso assoluto della directory corrente (dove si trova questo file)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 CORS(app) 
@@ -13,7 +18,7 @@ CORS(app)
 
 @app.route("/firma.html")
 def firma_html():
-    return send_from_directory(".", "firma.html")
+    return send_from_directory(BASE_DIR, "firma.html")
 
 @app.route("/verifica", methods=["POST"])
 def verifica():
@@ -52,7 +57,7 @@ def verifica():
 
 @app.route("/firma_operazione.html")
 def firma_operazione_html():
-    return send_from_directory(".", "firma_operazione.html")
+    return send_from_directory(BASE_DIR, "firma_operazione.html")
 
 esiti_operazioni = {}  # chiave: address, valore: esito str (successo o errore)
 

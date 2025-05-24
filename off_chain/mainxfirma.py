@@ -1,4 +1,6 @@
 import sys
+import os
+import json
 import subprocess
 from PyQt5.QtWidgets import QApplication, QWidget, QFormLayout, QLineEdit, QComboBox, QPushButton, QMessageBox
 from model.credential_model import UserModel
@@ -48,8 +50,25 @@ class RegistroAzienda(QWidget):
         }
 
         url = f"http://localhost:5000/firma.html?nome={dati['nome']}&tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
-        chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-        subprocess.Popen([chrome_path, url])
+        
+        # Rileva il sistema operativo e apri il browser in modo appropriato
+        import platform
+        import webbrowser
+        
+        system = platform.system()
+        try:
+            if system == 'Windows':
+                chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                subprocess.Popen([chrome_path, url])
+            elif system == 'Darwin':  # macOS
+                # Usa il browser predefinito su macOS
+                webbrowser.open(url)
+            else:  # Linux e altri
+                # Prova a usare il browser predefinito
+                webbrowser.open(url)
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", f"Errore nell'apertura del browser: {str(e)}")
+            return
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

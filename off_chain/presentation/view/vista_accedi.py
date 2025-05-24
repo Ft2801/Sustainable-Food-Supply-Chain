@@ -15,6 +15,8 @@ from presentation.view.home_page_guest import HomePageGuest
 from session import Session
 import sys
 import subprocess
+import os
+import json
 
 ''''
 Class for authentication view main
@@ -373,9 +375,25 @@ class VistaAccedi(QMainWindow):
             }
 
             url = f"http://localhost:5000/firma.html?tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
-            chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-            proc = subprocess.Popen([chrome_path, url])
-            proc.wait()
+            # Rileva il sistema operativo e apri il browser in modo appropriato
+            import platform
+            import webbrowser
+            
+            system = platform.system()
+            try:
+                if system == 'Windows':
+                    chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                    proc = subprocess.Popen([chrome_path, url])
+                    proc.wait()
+                elif system == 'Darwin':  # macOS
+                    # Usa il browser predefinito su macOS
+                    webbrowser.open(url)
+                else:  # Linux e altri
+                    # Prova a usare il browser predefinito
+                    webbrowser.open(url)
+            except Exception as e:
+                raise Exception(f"Errore nell'apertura del browser: {str(e)}")
+            # proc.wait() è stato spostato nelle condizioni specifiche per ogni sistema operativo
 
 
             self.section_switcher.setChecked(False)  # Switch alla schermata di login

@@ -57,9 +57,24 @@ class BlockchainController:
         messaggio_encoded = messaggio.replace(" ", "%20")
 
         url = f"http://localhost:5000/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&lotto={id_lotto}&op={id_operazione}"
-        chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
-        proc = subprocess.Popen([chrome_path, url])
-        proc.wait()
+        # Rileva il sistema operativo e apri il browser in modo appropriato
+        import platform
+        import webbrowser
+        
+        system = platform.system()
+        try:
+            if system == 'Windows':
+                chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                proc = subprocess.Popen([chrome_path, url])
+                proc.wait()
+            elif system == 'Darwin':  # macOS
+                # Usa il browser predefinito su macOS
+                webbrowser.open(url)
+            else:  # Linux e altri
+                # Prova a usare il browser predefinito
+                webbrowser.open(url)
+        except Exception as e:
+            raise Exception(f"Errore nell'apertura del browser: {str(e)}")
 
         # Dopo la chiusura interrogo il backend per conoscere l'esito
         try:
