@@ -204,9 +204,15 @@ class BlockchainController:
             logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
+<<<<<<< Updated upstream
                 operation_type_int,
                 description,
                 batch_id_int
+=======
+                1,
+                description,
+                1
+>>>>>>> Stashed changes
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
@@ -238,3 +244,14 @@ class BlockchainController:
         except Exception as e:
             logger.error(f"Errore durante l'invio dell'operazione sulla blockchain: {e}")
             raise Exception(f"Errore durante l'invio dell'operazione sulla blockchain: {str(e)}")
+        
+    def get_operazioni_company(self):
+        try:
+            address = self.get_address()
+            checksum_address = Web3.to_checksum_address(address)
+            res = self.contract.functions.getCompanyOperations(checksum_address).call()
+            logger.info(f"Operazioni recuperate per l'azienda {address}: {res}")
+            return res
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle operazioni per {address}: {e}")
+            raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")

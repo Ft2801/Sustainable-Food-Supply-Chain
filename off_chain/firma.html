@@ -108,11 +108,79 @@
 
 <script>
   async function firma() {
-    if (typeof window.ethereum === 'undefined') {
-      alert("⚠️ MetaMask non è installato.");
-      return;
-    }
+    try {
+        // Nascondi tutti gli indicatori di stato
+        document.getElementById('loadingStatus').style.display = 'none';
+        document.getElementById('successStatus').style.display = 'none';
+        document.getElementById('errorStatus').style.display = 'none';
 
+        if (typeof window.ethereum === 'undefined') {
+            throw new Error("MetaMask non è installato.");
+        }
+
+        // Mostra loading
+        document.getElementById('loadingStatus').style.display = 'block';
+
+        const message = "Autenticazione SupplyChain";
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+
+        const signature = await ethereum.request({
+            method: 'personal_sign',
+            params: [message, address],
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipo = urlParams.get("tipo");
+        const indirizzo = urlParams.get("indirizzo");
+        const username = urlParams.get("username");
+        const password = urlParams.get("password");
+
+        // Verifica che tutti i parametri necessari siano presenti
+        if (!tipo || !indirizzo || !username || !password) {
+            throw new Error("Parametri mancanti nell'URL");
+        }
+
+        const res = await fetch("http://localhost:5000/verifica", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message,
+                address,
+                signature,
+                tipo,
+                indirizzo,
+                username,
+                password
+            })
+        });
+
+        const json = await res.json();
+        
+        if (!res.ok) {
+            throw new Error(json.message || 'Errore durante la verifica');
+        }
+
+        // Mostra successo
+        document.getElementById('loadingStatus').style.display = 'none';
+        document.getElementById('successStatus').style.display = 'block';
+        
+        // Attendi un secondo prima di chiudere la finestra
+        setTimeout(() => {
+            alert(json.message);
+            window.close();
+        }, 1000);
+
+    } catch (error) {
+        // Mostra errore
+        document.getElementById('loadingStatus').style.display = 'none';
+        document.getElementById('errorStatus').style.display = 'block';
+        document.getElementById('errorMessage').textContent = error.message;
+        console.error('Errore:', error);
+    }
+}
+
+<<<<<<< Updated upstream
     const message = "Autenticazione SupplyChain";
     const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
     const address = accounts[0];
@@ -156,6 +224,10 @@
 
   // Esegui automaticamente all’apertura della pagina
   window.onload = firma;
+=======
+// Esegui automaticamente all'apertura della pagina
+window.onload = firma;
+>>>>>>> Stashed changes
 </script>
 
 
