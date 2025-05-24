@@ -72,18 +72,24 @@ class BlockchainController:
 
 
 
-    def get_adress(self):
+    def get_address(self):
         try:
-            current_user = Session().current_user
-            if not current_user:
-                raise ValueError("Utente non autenticato")
-            if "id_azienda" not in current_user:
-                raise ValueError("ID azienda non trovato nell'utente corrente")
+            session = Session()
+            current_user = getattr(session, "current_user", None)
+            if current_user is None:
+                raise ValueError("Utente non autenticato (current_user è None)")
 
-            return self.controller.get_adrress_by_id(current_user["id_azienda"])
+            if not isinstance(current_user, dict):
+                raise TypeError(f"current_user non è un dizionario: {type(current_user)}")
+
+            if "id_azienda" not in current_user:
+                raise ValueError("Chiave 'id_azienda' mancante in current_user")
+
+            return self.controller.get_address_by_id(current_user["id_azienda"])
         except Exception as e:
-            logger.error(f"Errore nell'ottenimento dell'utente: {e}")
-            raise Exception(f"Errore nel recupero utente: {str(e)}") from e
+            logger.error(f"Errore nel recupero dell'indirizzo dell'utente: {e}")
+            raise
+
 
     def invia_azione_compensativa(self, private_key, action_type, co2_reduction, description, id_azione=None):
         """Registra un'azione compensativa sulla blockchain"""
