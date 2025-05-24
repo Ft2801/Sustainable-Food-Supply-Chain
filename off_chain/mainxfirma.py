@@ -49,7 +49,7 @@ class RegistroAzienda(QWidget):
             "password": hash_psw
         }
 
-        url = f"http://localhost:5000/firma.html?nome={dati['nome']}&tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
+        url = f"http://localhost:5001/firma.html?nome={dati['nome']}&tipo={dati['tipo']}&indirizzo={dati['indirizzo']}&username={dati['username']}&password={dati['password']}"
         
         # Rileva il sistema operativo e apri il browser in modo appropriato
         import platform
