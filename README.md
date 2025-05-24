@@ -19,22 +19,18 @@ L'applicazione è divisa in due componenti principali:
 - **Scambio Token**: Piattaforma per lo scambio di token tra aziende
 - **Richieste Prodotti**: Sistema di richiesta e approvazione di nuovi prodotti
 
-## Prerequisiti
-
 ### Requisiti Generali
 - Git
 - Python 3.8 o superiore
 - Node.js 14.x o superiore
 - npm 6.x o superiore
-
-### Per la parte off_chain (Python)
-- PyQt5
-- SQLite (incluso in Python)
-- Web3.py
-- PyOTP (per autenticazione a due fattori)
-- PyYAML (per file di configurazione)
-
-### Per la parte on_chain (Blockchain)
+- PyQt5==5.15.9
+- web3==1.10.0
+- pyotp==2.8.0
+- pyyaml==6.0
+- sqlite3==2.6.0
+- flask==3.0.2
+- flask_cors==4.0.0
 - Hardhat
 - Ethers.js
 - OpenZeppelin Contracts
