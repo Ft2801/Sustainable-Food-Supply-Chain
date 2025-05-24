@@ -146,19 +146,52 @@ class BlockchainController:
         
         return tx_hash.hex()
 
-    def invia_operazione(self, operation_type, description, batch_id, id_operazione,account_address):
+    def invia_operazione(self, operation_type, description, batch_id, id_operazione, account_address):
         """Registra un'operazione sulla blockchain"""
         try:
+            # Debugging dei tipi di dati ricevuti
+            logger.info(f"DATI RICEVUTI - operation_type: {operation_type} (tipo: {type(operation_type)}), "
+                        f"batch_id: {batch_id} (tipo: {type(batch_id)}), "
+                        f"description: {description} (tipo: {type(description)})")
+            
+            # Verifica e gestisci tipi di dati anomali
+            if isinstance(operation_type, list):
+                logger.warning(f"operation_type è una lista: {operation_type}, usando il primo elemento o 0")
+                operation_type = operation_type[0] if operation_type else 0
+            
+            if isinstance(batch_id, list):
+                logger.warning(f"batch_id è una lista: {batch_id}, usando il primo elemento o 1")
+                batch_id = batch_id[0] if batch_id else 1
+                
             # Ottieni l'account dall'indirizzo blockchain dell'utente corrente
             account = Web3.to_checksum_address(account_address)
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
 
+            # Assicurati che i tipi di dati siano corretti per il contratto
+            # operation_type deve essere uint8
+            # batch_id deve essere uint256
+            # description è una stringa
+            
+            # Converti i tipi se necessario - usa try/except per gestire casi di stringa
+            try:
+                operation_type_int = int(operation_type)  # Converti in intero per uint8
+            except (ValueError, TypeError):
+                logger.warning(f"Impossibile convertire operation_type a intero: {operation_type}, impostando a 0")
+                operation_type_int = 0
+                
+            try:
+                batch_id_int = int(batch_id)  # Converti in intero per uint256
+            except (ValueError, TypeError):
+                logger.warning(f"Impossibile convertire batch_id a intero: {batch_id}, impostando a 1")
+                batch_id_int = 1
+            
+            logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
-                operation_type,
+                operation_type_int,
                 description,
-                batch_id
+                batch_id_int
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,

@@ -59,7 +59,14 @@ class OperationApp(QWidget):
             signature = Account.sign_message(message, private_key=private_key).signature
 
             if self.controller.verifica_possesso_chiave(address, signature, challenge):
-                tx_hash = self.controller.invia_operazione(private_key, operation_type, description, batch_id)
+                # Passiamo None come id_operazione poiché non è richiesto in questa vista
+                tx_hash = self.controller.invia_operazione(
+                    operation_type=operation_type,
+                    description=description,
+                    batch_id=batch_id,
+                    id_operazione=None,
+                    account_address=address
+                )
                 QMessageBox.information(self, "Successo", f"Operazione inviata!\nHash: {tx_hash}")
             else:
                 QMessageBox.critical(self, "Errore", "Autenticazione fallita.")

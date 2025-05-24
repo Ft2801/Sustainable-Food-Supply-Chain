@@ -64,9 +64,35 @@ def conferma_operazione():
         messaggio = data["messaggio"]
         signature = data["signature"]
 
-        operation_type = ["operation_type"]
-        batch_id = ["batch_id"]  # Placeholder, da sostituire con il valore corretto
-        id_operazione = ["id_operazione"]  # Placeholder, da sostituire con il valore corretto
+        # Estrai i parametri dal messaggio
+        # Formato: "Conferma operazione {tipo} sil lotto {id_lotto} con id op {id_op}"
+        print(f"Messaggio ricevuto: {messaggio}")
+        
+        try:
+            # Parse message to extract type, batch and operation IDs
+            parts = messaggio.split("lotto ")
+            tipo_parts = parts[0].split("operazione ")
+            tipo = tipo_parts[1].strip() if len(tipo_parts) > 1 else ""
+            
+            lotto_op_parts = parts[1].split("con id op")
+            batch_id = int(lotto_op_parts[0].strip())
+            id_operazione = int(lotto_op_parts[1].strip())
+            
+            # Map operation type to numeric value (uint8)
+            operation_type_map = {
+                "Produzione": 0,
+                "Trasformazione": 1,
+                "Distribuzione": 2,
+                "Vendita": 3
+            }
+            operation_type = operation_type_map.get(tipo, 0)
+            
+            print(f"Parametri estratti: tipo={operation_type}, batch_id={batch_id}, id_op={id_operazione}")
+        except Exception as e:
+            error_msg = f"❌ Errore nel parsing del messaggio: {str(e)}"
+            print(error_msg)
+            esiti_operazioni[address] = error_msg
+            return jsonify({"message": esiti_operazioni[address]}), 400
 
         # Verifica firma
         eth_message = encode_defunct(text=messaggio)
