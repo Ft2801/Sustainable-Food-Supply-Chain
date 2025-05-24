@@ -141,7 +141,7 @@
             throw new Error("Parametri mancanti nell'URL");
         }
 
-        const res = await fetch("http://localhost:5000/verifica", {
+        const res = await fetch("http://localhost:5001/verifica", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -165,11 +165,13 @@
         document.getElementById('loadingStatus').style.display = 'none';
         document.getElementById('successStatus').style.display = 'block';
         
-        // Attendi un secondo prima di chiudere la finestra
+        // Mostra l'indicatore di successo
+        successStatus.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${json.message}`;
+        
+        // Chiudi la finestra dopo 3 secondi
         setTimeout(() => {
-            alert(json.message);
             window.close();
-        }, 1000);
+        }, 3000);
 
     } catch (error) {
         // Mostra errore
