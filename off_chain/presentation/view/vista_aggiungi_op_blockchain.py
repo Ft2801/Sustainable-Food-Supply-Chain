@@ -44,7 +44,7 @@ class OperationApp(QWidget):
 
     def handle_send(self):
         try:
-            address = self.controller.get_adress()
+            address = self.controller.get_address()
             private_key = self.key_input.text().strip()
             description = self.desc_input.text().strip()
             operation_type = int(self.op_type_input.text().strip())

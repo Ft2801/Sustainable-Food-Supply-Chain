@@ -82,7 +82,8 @@ def conferma_operazione():
             operation_type=operation_type,
             description=messaggio,
             batch_id=batch_id,
-            id_operazione=id_operazione
+            id_operazione=id_operazione,
+            account_address=address
         )
 
         esiti_operazioni[address] = f"✅ Operazione registrata con successo. Tx hash: {tx_hash}"

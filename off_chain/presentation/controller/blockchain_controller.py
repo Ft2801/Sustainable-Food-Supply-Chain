@@ -146,11 +146,11 @@ class BlockchainController:
         
         return tx_hash.hex()
 
-    def invia_operazione(self, operation_type, description, batch_id, id_operazione):
+    def invia_operazione(self, operation_type, description, batch_id, id_operazione,account_address):
         """Registra un'operazione sulla blockchain"""
         try:
             # Ottieni l'account dall'indirizzo blockchain dell'utente corrente
-            account = self.get_address()
+            account = account_address
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
 
