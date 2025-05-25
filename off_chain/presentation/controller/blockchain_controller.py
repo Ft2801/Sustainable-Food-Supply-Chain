@@ -9,6 +9,7 @@ from persistence.repository_impl.credential_repository_impl import CredentialRep
 from configuration.log_load_setting import logger
 import subprocess
 import requests
+import time
 
 # CONFIGURAZIONE
 NODE_URL = "http://127.0.0.1:8545"  # Nodo Hardhat
@@ -75,16 +76,26 @@ class BlockchainController:
                 webbrowser.open(url)
         except Exception as e:
             raise Exception(f"Errore nell'apertura del browser: {str(e)}")
+        
+        max_wait = 60  # secondi
+        wait_interval = 3  # secondi
+        start_time = time.time()
 
-        # Dopo la chiusura interrogo il backend per conoscere l'esito
-        try:
-            res = requests.get(f"http://localhost:5001/esito_operazione/{account}")
-            esito = res.json()["esito"]
-        except Exception as e:
-            raise Exception(f"Errore durante la richiesta dell'esito: {str(e)}")
+        while time.time() - start_time < max_wait:
 
+            try:
+                response = requests.get(f"http://localhost:5001/esito_operazione/{account}", timeout=10)
+                data = response.json()
+                if "esito" in data:
+                    esito = data["esito"]
+                    logger.info("Esito dell'operazione per %s: %s", account, esito)
+                    return esito
+            except requests.RequestException:
+                pass  # Continua a riprovare
 
+            time.sleep(wait_interval)
 
+        raise TimeoutError("Timeout in attesa della firma tramite MetaMask")
 
 
     def get_address(self):
@@ -106,60 +117,55 @@ class BlockchainController:
             raise
 
 
-    def invia_azione_compensativa(self, private_key, action_type, co2_reduction, description, id_azione=None):
-        """Registra un'azione compensativa sulla blockchain"""
-        account = Account.from_key(private_key)
-        sender = account.address
-
-        nonce = w3.eth.get_transaction_count(sender)
-        gas_price = w3.eth.gas_price
-
-        tx = self.contract.functions.registerCompensationAction(
-            action_type,
-            int(co2_reduction),  # Converti in intero per la blockchain
-            description
-        ).build_transaction({
-            'from': sender,
-            'nonce': nonce,
-            'gasPrice': gas_price,
-            'gas': 500000,
-        })
-
-        signed_tx = w3.eth.account.sign_transaction(tx, private_key=private_key)
-        
-        # Gestisci sia le versioni vecchie che nuove di Web3.py
+    def invia_azione(self, tipo_azione, description, data_azione, co2_compensata, account_address):
+        """Registra un'operazione sulla blockchain"""
         try:
-            # Versione più recente di Web3.py
-            raw_tx = signed_tx.raw_transaction
-        except AttributeError:
+            # Debugging dei tipi di dati ricevuti
+            logger.info(f"DATI RICEVUTI - tipo_azione: {tipo_azione} (tipo: {type(tipo_azione)}), "
+                        f"description: {description} (tipo: {type(description)}), "
+                        f"data_azione: {data_azione} (tipo: {type(data_azione)}), "
+                        f"co2_compensata: {co2_compensata} (tipo: {type(co2_compensata)})")
+                
+            # Ottieni l'account dall'indirizzo blockchain dell'utente corrente
+            account = Web3.to_checksum_address(account_address)
+            nonce = w3.eth.get_transaction_count(account)
+            gas_price = w3.eth.gas_price
+
+            # Assicurati che i tipi di dati siano corretti per il contratto
+            # operation_type deve essere uint8
+            # batch_id deve essere uint256
+            # description è una stringa
+            
+            # Converti i tipi se necessario - usa try/except per gestire casi di stringa
             try:
-                # Versione precedente di Web3.py
-                raw_tx = signed_tx.rawTransaction
-            except AttributeError:
-                # Se entrambi falliscono, mostra un errore dettagliato
-                logger.error(f"Errore: l'oggetto SignedTransaction non ha né l'attributo raw_transaction né rawTransaction. Attributi disponibili: {dir(signed_tx)}")
-                raise Exception("Errore nella firma della transazione: formato non supportato")
+                co2_compensata_int = int(co2_compensata)  # Converti in intero per uint8
+            except (ValueError, TypeError):
+                logger.warning(f"Impossibile convertire co2_compensata a intero: {co2_compensata}, impostando a 0")
+                co2_compensata_int = 0
+                
+
+            logger.info(f"Invio azione: tipo={tipo_azione}, desc={description}, data={data_azione}, co2={co2_compensata_int}")
+            
+
+            tx = self.contract.functions.registerCompensationAction(
+                tipo_azione,
+                co2_compensata_int,
+                description
+            ).build_transaction({
+                'from': account,
+                'nonce': nonce,
+                'gasPrice': gas_price,
+                'gas': 300000,
+            })
+
+            # Firma e invia la transazione
+            tx_hash = w3.eth.send_transaction(tx)
+            
+            return tx_hash.hex()
         
-        tx_hash = w3.eth.send_raw_transaction(raw_tx)
-        
-        # Se è stato fornito l'ID dell'azione, aggiorna il suo stato nel database
-        if id_azione is not None:
-            try:
-                # Aggiorna lo stato dell'azione nel database
-                conn = sqlite3.connect(DATABASE_PATH)
-                cursor = conn.cursor()
-                cursor.execute(
-                    "UPDATE Azioni_compensative SET blockchain_registered = 1 WHERE Id_azione = ?",
-                    (id_azione,)
-                )
-                conn.commit()
-                conn.close()
-                logger.info(f"Azione compensativa {id_azione} marcata come registrata sulla blockchain")
-            except Exception as e:
-                logger.error(f"Errore nell'aggiornamento dello stato dell'azione compensativa: {e}")
-                # Non solleviamo l'eccezione qui per non interrompere il flusso principale
-        
-        return tx_hash.hex()
+        except Exception as e:
+            logger.error(f"Errore durante l'invio dell'operazione sulla blockchain: {e}")
+            raise Exception(f"Errore durante l'invio dell'operazione sulla blockchain: {str(e)}")
 
     def invia_operazione(self, operation_type, description, batch_id, id_operazione, account_address):
         """Registra un'operazione sulla blockchain"""
@@ -204,7 +210,7 @@ class BlockchainController:
             logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
-                1,
+                operation_type,
                 description,
                 1
             ).build_transaction({

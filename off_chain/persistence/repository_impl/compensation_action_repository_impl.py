@@ -36,6 +36,9 @@ class CompensationActionRepositoryImpl( ABC):
                 self.query_builder.get_query()
             )
             results = self.db.fetch_results(query, value)
+            if not results:
+                logger.info("Nessuna azione compensativa trovata per l'azienda specificata.")
+                return []
             lista_op= [
                     CompensationActionModel(
                         id_azione=row[0],

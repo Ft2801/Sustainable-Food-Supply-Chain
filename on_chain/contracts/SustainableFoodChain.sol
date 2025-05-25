@@ -332,15 +332,16 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
     event DebugOperation(uint256 operationId, address sender);
 
-    function registerOperation( 
+    function registerOperation(
+        uint256 id,
         OperationType operationType,
         string memory description,
         uint256 batchId
     ) public returns (uint256) {
-        uint256 operationId = nextOperationId++;
+        require(operations[id].id == 0, "Operation ID already used");
 
-        operations[operationId] = Operation(
-            operationId,
+        operations[id] = Operation(
+            id,
             msg.sender,
             operationType,
             block.timestamp,
@@ -349,11 +350,11 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             true
         );
 
-        companyOperations[msg.sender].push(operationId);
-        emit DebugOperation(operationId, msg.sender);
+        companyOperations[msg.sender].push(id);
+        emit DebugOperation(id, msg.sender);
 
-        emit OperationCreated(operationId, msg.sender, operationType, block.timestamp, description, batchId);
-        return operationId;
+        emit OperationCreated(id, msg.sender, operationType, block.timestamp, description, batchId);
+        return id;
     }
     
     function getCompanyOperations(address companyAddress) external view returns (uint256[] memory) {

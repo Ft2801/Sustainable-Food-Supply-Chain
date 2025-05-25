@@ -5,6 +5,8 @@ from eth_account import Account
 import os
 import socket
 import json
+
+from web3 import Web3
 from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.controller.blockchain_controller import BlockchainController
 
@@ -14,7 +16,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
 CORS(app) 
 
-
+esiti_operazioni = {}
 
 @app.route("/firma.html")
 def firma_html():
@@ -73,8 +75,7 @@ def verifica():
 @app.route("/firma_operazione.html")
 def firma_operazione_html():
     return send_from_directory(BASE_DIR, "firma_operazione.html")
-
-esiti_operazioni = {}  # chiave: address, valore: esito str (successo o errore)
+  # chiave: address, valore: esito str (successo o errore)
 
 @app.route("/conferma_operazione", methods=["POST"])
 def conferma_operazione():
@@ -132,7 +133,58 @@ def conferma_operazione():
             account_address=address
         )
 
-        esiti_operazioni[address] = f"✅ Operazione registrata con successo. Tx hash: {tx_hash}"
+        esiti_operazioni[address][id_operazione] = f"✅ Operazione registrata con successo. Tx hash: {tx_hash}"
+        return jsonify({"message": esiti_operazioni[address][id_operazione]})
+
+    except Exception as e:
+        esiti_operazioni[address][id_operazione] = f"❌ Errore: {str(e)}"
+        return jsonify({"message": esiti_operazioni[address][id_operazione]}), 400
+    
+@app.route("/firma_azione.html")
+def firma_azione_html():
+    return send_from_directory(BASE_DIR, "firma_azione.html")
+
+@app.route("/conferma_azione", methods=["POST"])
+def conferma_azione():
+    data = request.json
+    try:
+        address = data["address"]
+        messaggio = data["messaggio"]
+        signature = data["signature"]
+
+        tipo = data["tipo"]
+        co2 = data["co2"]
+        data_azione = data["data"]
+
+        print(f"Messaggio ricevuto: {messaggio}")
+        
+        try:            
+            print(f"Parametri estratti: tipo={tipo}, co2={co2}, data={data_azione}")
+        except Exception as e:
+            error_msg = f"❌ Errore nel parsing del messaggio: {str(e)}"
+            print(error_msg)
+            esiti_operazioni[address] = error_msg
+            return jsonify({"message": esiti_operazioni[address]}), 400
+
+        # Verifica firma
+        eth_message = encode_defunct(text=messaggio)
+        recovered_address = Account.recover_message(eth_message, signature=signature)
+
+        if recovered_address.lower() != address.lower():
+            esiti_operazioni[address] = "❌ Firma non valida"
+            return jsonify({"message": esiti_operazioni[address]}), 400
+
+        # Chiamata al controller per inviare sulla blockchain
+        controller = BlockchainController()
+        tx_hash = controller.invia_azione(
+            tipo_azione=tipo,
+            description=messaggio,
+            data_azione=data_azione,
+            co2_compensata=co2,            
+            account_address=address
+        )
+
+        esiti_operazioni[Web3.to_checksum_address(address)] = f"✅ Azione Compensativa registrata con successo. Tx hash: {tx_hash}"
         return jsonify({"message": esiti_operazioni[address]})
 
     except Exception as e:
@@ -140,9 +192,18 @@ def conferma_operazione():
         return jsonify({"message": esiti_operazioni[address]}), 400
 
 
-@app.route("/esito_operazione/<address>")
-def esito_operazione(address):
-    return jsonify({"esito": esiti_operazioni.get(address, "In attesa")})
+
+
+@app.route("/esito_operazione/<address>/<int:id_operazione>", methods=["GET"])
+def esito_operazione(address, id_operazione):
+    for account in esiti_operazioni:
+        if account == address:
+            esito = account.get(id_operazione)
+            return jsonify({"status": "completed", "esito": esito}), 200
+
+    return jsonify({"status": "pending"}), 202
+
+
 
 
 if __name__ == "__main__":

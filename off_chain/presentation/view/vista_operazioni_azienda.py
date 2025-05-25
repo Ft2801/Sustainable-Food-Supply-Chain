@@ -162,12 +162,22 @@ class OperazioniAziendaView(QWidget):
             # In un'applicazione reale, questo dovrebbe essere gestito in modo più sicuro
             blockchain_controller = BlockchainController()
             
-            blockchain_controller.firma_operazione(
+            esito = blockchain_controller.firma_operazione(
                 tipo="Trasformazione",
                 id_lotto=1,
                 id_operazione=1
 
             )
+
+            if esito:
+                QMessageBox.information(
+                    self,
+                    "Registrazione riuscita",
+                    f"L'operazione '{operazione.nome_operazione}' è stata registrata con successo sulla blockchain."
+                )
+                # Aggiorna lo stato dell'operazione nella tabella
+                operazione.blockchain_registered = True
+                self.aggiorna_tabella()
             
         except Exception as e:
             QMessageBox.critical(
