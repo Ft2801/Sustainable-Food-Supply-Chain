@@ -35,14 +35,14 @@
       margin-bottom: 2rem;
     }
     .card-header {
-      background-color: var(--primary-color);
+      background-color: var(--secondary-color);
       color: white;
       border-radius: 10px 10px 0 0 !important;
       padding: 1rem;
     }
     .btn-primary {
-      background-color: var(--primary-color);
-      border-color: var(--primary-color);
+      background-color: var(--secondary-color);
+      border-color: var(--secondary-color);
       padding: 0.75rem 1.5rem;
       font-weight: 600;
       border-radius: 50px;
@@ -80,7 +80,7 @@
 <body>
   <div class="container">
     <div class="text-center mb-4">
-      <i class="fas fa-link chain-icon"></i>
+      <i class="fas fa-leaf chain-icon"></i>
       <h1 class="mb-3">Sustainable Food Supply Chain</h1>
       <p class="lead">Firma dell'azione compensativa sulla blockchain</p>
     </div>
@@ -88,7 +88,7 @@
     <div class="card">
       <div class="card-header d-flex align-items-center justify-content-center">
         <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="metamask-logo">
-        <h2 class="mb-0">Conferma Azione</h2>
+        <h2 class="mb-0">Conferma Azione Compensativa</h2>
       </div>
       <div class="card-body">
         <div id="operationDetails" class="operation-details">
@@ -107,7 +107,7 @@
         </div>
         
         <div id="successStatus" class="status-indicator bg-success text-white">
-          <i class="fas fa-check-circle me-2"></i> Azione Compensativa firmata con successo!
+          <i class="fas fa-check-circle me-2"></i> Azione compensativa firmata con successo!
         </div>
         
         <div id="errorStatus" class="status-indicator bg-danger text-white">
@@ -119,7 +119,7 @@
   
   <script>
     async function firma() {
-      // Mostra il dettaglio dell'operazione
+      // Mostra il dettaglio dell'azione compensativa
       const detailsContent = document.getElementById('detailsContent');
       const loadingStatus = document.getElementById('loadingStatus');
       const successStatus = document.getElementById('successStatus');
@@ -140,22 +140,22 @@
       const urlParams = new URLSearchParams(window.location.search);
       const messaggio = decodeURIComponent(urlParams.get("messaggio"));
       const tipo = urlParams.get("tipo");
-      const co2 = urlParams.get("co2");
-      const data = urlParams.get("data");
+      const id_azione = urlParams.get("id_azione");
+      const co2_compensata = urlParams.get("co2_compensata");
       
-      // Mostra i dettagli dell'operazione
+      // Mostra i dettagli dell'azione compensativa
       let detailsHTML = `
         <div class="row">
           <div class="col-md-6"><strong>Tipo azione:</strong></div>
           <div class="col-md-6">${tipo || 'Non specificato'}</div>
         </div>
         <div class="row mt-2">
-          <div class="col-md-6"><strong>CO2 compensata:</strong></div>
-          <div class="col-md-6">${co2 || 'Non specificato'}</div>
+          <div class="col-md-6"><strong>ID Azione:</strong></div>
+          <div class="col-md-6">${id_azione || 'Non specificato'}</div>
         </div>
         <div class="row mt-2">
-          <div class="col-md-6"><strong>Data:</strong></div>
-          <div class="col-md-6">${data || 'Non specificato'}</div>
+          <div class="col-md-6"><strong>CO2 Compensata:</strong></div>
+          <div class="col-md-6">${co2_compensata || '0'} kg</div>
         </div>
       `;
       detailsContent.innerHTML = detailsHTML;
@@ -172,7 +172,7 @@
           params: [messaggio, address],
         });
 
-        const res = await fetch("http://localhost:5001/conferma_azione", {
+        const res = await fetch("http://localhost:5001/conferma_azione_compensativa", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -180,8 +180,8 @@
             messaggio,
             signature,
             tipo,
-            co2,
-            data,
+            id_azione,
+            co2_compensata
           })
         });
 

@@ -252,6 +252,7 @@ class DatabaseMigrations:
                 Id_azienda INTEGER NOT NULL,
                 Co2_compensata REAL NOT NULL,
                 Nome_azione TEXT NOT NULL,
+                blockchain_registered BOOLEAN DEFAULT 0,
                 FOREIGN KEY (Id_azienda) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE
             )
             ''',
@@ -419,10 +420,12 @@ class DatabaseMigrations:
             ]
 
             for op in operazioni:
+                # Aggiungi il valore di default per blockchain_registered (0 = False)
+                op_with_blockchain = op + (0,)  # Aggiungi blockchain_registered = 0 (False)
                 db.execute_query("""
-                    INSERT OR IGNORE INTO Operazione (Id_azienda, Id_prodotto, Id_lotto, Consumo_CO2, quantita, Tipo)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, op)
+                    INSERT OR IGNORE INTO Operazione (Id_azienda, Id_prodotto, Id_lotto, Consumo_CO2, quantita, Tipo, blockchain_registered)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, op_with_blockchain)
 
             SEED_MAGAZZINO = [
 

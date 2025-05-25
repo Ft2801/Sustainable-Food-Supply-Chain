@@ -98,6 +98,68 @@ class BlockchainController:
         raise TimeoutError("Timeout in attesa della firma tramite MetaMask")
 
 
+    def firma_azione_compensativa(self, tipo, id_azione, co2_compensata):
+        """
+        Gestisce la firma di un'azione compensativa tramite MetaMask.
+        
+        Args:
+            tipo: Il tipo di azione compensativa (es. 'Piantumazione', 'Energia rinnovabile')
+            id_azione: L'ID dell'azione compensativa
+            co2_compensata: La quantità di CO2 compensata dall'azione
+        
+        Returns:
+            bool: True se la firma è avvenuta con successo, False altrimenti
+        """
+        account = self.get_address()  # Funzione che recupera account locale
+
+        # Crea un messaggio descrittivo per l'azione compensativa
+        messaggio = f"Conferma azione compensativa '{tipo}' con ID {id_azione} e CO2 compensata {co2_compensata}"
+        messaggio_encoded = messaggio.replace(" ", "%20")
+
+        # Costruisci l'URL con tutti i parametri necessari
+        url = f"http://localhost:5001/firma_azione_compensativa.html?messaggio={messaggio_encoded}&tipo={tipo}&id_azione={id_azione}&co2_compensata={co2_compensata}"
+        
+        # Rileva il sistema operativo e apri il browser in modo appropriato
+        import platform
+        import webbrowser
+        
+        system = platform.system()
+        try:
+            if system == 'Windows':
+                chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                proc = subprocess.Popen([chrome_path, url])
+                proc.wait()
+            elif system == 'Darwin':  # macOS
+                # Usa il browser predefinito su macOS
+                webbrowser.open(url)
+            else:  # Linux e altri
+                # Prova a usare il browser predefinito
+                webbrowser.open(url)
+        except Exception as e:
+            raise Exception(f"Errore nell'apertura del browser: {str(e)}")
+        
+        # Attendi la risposta dal servizio web
+        max_wait = 60  # secondi
+        wait_interval = 3  # secondi
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            try:
+                # Controlla lo stato dell'operazione
+                response = requests.get(f"http://localhost:5001/esito_azione_compensativa/{account}", timeout=10)
+                data = response.json()
+                if "esito" in data:
+                    esito = data["esito"]
+                    logger.info("Esito dell'azione compensativa per %s: %s", account, esito)
+                    return esito
+            except requests.RequestException:
+                pass  # Continua a riprovare
+
+            time.sleep(wait_interval)
+
+        raise TimeoutError("Timeout in attesa della firma tramite MetaMask")
+
+
     def get_address(self):
         try:
             session = Session()

@@ -171,43 +171,26 @@ class AzioniAziendaView(QWidget):
             return
         
         try:
-            # Ottieni la chiave privata dell'utente
+            # Inizializza il controller blockchain
             blockchain_controller = BlockchainController()
             
-            # Ottieni la chiave privata
-            private_key, ok = QInputDialog.getText(
-                self, 
-                "Chiave privata", 
-                "Inserisci la tua chiave privata per firmare la transazione:",
-                QLineEdit.Password
+            # Firma l'operazione tramite MetaMask nel browser
+            esito = blockchain_controller.firma_azione_compensativa(
+                tipo=azione.nome_azione,
+                co2_compensata=azione.co2_compensata
             )
-            
-            if not ok or not private_key:
-                return
-            
-            # Crea la descrizione dell'azione compensativa
-            description = f"Azione compensativa: {azione.nome_azione}, CO2 compensata: {azione.co2_compensata}"
-            
-            # Invia l'azione alla blockchain usando il metodo specifico per azioni compensative
-            tx_hash = blockchain_controller.invia_azione_compensativa(
-                private_key,
-                azione.nome_azione,  # Tipo di azione compensativa
-                azione.co2_compensata,  # Quantità di CO2 compensata
-                description,
-                azione.id_azione  # Passa l'ID dell'azione per aggiornare lo stato
-            )
-            
-            # Lo stato dell'azione nel database viene aggiornato automaticamente dal metodo invia_azione_compensativa
-            
-            # Mostra conferma all'utente
-            QMessageBox.information(
-                self,
-                "Azione registrata",
-                f"L'azione compensativa è stata registrata sulla blockchain con successo!\n\nHash transazione: {tx_hash}"
-            )
-            
-            # Ricarica le azioni per mostrare lo stato aggiornato
-            self.ricarica_operazioni()
+
+            if esito:
+                QMessageBox.information(
+                    self,
+                    "Registrazione riuscita",
+                    f"L'azione compensativa '{azione.nome_azione}' è stata registrata con successo sulla blockchain."
+                )
+                # Aggiorna lo stato dell'azione nella tabella
+                azione.blockchain_registered = True
+                self.aggiorna_tabella()
+                # Ricarica le azioni per mostrare lo stato aggiornato
+                self.ricarica_operazioni()
             
         except Exception as e:
             QMessageBox.critical(

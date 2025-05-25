@@ -1,10 +1,11 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_cors import CORS
 from eth_account.messages import encode_defunct
 from eth_account import Account
 import os
 import socket
 import json
+from datetime import datetime
 
 from web3 import Web3
 from presentation.controller.credential_controller import ControllerAutenticazione
@@ -140,56 +141,76 @@ def conferma_operazione():
         esiti_operazioni[address][id_operazione] = f"❌ Errore: {str(e)}"
         return jsonify({"message": esiti_operazioni[address][id_operazione]}), 400
     
-@app.route("/firma_azione.html")
-def firma_azione_html():
-    return send_from_directory(BASE_DIR, "firma_azione.html")
+@app.route("/firma_azione_compensativa.html")
+def firma_azione_compensativa_html():
+    return send_from_directory(BASE_DIR, "firma_azione_compensativa.html")
 
-@app.route("/conferma_azione", methods=["POST"])
-def conferma_azione():
+@app.route("/conferma_azione_compensativa", methods=["POST"])
+def conferma_azione_compensativa():
     data = request.json
     try:
         address = data["address"]
         messaggio = data["messaggio"]
         signature = data["signature"]
-
         tipo = data["tipo"]
-        co2 = data["co2"]
-        data_azione = data["data"]
+        id_azione = data["id_azione"]
+        co2_compensata = data["co2_compensata"]
 
         print(f"Messaggio ricevuto: {messaggio}")
         
         try:            
-            print(f"Parametri estratti: tipo={tipo}, co2={co2}, data={data_azione}")
+            print(f"Parametri estratti: tipo={tipo}, id_azione={id_azione}, co2_compensata={co2_compensata}")
         except Exception as e:
             error_msg = f"❌ Errore nel parsing del messaggio: {str(e)}"
             print(error_msg)
-            esiti_operazioni[address] = error_msg
-            return jsonify({"message": esiti_operazioni[address]}), 400
+            if address not in esiti_operazioni:
+                esiti_operazioni[address] = {}
+            esiti_operazioni[address][id_azione] = error_msg
+            return jsonify({"message": esiti_operazioni[address][id_azione]}), 400
 
         # Verifica firma
         eth_message = encode_defunct(text=messaggio)
         recovered_address = Account.recover_message(eth_message, signature=signature)
 
         if recovered_address.lower() != address.lower():
-            esiti_operazioni[address] = "❌ Firma non valida"
-            return jsonify({"message": esiti_operazioni[address]}), 400
+            if address not in esiti_operazioni:
+                esiti_operazioni[address] = {}
+            esiti_operazioni[address][id_azione] = "❌ Firma non valida"
+            return jsonify({"message": esiti_operazioni[address][id_azione]}), 400
 
         # Chiamata al controller per inviare sulla blockchain
         controller = BlockchainController()
+        description = f"Azione compensativa: {tipo}, CO2 compensata: {co2_compensata}"
+        
+        # Assicurati che co2_compensata sia un intero
+        try:
+            co2_compensata_int = int(co2_compensata)
+        except (ValueError, TypeError):
+            co2_compensata_int = 0
+
+        # Invia l'azione compensativa alla blockchain
         tx_hash = controller.invia_azione(
             tipo_azione=tipo,
-            description=messaggio,
-            data_azione=data_azione,
-            co2_compensata=co2,            
+            description=description,
+            data_azione=datetime.now().strftime("%Y-%m-%d"),
+            co2_compensata=co2_compensata_int,
             account_address=address
         )
 
-        esiti_operazioni[Web3.to_checksum_address(address)] = f"✅ Azione Compensativa registrata con successo. Tx hash: {tx_hash}"
-        return jsonify({"message": esiti_operazioni[address]})
+        if address not in esiti_operazioni:
+            esiti_operazioni[address] = {}
+        esiti_operazioni[address][id_azione] = f"✅ Azione compensativa registrata con successo. Tx hash: {tx_hash}"
+        return jsonify({"message": esiti_operazioni[address][id_azione]})
 
     except Exception as e:
-        esiti_operazioni[address] = f"❌ Errore: {str(e)}"
-        return jsonify({"message": esiti_operazioni[address]}), 400
+        if address not in esiti_operazioni:
+            esiti_operazioni[address] = {}
+        if 'id_azione' in locals():
+            esiti_operazioni[address][id_azione] = f"❌ Errore: {str(e)}"
+            return jsonify({"message": esiti_operazioni[address][id_azione]}), 400
+        else:
+            error_message = f"❌ Errore: {str(e)}"
+            return jsonify({"message": error_message}), 400
 
 
 
