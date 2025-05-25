@@ -94,7 +94,7 @@ class VistaCreaProdottoTrasformato(QDialog):
             QMessageBox.warning(self, "Errore", "Seleziona una tipologia di prodotto trasformato.")
             return
 
-        quantita = self.input_quantita.value()
+        quantita_prodotta = self.input_quantita.value()
 
 
         if not self.quantita_usata_per_materia:
@@ -120,7 +120,7 @@ class VistaCreaProdottoTrasformato(QDialog):
             QMessageBox.information(self, "Annullato", "Creazione del prodotto annullata.")
             return
 
-        self.controller.crea_prodotto_trasformato(id_tipologia, descrizione, quantita, self.quantita_usata_per_materia, co2)
+        self.controller.crea_prodotto_trasformato(id_tipologia, descrizione, quantita_prodotta, self.quantita_usata_per_materia, co2)
 
 
         QMessageBox.information(self, "Salvato", "Prodotto trasformato creato con successo!")

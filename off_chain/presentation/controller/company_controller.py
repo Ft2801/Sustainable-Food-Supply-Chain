@@ -102,8 +102,12 @@ class ControllerAzienda:
         try:
             id_azienda = Session().current_user["id_azienda"]
             self.operation_repository.inserisci_prodotto_trasformato(
-                id_tipo, descrizione, quantita, quantita_usata_per_materia,
-                id_azienda, co2_consumata=co2
+                id_tipo_prodotto=id_tipo,
+                descrizione= descrizione,
+                quantita_prodotta= quantita, 
+                materie_prime_usate = quantita_usata_per_materia,
+                id_azienda=id_azienda,
+                  co2_consumata=co2
             )
         except Exception as e:
             logger.error(f"Errore nella creazione del prodotto trasformato: {e}", exc_info=True)

@@ -291,37 +291,24 @@ class OperationRepositoryImpl(ABC):
             
             # 2. IMPORTANTE: Inserisci PRIMA l'operazione di trasformazione
             # Questo è necessario per soddisfare il vincolo di chiave esterna in ComposizioneLotto
-            query_operazione, value_op = (
-                self.query_builder.
-                table("Operazione")
-                .insert(id_prodotto=id_tipo_prodotto,
-                        id_azienda=id_azienda,
-                        Tipo=tipo_evento,
-                        Id_lotto=value_output_lotto,
-                        Consumo_CO2=co2_consumata,
-                        quantita=quantita_prodotta)
-                .get_query()
-            )
+            query_operazione = "INSERT INTO Operazione (Id_azienda,\
+                  Id_prodotto , Id_lotto ,Consumo_CO2 , quantita ,Tipo) VALUES (?,?,?,?,?,?)"
+            value_op = (id_azienda,id_tipo_prodotto,value_output_lotto,co2_consumata,quantita_prodotta,tipo_evento)
             
             # Aggiungi l'operazione come PRIMA query da eseguire
             queries.append((query_operazione, value_op))
             
             # 3. Aggiungi nuovo lotto al magazzino
-            query_magazzino = "INSERT OR IGNORE INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?, ?)"
+            query_magazzino = "INSERT INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?, ?)"
             value = (id_azienda, value_output_lotto, quantita_prodotta)
             queries.append((query_magazzino, value))
             
             # 4. Prepara update quantità materie prime
             for _, (materia, quantita_usata) in materie_prime_usate.items():
                 if isinstance(materia, ProdottoLottoModel):
-                    query_update_materia, value = (
-                        self.query_builder.
-                        table("Magazzino")
-                        .update(quantita=("quantita - ?",[quantita_usata]))
-                        .where("id_azienda", "=", materia.id_azienda)
-                        .where("quantita", ">=", quantita_usata)
-                        .get_query()
-                    )
+                    print(f"\n\\nn\n\nn\n\n\n\n\n\n\ {quantita_usata}\n\n\n\n\n")
+                    query_update_materia ="UPDATE Magazzino SET quantita = quantita - ? WHERE id_lotto = ?"
+                    value = (quantita_usata,materia.id_lotto)
                     queries.append((query_update_materia, value))
             
             # 5. Ora crea le composizioni del lotto (dopo aver creato l'operazione)
