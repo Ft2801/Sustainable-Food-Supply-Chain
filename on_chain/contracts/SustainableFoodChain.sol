@@ -332,7 +332,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
     event DebugOperation(uint256 operationId, address sender);
 
-    function registerOperation( 
+    function registerOperation(
         OperationType operationType,
         string memory description,
         uint256 batchId
