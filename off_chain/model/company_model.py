@@ -13,8 +13,8 @@ class CompanyModel:
     tipo: str
     nome: str
     indirizzo: str
-    co2_consumata: Optional[float] = None
-    co2_compensata: Optional[float] = None
+    co2_consumata: Optional[int] = None
+    co2_compensata: Optional[int] = None
     token : int = 0
     data : datetime = None
 

@@ -100,7 +100,7 @@ class OperationRepositoryImpl(ABC):
 
 
 
-    def inserisci_operazione_azienda_rivenditore(self, azienda: int, prodotto: int, data: datetime, co2: float,
+    def inserisci_operazione_azienda_rivenditore(self, azienda: int, prodotto: int, data: datetime, co2: int,
                                                  evento: str, id_lotto_input: int, quantita : int):
         """
         Inserts a new operation for a retailer and updates the product status in a single transaction.
@@ -146,7 +146,7 @@ class OperationRepositoryImpl(ABC):
 
     """ Funzionanti"""
 
-    def inserisci_operazione_azienda_agricola(self, id_tipo_prodotto: int, descrizione : str, quantita: int, azienda: int, data: datetime, co2: float):
+    def inserisci_operazione_azienda_agricola(self, id_tipo_prodotto: int, descrizione : str, quantita: int, azienda: int, data: datetime, co2: int):
         """
         Inserts a new agricultural product and logs the operation.
         """
@@ -187,7 +187,7 @@ class OperationRepositoryImpl(ABC):
             raise Exception(f"Errore nell'inserimento: {e}")
 
 
-    def inserisci_operazione_trasporto(self, id_azienda_trasporto: int,id_lotto_input: int, id_prodotto: int, id_azienda_richiedente: int, id_azienda_ricevente: int, quantita: int, co2_emessa: float):
+    def inserisci_operazione_trasporto(self, id_azienda_trasporto: int,id_lotto_input: int, id_prodotto: int, id_azienda_richiedente: int, id_azienda_ricevente: int, quantita: int, co2_emessa: int):
         """
         Inserts a new transport operation and updates the product status.
         """

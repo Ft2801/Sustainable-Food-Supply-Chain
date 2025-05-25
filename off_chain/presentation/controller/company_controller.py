@@ -109,7 +109,7 @@ class ControllerAzienda:
             logger.error(f"Errore nella creazione del prodotto trasformato: {e}", exc_info=True)
 
     def salva_operazione_agricola(self, tipo: str, data: datetime,
-                                  co2: float, id_tipo_prodotto: int, descrizione: str, quantita: int
+                                  co2: int, id_tipo_prodotto: int, descrizione: str, quantita: int
                                  ):
         if not self.check_utente(tipo):
             raise PermissionError("Operazione non consentita per questo utente.")
@@ -118,7 +118,7 @@ class ControllerAzienda:
             id_tipo_prodotto, descrizione, quantita, Session().current_user["id_azienda"], data, co2,
         )
 
-    def salva_operazione_distributore(self, data: datetime, co2: float, id_prodotto,
+    def salva_operazione_distributore(self, data: datetime, co2: int, id_prodotto,
                                       id_lotto_input: int, quantita: int):
         try:
             self.operation_repository.inserisci_operazione_azienda_rivenditore(
@@ -129,7 +129,7 @@ class ControllerAzienda:
             logger.error(f"Errore {e}", exc_info=True)
 
     def salva_operazione_trasporto(self, id_prodotto: int, id_azienda_ricevente: int,
-                                   id_azienda_richiedente: int, quantita: int, co2: float,
+                                   id_azienda_richiedente: int, quantita: int, co2: int,
                                    id_lotto_input: int):
         self.operation_repository.inserisci_operazione_trasporto(
             Session().current_user["id_azienda"], id_lotto_input, id_prodotto,

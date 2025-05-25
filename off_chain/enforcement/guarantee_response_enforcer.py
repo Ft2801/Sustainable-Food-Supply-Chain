@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 class ViolationInfo:
     function_name: str
     operation_type: str
-    execution_time: float
-    timeout_limit: float
+    execution_time: int
+    timeout_limit: int
     error_message: Optional[str] = None
     timestamp: datetime = field(default_factory=datetime.now)
 
@@ -23,7 +23,7 @@ class GuaranteeResponseError(Exception):
 class GuaranteeResponseEnforcer:
     def __init__(self):
         self.response_violations: List[ViolationInfo] = [] # Tipo specificato
-        self.timeout_limits: Dict[str, float] = {      # Tipo specificato
+        self.timeout_limits: Dict[str, int] = {      # Tipo specificato
             'default': 5.0,                 # seconds
             'blockchain_operation': 30.0,   # longer timeout for blockchain operations
             'database_query': 3.0,         # database operations
@@ -156,8 +156,8 @@ class GuaranteeResponseEnforcer:
     def _log_execution_metrics(self,
                              function_name: str,
                              operation_type: str,
-                             execution_time: float,
-                             timeout: float) -> None:
+                             execution_time: int,
+                             timeout: int) -> None:
         """Log execution metrics for monitoring"""
         # W1203: Use lazy % formatting in logging functions
         # C0301: Line too long - spezzata la stringa di formato del log
@@ -177,7 +177,7 @@ class GuaranteeResponseEnforcer:
         """Return list of all response time violations"""
         return self.response_violations
 
-    def update_timeout_limit(self, operation_type: str, timeout: float) -> None:
+    def update_timeout_limit(self, operation_type: str, timeout: int) -> None:
         """Update timeout limit for an operation type"""
         if timeout <= 0:
             raise ValueError("Timeout must be positive")
@@ -189,7 +189,7 @@ class GuaranteeResponseEnforcer:
             timeout
         )
 
-    def get_timeout_limit(self, operation_type: str) -> float:
+    def get_timeout_limit(self, operation_type: str) -> int:
         """Get timeout limit for an operation type"""
         default_timeout = self.timeout_limits['default']
         return self.timeout_limits.get(operation_type, default_timeout)

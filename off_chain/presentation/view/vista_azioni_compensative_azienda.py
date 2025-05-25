@@ -112,9 +112,9 @@ class AzioniAziendaView(QWidget):
             self.tabella.setItem(row, 0, QTableWidgetItem(op.nome_azione))
 
             try:
-                co2_float = float(op.co2_compensata)
-                item_co2 = QTableWidgetItem(str(co2_float))
-                item_co2.setData(Qt.UserRole, co2_float)  # Sorting numerico
+                co2_int = int(op.co2_compensata)
+                item_co2 = QTableWidgetItem(str(co2_int))
+                item_co2.setData(Qt.UserRole, co2_int)  # Sorting numerico
             except Exception as e:
                 print(f"[ERRORE parsing CO2]: {e} su {op.co2_compensata}")
                 item_co2 = QTableWidgetItem(op.co2_compensata)

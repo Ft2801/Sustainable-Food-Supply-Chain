@@ -54,7 +54,7 @@ class CompensationActionRepositoryImpl( ABC):
             return []
     
 
-    def get_co2_compensata(self, id_azienda: int) -> float:
+    def get_co2_compensata(self, id_azienda: int) -> int:
         query,value = (
             self.query_builder
                 .select("SUM(Co2_compensata)")
@@ -62,7 +62,7 @@ class CompensationActionRepositoryImpl( ABC):
                 .where("Id_azienda", "=", id_azienda)
         )
         try:
-            return float(self.db.fetch_one(query, value))
+            return int(self.db.fetch_one(query, value))
         except:
             raise ValueError
 

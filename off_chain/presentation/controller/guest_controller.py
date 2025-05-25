@@ -89,7 +89,7 @@ class ControllerGuest:
     def scarto_soglia(self, co2, operazione, prodotto):
         # repo17 = ThresholdRepositoryImpl()
         soglia = self.threshold.get_soglia_by_operazione_and_prodotto(operazione, prodotto)
-        return soglia - float(co2)
+        return soglia - int(co2)
     
 
     def carica_prodotto_con_storia(self, prodotto_id : int) -> ProductModel:

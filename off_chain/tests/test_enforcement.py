@@ -15,7 +15,7 @@ response_enforcer = GuaranteeResponseEnforcer()
 @safety_enforcer.enforce_safety('product_validation')
 @response_enforcer.enforce_response_time('quality_check')
 async def validate_product_quality(
-    temperature: float, humidity: float, quality_score: float):
+    temperature: int, humidity: int, quality_score: int):
     # Simulate some processing time
     await asyncio.sleep(1)
     return {
@@ -62,7 +62,7 @@ async def test_slow_response():
 
 # Example of synchronous function with safety enforcement
 @safety_enforcer.enforce_safety('product_validation')
-def check_product_emissions(co2_emissions: float):
+def check_product_emissions(co2_emissions: int):
     return {
         'co2_emissions': co2_emissions,
         'compliant': co2_emissions <= safety_enforcer.safety_rules['max_co2_emissions']

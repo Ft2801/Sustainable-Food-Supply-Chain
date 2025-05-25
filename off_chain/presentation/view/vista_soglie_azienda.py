@@ -66,7 +66,7 @@ class SoglieAziendaView(QWidget):
             
 
             try:
-                soglia = float(oper.Soglia_Massima)
+                soglia = int(oper.Soglia_Massima)
                 item_co2 = QTableWidgetItem(str(soglia))
                 item_co2.setData(Qt.UserRole, soglia)  # Sorting numerico
             except Exception as err:

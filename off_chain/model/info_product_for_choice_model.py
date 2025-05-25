@@ -9,6 +9,6 @@ class ProductForChoiceModel:
     quantita: int
     id_prodotto: int
     id_azienda: int
-    co2: float
+    co2: int
 
     
