@@ -143,6 +143,15 @@ class OperazioniAziendaView(QWidget):
         # Recupera l'operazione selezionata
         operazione = self.operazioni_filtrate[selected_row]
         
+        # Verifica se l'operazione è già registrata sulla blockchain
+        if operazione.blockchain_registered:
+            QMessageBox.information(
+                self,
+                "Operazione già registrata",
+                f"L'operazione '{operazione.nome_operazione}' è già stata registrata sulla blockchain."
+            )
+            return
+        
         # Chiedi conferma all'utente
         risposta = QMessageBox.question(
             self, 
@@ -170,14 +179,43 @@ class OperazioniAziendaView(QWidget):
             )
 
             if esito:
-                QMessageBox.information(
-                    self,
-                    "Registrazione riuscita",
-                    f"L'operazione '{esito}' è stata registrata con successo sulla blockchain."
-                )
-                # Aggiorna lo stato dell'operazione nella tabella
-                operazione.blockchain_registered = True
-                self.aggiorna_tabella()
+                # Aggiorna il database direttamente
+                try:
+                    # Importa le dipendenze necessarie
+                    import sqlite3
+                    import os
+                    
+                    # Ottieni il percorso del database
+                    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+                    DATABASE_PATH = os.path.join(PROJECT_ROOT, 'off_chain', 'database', 'database.db')
+                    
+                    # Aggiorna il flag blockchain_registered nel database
+                    conn = sqlite3.connect(DATABASE_PATH)
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                        (operazione.id_operazione,)
+                    )
+                    conn.commit()
+                    conn.close()
+                    
+                    QMessageBox.information(
+                        self,
+                        "Registrazione riuscita",
+                        f"L'operazione '{esito}' è stata registrata con successo sulla blockchain."
+                    )
+                    
+                    # Aggiorna lo stato dell'operazione nella tabella
+                    operazione.blockchain_registered = True
+                    self.aggiorna_tabella()
+                    # Ricarica le operazioni per mostrare lo stato aggiornato
+                    self.ricarica_operazioni()
+                except Exception as db_error:
+                    QMessageBox.warning(
+                        self,
+                        "Avviso",
+                        f"L'operazione è stata registrata sulla blockchain, ma si è verificato un errore nell'aggiornamento del database locale: {str(db_error)}"
+                    )
             
         except Exception as e:
             QMessageBox.critical(

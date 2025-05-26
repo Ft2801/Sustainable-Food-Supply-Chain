@@ -157,6 +157,15 @@ class AzioniAziendaView(QWidget):
         # Recupera l'azione selezionata
         azione = self.azioni_compensative_filtrate[selected_row]
         
+        # Verifica se l'azione è già registrata sulla blockchain
+        if azione.blockchain_registered:
+            QMessageBox.information(
+                self,
+                "Azione già registrata",
+                f"L'azione compensativa '{azione.nome_azione}' è già stata registrata sulla blockchain."
+            )
+            return
+        
         # Chiedi conferma all'utente
         risposta = QMessageBox.question(
             self, 
