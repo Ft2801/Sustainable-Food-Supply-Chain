@@ -113,16 +113,21 @@ def conferma_operazione():
         except Exception as e:
             error_msg = f"❌ Errore nel parsing del messaggio: {str(e)}"
             print(error_msg)
-            esiti_operazioni[address] = error_msg
-            return jsonify({"message": esiti_operazioni[address]}), 400
+            if address not in esiti_operazioni:
+                esiti_operazioni[address] = {}
+            esiti_operazioni[address][id_operazione] = error_msg
+            return jsonify({"message": error_msg}), 400
 
         # Verifica firma
         eth_message = encode_defunct(text=messaggio)
         recovered_address = Account.recover_message(eth_message, signature=signature)
 
         if recovered_address.lower() != address.lower():
-            esiti_operazioni[address] = "❌ Firma non valida"
-            return jsonify({"message": esiti_operazioni[address]}), 400
+            error_msg = "❌ Firma non valida"
+            if address not in esiti_operazioni:
+                esiti_operazioni[address] = {}
+            esiti_operazioni[address][id_operazione] = error_msg
+            return jsonify({"message": error_msg}), 400
 
         # Chiamata al controller per inviare sulla blockchain
         controller = BlockchainController()
@@ -134,10 +139,14 @@ def conferma_operazione():
             account_address=address
         )
 
+        if address not in esiti_operazioni:
+            esiti_operazioni[address] = {}
         esiti_operazioni[address][id_operazione] = f"✅ Operazione registrata con successo. Tx hash: {tx_hash}"
         return jsonify({"message": esiti_operazioni[address][id_operazione]})
 
     except Exception as e:
+        if address not in esiti_operazioni:
+            esiti_operazioni[address] = {}
         esiti_operazioni[address][id_operazione] = f"❌ Errore: {str(e)}"
         return jsonify({"message": esiti_operazioni[address][id_operazione]}), 400
     
@@ -217,9 +226,9 @@ def conferma_azione_compensativa():
 
 @app.route("/esito_operazione/<address>/<int:id_operazione>", methods=["GET"])
 def esito_operazione(address, id_operazione):
-    for account in esiti_operazioni:
-        if account == address:
-            esito = account.get(id_operazione)
+    if address in esiti_operazioni:
+        if id_operazione in esiti_operazioni[address]:
+            esito = esiti_operazioni[address][id_operazione]
             return jsonify({"status": "completed", "esito": esito}), 200
 
     return jsonify({"status": "pending"}), 202
