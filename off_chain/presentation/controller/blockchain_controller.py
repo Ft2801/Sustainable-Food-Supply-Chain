@@ -146,15 +146,31 @@ class BlockchainController:
 
         while time.time() - start_time < max_wait:
             try:
-                # Controlla lo stato dell'operazione
-                response = requests.get(f"http://localhost:5001/esito_azione_compensativa/{account}", timeout=10)
-                data = response.json()
-                if "esito" in data:
-                    esito = data["esito"]
-                    logger.info("Esito dell'azione compensativa per %s: %s", account, esito)
-                    return esito
-            except requests.RequestException:
-                pass  # Continua a riprovare
+                # Controlla lo stato dell'operazione includendo l'ID dell'azione nell'URL
+                url = f"http://localhost:5001/esito_azione_compensativa/{account}/{id_azione}"
+                logger.info(f"Richiesta URL: {url}")
+                response = requests.get(url, timeout=10)
+                
+                # Controlla lo stato della risposta HTTP
+                if response.status_code != 200:
+                    logger.warning(f"Risposta HTTP non valida: {response.status_code}, {response.text}")
+                    time.sleep(wait_interval)
+                    continue
+                
+                # Prova a parsare il JSON
+                try:
+                    data = response.json()
+                    logger.info(f"Risposta JSON: {data}")
+                    if "esito" in data:
+                        esito = data["esito"]
+                        logger.info("Esito dell'azione compensativa per %s (ID: %s): %s", account, id_azione, esito)
+                        return esito
+                except ValueError as json_err:
+                    logger.error(f"Errore nel parsing JSON: {json_err}. Contenuto risposta: '{response.text}'")
+            except requests.RequestException as e:
+                logger.warning(f"Errore nella richiesta HTTP: {e}")
+            
+            # Continua a riprovare dopo un breve intervallo
 
             time.sleep(wait_interval)
 
@@ -181,24 +197,54 @@ class BlockchainController:
 
 
     def invia_azione(self, tipo_azione, description, data_azione, co2_compensata, account_address):
-        """Registra un'operazione sulla blockchain"""
+        """Registra un'azione compensativa sulla blockchain"""
         try:
             # Debugging dei tipi di dati ricevuti
             logger.info(f"DATI RICEVUTI - tipo_azione: {tipo_azione} (tipo: {type(tipo_azione)}), "
                         f"description: {description} (tipo: {type(description)}), "
                         f"data_azione: {data_azione} (tipo: {type(data_azione)}), "
                         f"co2_compensata: {co2_compensata} (tipo: {type(co2_compensata)})")
-                
+            
             # Ottieni l'account dall'indirizzo blockchain dell'utente corrente
             account = Web3.to_checksum_address(account_address)
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
-
-            # Assicurati che i tipi di dati siano corretti per il contratto
-            # operation_type deve essere uint8
-            # batch_id deve essere uint256
-            # description è una stringa
             
+            # Ottieni l'ID dell'azienda dall'indirizzo blockchain
+            try:
+                conn = sqlite3.connect(DATABASE_PATH)
+                cursor = conn.cursor()
+                
+                # Prima trova l'ID delle credenziali dall'indirizzo blockchain
+                cursor.execute(
+                    "SELECT Id_credenziali FROM Credenziali WHERE Address = ?",
+                    (account_address,)
+                )
+                result = cursor.fetchone()
+                
+                if not result:
+                    raise Exception(f"Nessuna credenziale trovata per l'indirizzo {account_address}")
+                    
+                id_credenziali = result[0]
+                
+                # Poi trova l'ID dell'azienda dalle credenziali
+                cursor.execute(
+                    "SELECT Id_azienda FROM Azienda WHERE Id_credenziali = ?",
+                    (id_credenziali,)
+                )
+                result = cursor.fetchone()
+                
+                if not result:
+                    raise Exception(f"Nessuna azienda trovata per le credenziali con ID {id_credenziali}")
+                    
+                company_id = result[0]
+                conn.close()
+                
+            except Exception as e:
+                logger.error(f"Errore nel recupero dell'ID azienda: {e}")
+                raise Exception(f"Errore nel recupero dell'ID azienda: {str(e)}")
+            
+            # Assicurati che i tipi di dati siano corretti per il contratto
             # Converti i tipi se necessario - usa try/except per gestire casi di stringa
             try:
                 co2_compensata_int = int(co2_compensata)  # Converti in intero per uint8
@@ -206,10 +252,10 @@ class BlockchainController:
                 logger.warning(f"Impossibile convertire co2_compensata a intero: {co2_compensata}, impostando a 0")
                 co2_compensata_int = 0
                 
-
-            logger.info(f"Invio azione: tipo={tipo_azione}, desc={description}, data={data_azione}, co2={co2_compensata_int}")
+            logger.info(f"Invio azione: tipo={tipo_azione}, desc={description}, data={data_azione}, co2={co2_compensata_int}, company_id={company_id}")
             
-
+            # Il contratto registerCompensationAction accetta solo 3 parametri, non 4
+            # L'identificazione dell'azienda avviene tramite msg.sender nel contratto
             tx = self.contract.functions.registerCompensationAction(
                 tipo_azione,
                 co2_compensata_int,
@@ -223,6 +269,29 @@ class BlockchainController:
 
             # Firma e invia la transazione
             tx_hash = w3.eth.send_transaction(tx)
+            
+            # Aggiorna lo stato dell'azione compensativa nel database
+            try:
+                # Verifica se id_azione è stato passato come parametro
+                id_azione_param = None
+                if 'id_azione' in locals():
+                    id_azione_param = id_azione
+                
+                if id_azione_param:
+                    conn = sqlite3.connect(DATABASE_PATH)
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE Azioni_compensative SET blockchain_registered = 1 WHERE Id_azione = ?",
+                        (id_azione_param,)
+                    )
+                    conn.commit()
+                    conn.close()
+                    logger.info(f"Azione compensativa {id_azione_param} marcata come registrata sulla blockchain")
+                else:
+                    logger.warning("Impossibile aggiornare lo stato dell'azione compensativa: ID azione non disponibile")
+            except Exception as e:
+                logger.error(f"Errore nell'aggiornamento dello stato dell'azione compensativa: {e}")
+                # Non solleviamo l'eccezione qui per non interrompere il flusso principale
             
             return tx_hash.hex()
         

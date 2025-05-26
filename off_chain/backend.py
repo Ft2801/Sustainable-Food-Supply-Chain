@@ -158,12 +158,14 @@ def firma_azione_compensativa_html():
 def conferma_azione_compensativa():
     data = request.json
     try:
-        address = data["address"]
+        address = data["address"].lower()  # Normalizza l'indirizzo a lowercase
         messaggio = data["messaggio"]
         signature = data["signature"]
         tipo = data["tipo"]
         id_azione = data["id_azione"]
         co2_compensata = data["co2_compensata"]
+        
+        print(f"Ricevuta richiesta di conferma azione compensativa: address={address}, id_azione={id_azione}")
 
         print(f"Messaggio ricevuto: {messaggio}")
         
@@ -206,17 +208,31 @@ def conferma_azione_compensativa():
             account_address=address
         )
 
+        # Converti id_azione in intero per garantire coerenza
+        try:
+            id_azione_int = int(id_azione)
+        except (ValueError, TypeError):
+            id_azione_int = id_azione  # Mantieni come stringa se non convertibile
+
         if address not in esiti_operazioni:
             esiti_operazioni[address] = {}
-        esiti_operazioni[address][id_azione] = f"✅ Azione compensativa registrata con successo. Tx hash: {tx_hash}"
-        return jsonify({"message": esiti_operazioni[address][id_azione]})
+        esiti_operazioni[address][id_azione_int] = f"✅ Azione compensativa registrata con successo. Tx hash: {tx_hash}"
+        return jsonify({"message": esiti_operazioni[address][id_azione_int]})
 
     except Exception as e:
         if address not in esiti_operazioni:
             esiti_operazioni[address] = {}
-        if 'id_azione' in locals():
-            esiti_operazioni[address][id_azione] = f"❌ Errore: {str(e)}"
-            return jsonify({"message": esiti_operazioni[address][id_azione]}), 400
+        if 'id_azione_int' in locals():
+            esiti_operazioni[address][id_azione_int] = f"❌ Errore: {str(e)}"
+            return jsonify({"message": esiti_operazioni[address][id_azione_int]}), 400
+        elif 'id_azione' in locals():
+            # Converti id_azione in intero per garantire coerenza
+            try:
+                id_azione_int = int(id_azione)
+            except (ValueError, TypeError):
+                id_azione_int = id_azione  # Mantieni come stringa se non convertibile
+            esiti_operazioni[address][id_azione_int] = f"❌ Errore: {str(e)}"
+            return jsonify({"message": esiti_operazioni[address][id_azione_int]}), 400
         else:
             error_message = f"❌ Errore: {str(e)}"
             return jsonify({"message": error_message}), 400
@@ -231,6 +247,52 @@ def esito_operazione(address, id_operazione):
         if id_operazione in esiti_operazioni[address]:
             esito = esiti_operazioni[address][id_operazione]
             return jsonify({"status": "completed", "esito": esito}), 200
+
+    return jsonify({"status": "pending"}), 202
+
+@app.route("/esito_azione_compensativa/<address>", methods=["GET"])
+@app.route("/esito_azione_compensativa/<address>/<id_azione>", methods=["GET"])
+def esito_azione_compensativa(address, id_azione=None):
+    print(f"Richiesta esito azione compensativa per {address} con ID {id_azione}")
+    print(f"Contenuto esiti_operazioni: {esiti_operazioni}")
+    
+    # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
+    address = address.lower()
+    
+    if address in esiti_operazioni:
+        print(f"Trovate operazioni per l'indirizzo {address}: {esiti_operazioni[address]}")
+        
+        # Se è stato specificato un ID azione
+        if id_azione is not None:
+            print(f"Cercando l'ID azione: {id_azione}")
+            
+            # Prova a convertire l'ID in intero se è una stringa numerica
+            id_azione_int = None
+            try:
+                id_azione_int = int(id_azione)
+                print(f"ID azione convertito in intero: {id_azione_int}")
+            except (ValueError, TypeError):
+                print(f"Impossibile convertire l'ID azione in intero: {id_azione}")
+            
+            # Controlla sia l'ID come stringa che come intero
+            if id_azione in esiti_operazioni[address]:
+                esito = esiti_operazioni[address][id_azione]
+                print(f"Trovato esito per ID stringa {id_azione}: {esito}")
+                return jsonify({"status": "completed", "esito": esito}), 200
+            elif id_azione_int is not None and id_azione_int in esiti_operazioni[address]:
+                esito = esiti_operazioni[address][id_azione_int]
+                print(f"Trovato esito per ID intero {id_azione_int}: {esito}")
+                return jsonify({"status": "completed", "esito": esito}), 200
+            else:
+                print(f"Nessun esito trovato per ID {id_azione} o {id_azione_int}")
+        elif id_azione is None:
+            # Se non è stato specificato un ID azione, restituisci il primo esito trovato
+            print("Nessun ID azione specificato, restituisco il primo esito trovato")
+            for action_id, esito in esiti_operazioni[address].items():
+                print(f"Restituisco esito per ID {action_id}: {esito}")
+                return jsonify({"status": "completed", "esito": esito}), 200
+    else:
+        print(f"Nessuna operazione trovata per l'indirizzo {address}")
 
     return jsonify({"status": "pending"}), 202
 

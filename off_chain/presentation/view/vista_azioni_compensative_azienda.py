@@ -176,6 +176,7 @@ class AzioniAziendaView(QWidget):
             
             # Firma l'operazione tramite MetaMask nel browser
             esito = blockchain_controller.firma_azione_compensativa(
+                id_azione=azione.id_azione,
                 tipo=azione.nome_azione,
                 co2_compensata=azione.co2_compensata
             )

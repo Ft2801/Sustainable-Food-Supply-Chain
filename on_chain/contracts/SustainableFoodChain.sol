@@ -369,7 +369,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         string calldata actionType,
         uint256 co2Reduction, // in kg
         string calldata description
-    ) external onlyRegisteredCompany(msg.sender) returns (uint256) {
+    ) external returns (uint256) {
         uint256 actionId = nextCompensationActionId++;
         compensationActions[actionId] = CompensationAction(
             actionId,
