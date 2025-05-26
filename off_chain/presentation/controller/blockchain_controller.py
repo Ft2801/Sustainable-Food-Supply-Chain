@@ -257,21 +257,41 @@ class BlockchainController:
             
             # Aggiorna lo stato dell'azione compensativa nel database
             try:
-                # Verifica se id_azione è stato passato come parametro
-                id_azione_param = None
-                if 'id_azione' in locals():
+                # Estrai l'ID dell'azione dalla descrizione se possibile
+                id_azione_match = None
+                if isinstance(description, str) and "ID" in description:
+                    import re
+                    id_match = re.search(r'ID\s+(\d+)', description)
+                    if id_match:
+                        id_azione_match = id_match.group(1)
+                        logger.info(f"Estratto ID azione {id_azione_match} dalla descrizione")
+                
+                # Usa l'ID estratto o cerca nei parametri locali
+                id_azione_param = id_azione_match
+                if not id_azione_param and 'id_azione' in locals():
                     id_azione_param = id_azione
                 
                 if id_azione_param:
                     conn = sqlite3.connect(DATABASE_PATH)
                     cursor = conn.cursor()
+                    
+                    # Verifica se l'azione esiste prima di aggiornare
                     cursor.execute(
-                        "UPDATE Azioni_compensative SET blockchain_registered = 1 WHERE Id_azione = ?",
+                        "SELECT COUNT(*) FROM Azioni_compensative WHERE Id_azione = ?",
                         (id_azione_param,)
                     )
-                    conn.commit()
+                    if cursor.fetchone()[0] > 0:
+                        # Aggiorna il flag blockchain_registered
+                        cursor.execute(
+                            "UPDATE Azioni_compensative SET blockchain_registered = 1 WHERE Id_azione = ?",
+                            (id_azione_param,)
+                        )
+                        conn.commit()
+                        logger.info(f"Azione compensativa {id_azione_param} marcata come registrata sulla blockchain")
+                    else:
+                        logger.warning(f"Azione compensativa con ID {id_azione_param} non trovata nel database")
+                    
                     conn.close()
-                    logger.info(f"Azione compensativa {id_azione_param} marcata come registrata sulla blockchain")
                 else:
                     logger.warning("Impossibile aggiornare lo stato dell'azione compensativa: ID azione non disponibile")
             except Exception as e:

@@ -182,16 +182,43 @@ class AzioniAziendaView(QWidget):
             )
 
             if esito:
-                QMessageBox.information(
-                    self,
-                    "Registrazione riuscita",
-                    f"L'azione compensativa '{azione.nome_azione}' è stata registrata con successo sulla blockchain."
-                )
-                # Aggiorna lo stato dell'azione nella tabella
-                azione.blockchain_registered = True
-                self.aggiorna_tabella()
-                # Ricarica le azioni per mostrare lo stato aggiornato
-                self.ricarica_operazioni()
+                # Aggiorna il database direttamente
+                try:
+                    # Importa le dipendenze necessarie
+                    import sqlite3
+                    import os
+                    
+                    # Ottieni il percorso del database
+                    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+                    DATABASE_PATH = os.path.join(PROJECT_ROOT, 'off_chain', 'database', 'database.db')
+                    
+                    # Aggiorna il flag blockchain_registered nel database
+                    conn = sqlite3.connect(DATABASE_PATH)
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE Azioni_compensative SET blockchain_registered = 1 WHERE Id_azione = ?",
+                        (azione.id_azione,)
+                    )
+                    conn.commit()
+                    conn.close()
+                    
+                    QMessageBox.information(
+                        self,
+                        "Registrazione riuscita",
+                        f"L'azione compensativa '{azione.nome_azione}' è stata registrata con successo sulla blockchain."
+                    )
+                    
+                    # Aggiorna lo stato dell'azione nella tabella
+                    azione.blockchain_registered = True
+                    self.aggiorna_tabella()
+                    # Ricarica le azioni per mostrare lo stato aggiornato
+                    self.ricarica_operazioni()
+                except Exception as db_error:
+                    QMessageBox.warning(
+                        self,
+                        "Avviso",
+                        f"L'azione è stata registrata sulla blockchain, ma si è verificato un errore nell'aggiornamento del database locale: {str(db_error)}"
+                    )
             
         except Exception as e:
             QMessageBox.critical(
