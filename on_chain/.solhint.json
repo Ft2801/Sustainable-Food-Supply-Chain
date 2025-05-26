@@ -1,7 +1,7 @@
 {
   "extends": "solhint:recommended",
   "rules": {
-    "compiler-version": ["error", "^0.8.0"],
+    "compiler-version": ["error", "^0.8.20"],
     "func-visibility": ["error", { "ignoreConstructors": false }],
     "not-rely-on-time": "off",
     "no-inline-assembly": "warn",
@@ -18,8 +18,7 @@
     "mark-callable-contracts": "off", 
     "no-unused-vars": "warn",
     "quotes": ["error", "double"],
-    "max-line-length": ["warn", 120],
-    
+    "max-line-length": ["warn", 120]
   }
 }
 

@@ -5,6 +5,11 @@
 
 import sqlite3
 import os
+from pathlib import Path
+
+# Definizione del percorso assoluto al database
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+DATABASE_PATH = os.path.join(PROJECT_ROOT, 'off_chain', 'database', 'database.db')
 
 class Database:
     _instance = None  # Singleton per la connessione al database
@@ -20,7 +25,7 @@ class Database:
         """Initialize the database connection if not already initialized."""
         if not self._connection_initialized:
             try:
-                self.conn = sqlite3.connect("database.db", timeout=10)  # Connessione al database
+                self.conn = sqlite3.connect(DATABASE_PATH, timeout=10)  # Connessione al database
                 # Enable foreign key constraints
                 self.conn.execute("PRAGMA foreign_keys = ON")
                 self.cur = self.conn.cursor()  # Cursore
@@ -60,6 +65,7 @@ class Database:
             print(f"Errore generico nel database: {e}")
             raise e
 
+    @classmethod
     def fetch_results(cls, query, params=()):
         """Esegue una query di selezione e restituisce i risultati."""
         if not hasattr(cls, "conn") or cls.conn is None:

@@ -1,9 +1,0 @@
-# Python dependencies
-PyQt5==5.15.9
-web3==1.10.0
-pyotp==2.8.0
-pyyaml==6.0
-sqlite3==2.6.0
-flask==3.0.2
-flask_cors==4.0.0
-# Note: sqlite3 might be included in Python standard library depending on your installation
