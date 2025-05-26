@@ -109,7 +109,7 @@ class BlockchainController:
             co2_compensata: La quantità di CO2 compensata dall'azione
         
         Returns:
-            bool: True se la firma è avvenuta con successo, False altrimenti
+            str: L'esito dell'operazione
         """
         account = self.get_address()  # Funzione che recupera account locale
 
@@ -146,31 +146,16 @@ class BlockchainController:
 
         while time.time() - start_time < max_wait:
             try:
-                # Controlla lo stato dell'operazione includendo l'ID dell'azione nell'URL
-                url = f"http://localhost:5001/esito_azione_compensativa/{account}/{id_azione}"
-                logger.info(f"Richiesta URL: {url}")
-                response = requests.get(url, timeout=10)
-                
-                # Controlla lo stato della risposta HTTP
-                if response.status_code != 200:
-                    logger.warning(f"Risposta HTTP non valida: {response.status_code}, {response.text}")
-                    time.sleep(wait_interval)
-                    continue
-                
-                # Prova a parsare il JSON
-                try:
-                    data = response.json()
-                    logger.info(f"Risposta JSON: {data}")
-                    if "esito" in data:
-                        esito = data["esito"]
-                        logger.info("Esito dell'azione compensativa per %s (ID: %s): %s", account, id_azione, esito)
-                        return esito
-                except ValueError as json_err:
-                    logger.error(f"Errore nel parsing JSON: {json_err}. Contenuto risposta: '{response.text}'")
+                print(f"Attendo esito azione compensativa {id_azione} per l'account {account}")
+                response = requests.get(f"http://localhost:5001/esito_azione_compensativa/{account}/{id_azione}", timeout=10)
+                data = response.json()
+                if "esito" in data:
+                    esito = data["esito"]
+                    logger.info(f"Esito azione compensativa: {esito}")
+                    return esito
             except requests.RequestException as e:
-                logger.warning(f"Errore nella richiesta HTTP: {e}")
-            
-            # Continua a riprovare dopo un breve intervallo
+                print(f"Errore nella richiesta HTTP: {e}")
+                pass  # Continua a riprovare
 
             time.sleep(wait_interval)
 
