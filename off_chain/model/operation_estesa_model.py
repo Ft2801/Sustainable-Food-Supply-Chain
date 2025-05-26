@@ -11,6 +11,7 @@ from model.product_model import ProductModel
 class OperazioneEstesaModel:
 
     id_operazione: int
+    id_lotto: int
     nome_operazione: str
     data_operazione: datetime
     id_prodotto : int

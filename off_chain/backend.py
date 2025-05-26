@@ -226,6 +226,7 @@ def conferma_azione_compensativa():
 
 @app.route("/esito_operazione/<address>/<int:id_operazione>", methods=["GET"])
 def esito_operazione(address, id_operazione):
+    print(f"{esiti_operazioni}")
     if address in esiti_operazioni:
         if id_operazione in esiti_operazioni[address]:
             esito = esiti_operazioni[address][id_operazione]

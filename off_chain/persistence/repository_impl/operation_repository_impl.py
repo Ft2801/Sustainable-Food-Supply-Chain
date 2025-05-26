@@ -61,7 +61,8 @@ class OperationRepositoryImpl(ABC):
                     "Operazione.Consumo_CO2",
                     "Operazione.Tipo",
                     "Operazione.quantita",
-                    "Operazione.blockchain_registered"
+                    "Operazione.blockchain_registered",
+                    "Operazione.Id_lotto"
                 )
                 .table("Operazione")
                 .join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto")
@@ -80,6 +81,7 @@ class OperationRepositoryImpl(ABC):
                 try:
                     operazione = OperazioneEstesaModel(
                         id_operazione=row[0],
+                        id_lotto= row[8],  # Assuming id_lotto is the second column
                         id_prodotto=row[1],
                         nome_prodotto=row[2],
                         data_operazione=row[3],

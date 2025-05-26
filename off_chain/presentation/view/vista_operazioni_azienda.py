@@ -163,9 +163,9 @@ class OperazioniAziendaView(QWidget):
             blockchain_controller = BlockchainController()
             
             esito = blockchain_controller.firma_operazione(
-                tipo="Trasformazione",
-                id_lotto=1,
-                id_operazione=1
+                tipo=operazione.nome_operazione,
+                id_lotto=operazione.id_lotto,
+                id_operazione=operazione.id_operazione,
 
             )
 
@@ -173,7 +173,7 @@ class OperazioniAziendaView(QWidget):
                 QMessageBox.information(
                     self,
                     "Registrazione riuscita",
-                    f"L'operazione '{operazione.nome_operazione}' è stata registrata con successo sulla blockchain."
+                    f"L'operazione '{esito}' è stata registrata con successo sulla blockchain."
                 )
                 # Aggiorna lo stato dell'operazione nella tabella
                 operazione.blockchain_registered = True

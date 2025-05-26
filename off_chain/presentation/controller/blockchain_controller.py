@@ -84,11 +84,12 @@ class BlockchainController:
         while time.time() - start_time < max_wait:
 
             try:
-                response = requests.get(f"http://localhost:5001/esito_operazione/{account}", timeout=10)
+                print(f"Attendo esito operazione {id_operazione} per l'account {account}")
+                response = requests.get(f"http://localhost:5001/esito_operazione/{account}/{id_operazione}", timeout=10)
                 data = response.json()
                 if "esito" in data:
                     esito = data["esito"]
-                    logger.info("Esito dell'operazione per %s: %s", account, esito)
+                    logger.info(f"Esito  {esito}")
                     return esito
             except requests.RequestException:
                 pass  # Continua a riprovare
