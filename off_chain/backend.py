@@ -128,6 +128,15 @@ def conferma_operazione():
                 esiti_operazioni[address] = {}
             esiti_operazioni[address][id_operazione] = error_msg
             return jsonify({"message": error_msg}), 400
+            
+        # Verifica che l'azienda sia registrata sulla blockchain
+        controller = BlockchainController()
+        if not controller.is_company_registered(address):
+            error_msg = "❌ L'azienda non è registrata sulla blockchain. Registrare l'azienda prima di effettuare operazioni."
+            if address not in esiti_operazioni:
+                esiti_operazioni[address] = {}
+            esiti_operazioni[address][id_operazione] = error_msg
+            return jsonify({"message": error_msg}), 400
 
         # Chiamata al controller per inviare sulla blockchain
         controller = BlockchainController()
@@ -188,6 +197,15 @@ def conferma_azione_compensativa():
                 esiti_operazioni[address] = {}
             esiti_operazioni[address][id_azione] = "❌ Firma non valida"
             return jsonify({"message": esiti_operazioni[address][id_azione]}), 400
+            
+        # Verifica che l'azienda sia registrata sulla blockchain
+        controller = BlockchainController()
+        if not controller.is_company_registered(address):
+            error_msg = "❌ L'azienda non è registrata sulla blockchain. Registrare l'azienda prima di effettuare azioni compensative."
+            if address not in esiti_operazioni:
+                esiti_operazioni[address] = {}
+            esiti_operazioni[address][id_azione] = error_msg
+            return jsonify({"message": error_msg}), 400
 
         # Chiamata al controller per inviare sulla blockchain
         controller = BlockchainController()

@@ -381,7 +381,7 @@ class BlockchainController:
         except Exception as e:
             logger.error(f"Errore durante l'invio dell'operazione sulla blockchain: {e}")
             raise Exception(f"Errore durante l'invio dell'operazione sulla blockchain: {str(e)}")
-        
+            
     def get_operazioni_company(self):
         try:
             address = self.get_address()
@@ -392,3 +392,21 @@ class BlockchainController:
         except Exception as e:
             logger.error(f"Errore nel recupero delle operazioni per {address}: {e}")
             raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+            
+    def is_company_registered(self, address):
+        """Verifica se un indirizzo Ethereum è registrato come azienda sulla blockchain
+        
+        Args:
+            address: L'indirizzo Ethereum da verificare
+            
+        Returns:
+            bool: True se l'azienda è registrata, False altrimenti
+        """
+        try:
+            checksum_address = Web3.to_checksum_address(address)
+            is_registered = self.contract.functions.isCompanyAddressRegistered(checksum_address).call()
+            logger.info(f"Verifica registrazione per l'indirizzo {address}: {is_registered}")
+            return is_registered
+        except Exception as e:
+            logger.error(f"Errore nella verifica della registrazione dell'azienda {address}: {e}")
+            return False
