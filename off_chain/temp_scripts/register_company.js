@@ -22,14 +22,29 @@
             const contractPath = path.join(__dirname, "../../on_chain/artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json");
             const contractJson = JSON.parse(fs.readFileSync(contractPath));
             
-            // Ottieni il signer in modo compatibile con entrambe le versioni
+            // Trova l'indice dell'account che corrisponde all'indirizzo dell'azienda
+            const accounts = await provider.listAccounts();
+            let signerIndex = 0;
+            let companyAddress = "0x976ea74026e726554db657fa54763abd0c3a0aa9";
+            
+            // Cerca l'indirizzo dell'azienda tra gli account disponibili
+            for (let i = 0; i < accounts.length; i++) {
+                const accountAddress = isEthersV6 ? accounts[i].address : accounts[i];
+                if (accountAddress.toLowerCase() === companyAddress.toLowerCase()) {
+                    signerIndex = i;
+                    console.log(`Trovato indirizzo dell'azienda all'indice ${signerIndex}: ${accountAddress}`);
+                    break;
+                }
+            }
+            
+            // Ottieni il signer per l'account dell'azienda
             let signer;
             if (isEthersV6) {
-                const accounts = await provider.listAccounts();
-                signer = await provider.getSigner(accounts[0].address);
+                signer = await provider.getSigner(accounts[signerIndex].address);
+                console.log(`Usando account ${signerIndex} con indirizzo ${accounts[signerIndex].address} come signer`);
             } else {
-                const accounts = await provider.listAccounts();
-                signer = provider.getSigner(accounts[0]);
+                signer = provider.getSigner(accounts[signerIndex]);
+                console.log(`Usando account ${signerIndex} con indirizzo ${accounts[signerIndex]} come signer`);
             }
             
             // Verifica che il provider sia connesso
@@ -38,12 +53,12 @@
     
             // Crea un'istanza del contratto SustainableFoodChain
             const contract = new ethers.Contract(
-                "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",  // Indirizzo del contratto SustainableFoodChain
+                "0x5FbDB2315678afecb367f032d93F642f64180aa3",  // Indirizzo del contratto SustainableFoodChain
                 contractJson.abi,
                 signer
             );
             
-            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0x68B1D87F95878fE05B998F19b66F4baba5De1aed`);
+            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0x5FbDB2315678afecb367f032d93F642f64180aa3`);
             
             // Verifica se l'azienda è già registrata
             try {

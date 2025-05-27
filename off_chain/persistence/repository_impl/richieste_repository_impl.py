@@ -166,7 +166,47 @@ def generate_js_script(script_type, params):
         # Utilizziamo il percorso assoluto per evitare problemi di path relativi
         registry_contract_path = "../../on_chain/artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json"
         
-        return base_script.replace(contract_path, registry_contract_path) + f'''
+        # Modifica lo script base per usare l'indirizzo specifico dell'azienda
+        company_script = base_script.replace(contract_path, registry_contract_path)
+        
+        # Sostituisci la parte del signer con una versione che usa l'indirizzo dell'azienda
+        company_script = company_script.replace(
+            '''            // Ottieni il signer in modo compatibile con entrambe le versioni
+            let signer;
+            if (isEthersV6) {
+                const accounts = await provider.listAccounts();
+                signer = await provider.getSigner(accounts[0].address);
+            } else {
+                const accounts = await provider.listAccounts();
+                signer = provider.getSigner(accounts[0]);
+            }''',
+            f'''            // Trova l'indice dell'account che corrisponde all'indirizzo dell'azienda
+            const accounts = await provider.listAccounts();
+            let signerIndex = 0;
+            let companyAddress = "{params['company_address']}";
+            
+            // Cerca l'indirizzo dell'azienda tra gli account disponibili
+            for (let i = 0; i < accounts.length; i++) {{
+                const accountAddress = isEthersV6 ? accounts[i].address : accounts[i];
+                if (accountAddress.toLowerCase() === companyAddress.toLowerCase()) {{
+                    signerIndex = i;
+                    console.log(`Trovato indirizzo dell'azienda all'indice ${{signerIndex}}: ${{accountAddress}}`);
+                    break;
+                }}
+            }}
+            
+            // Ottieni il signer per l'account dell'azienda
+            let signer;
+            if (isEthersV6) {{
+                signer = await provider.getSigner(accounts[signerIndex].address);
+                console.log(`Usando account ${{signerIndex}} con indirizzo ${{accounts[signerIndex].address}} come signer`);
+            }} else {{
+                signer = provider.getSigner(accounts[signerIndex]);
+                console.log(`Usando account ${{signerIndex}} con indirizzo ${{accounts[signerIndex]}} come signer`);
+            }}'''
+        )
+        
+        return company_script + f'''
             // Crea un'istanza del contratto SustainableFoodChain
             const contract = new ethers.Contract(
                 "{params['registry_address']}",  // Indirizzo del contratto SustainableFoodChain
