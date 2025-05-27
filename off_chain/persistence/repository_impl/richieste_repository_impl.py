@@ -454,6 +454,7 @@ class RichiesteRepositoryImpl():
         super().__init__()
         self.db = Database()
         self.query_builder = QueryBuilder()
+        self.blockchain_config = BlockchainConfig()
 
     def inserisci_richiesta(self, id_az_richiedente: int,id_az_ricevente: int,id_az_trasporto: int, id_prodotto: int, quantita: int) :
         """
@@ -883,18 +884,10 @@ class RichiesteRepositoryImpl():
 
     def update_richiesta_token(self, richiesta: RichiestaTokenModel, stato : str) -> None:
         """
-        Aggiorna lo stato di una richiesta di token nel database locale.
+        Aggiorna lo stato di una richiesta di token nel database locale e sulla blockchain.
         """
         try:
-            # Aggiornamento nel database locale
-            queries = []
-            
-            # Aggiornamento dello stato
-            query_mag = "UPDATE RichiestaToken SET Stato = ? WHERE Id_richiesta = ?"
-            value_mag = (stato, richiesta.id_richiesta)
-            queries.append((query_mag, value_mag))
-            
-            # Trasferimento token solo se la richiesta è accettata
+            # Se la richiesta viene accettata, esegui prima la transazione sulla blockchain
             if stato == db_default_string.STATO_ACCETTATA:
                 # Verifica che l'azienda destinataria (fornitore) abbia token sufficienti
                 check_query = "SELECT Token FROM Azienda WHERE Id_azienda = ?"
@@ -906,6 +899,64 @@ class RichiesteRepositoryImpl():
                 if token_disponibili < richiesta.quantita:
                     raise ValueError(f"L'azienda {richiesta.destinatario} non ha token sufficienti. Disponibili: {token_disponibili}, Richiesti: {richiesta.quantita}")
                 
+                # Ottieni l'indirizzo blockchain dell'azienda destinataria
+                query_address = "SELECT address FROM Credenziali c JOIN Azienda a ON c.Id_credenziali = a.Id_credenziali WHERE a.Id_azienda = ?"
+                provider_address = self.db.fetch_one(query_address, (richiesta.id_destinatario,))
+                
+                if not provider_address:
+                    raise ValueError(f"Impossibile trovare l'indirizzo blockchain per l'azienda {richiesta.id_destinatario}")
+                
+                # Crea uno script temporaneo per accettare la richiesta di token sulla blockchain
+                scripts_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+                                        "off_chain", "temp_scripts")
+                os.makedirs(scripts_dir, exist_ok=True)
+                script_path = os.path.join(scripts_dir, f"accept_token_request_{richiesta.id_richiesta}.js")
+                
+                # Ottieni l'indirizzo del contratto SustainableFoodChain
+                contract_address = None
+                if 'SustainableFoodChain' in self.blockchain_config.contracts:
+                    contract_address = self.blockchain_config.contracts['SustainableFoodChain']['address']
+                    logger.info(f"Indirizzo SustainableFoodChain ottenuto da blockchain_config: {contract_address}")
+                
+                # Se non disponibile, usa l'indirizzo hardcoded (tipicamente 0x5FbDB2315678afecb367f032d93F642f64180aa3 per Hardhat)
+                if not contract_address:
+                    contract_address = "0x5FbDB2315678afecb367f032d93F642f64180aa3"  # Indirizzo standard per Hardhat
+                    logger.info(f"Usando indirizzo SustainableFoodChain hardcoded: {contract_address}")
+                
+                # Prepara i parametri per lo script
+                script_params = {
+                    "contract_address": contract_address,
+                    "request_id": richiesta.id_richiesta
+                }
+                
+                # Genera lo script
+                script_content = generate_js_script("accept_token", script_params)
+                
+                # Scrivi lo script su file
+                with open(script_path, 'w') as f:
+                    f.write(script_content)
+                
+                # Esegui lo script Node.js
+                logger.info(f"Esecuzione dello script per accettare la richiesta token {richiesta.id_richiesta} sulla blockchain")
+                result = subprocess.run(["node", script_path], capture_output=True, text=True)
+                
+                if result.returncode != 0:
+                    error_msg = f"Errore nell'accettazione della richiesta token sulla blockchain: {result.stderr}"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                
+                logger.info(f"Richiesta token {richiesta.id_richiesta} accettata con successo sulla blockchain: {result.stdout}")
+            
+            # Aggiornamento nel database locale
+            queries = []
+            
+            # Aggiornamento dello stato
+            query_mag = "UPDATE RichiestaToken SET Stato = ? WHERE Id_richiesta = ?"
+            value_mag = (stato, richiesta.id_richiesta)
+            queries.append((query_mag, value_mag))
+            
+            # Trasferimento token solo se la richiesta è accettata
+            if stato == db_default_string.STATO_ACCETTATA:
                 # Sottrai token dall'azienda destinataria (fornitore di token)
                 query_mag = "UPDATE Azienda SET Token = Token - ? WHERE Id_azienda = ? AND Token >= ?"
                 value_mag = (richiesta.quantita, richiesta.id_destinatario, richiesta.quantita)
@@ -918,11 +969,48 @@ class RichiesteRepositoryImpl():
             
             # Esegui tutte le query in una singola transazione
             self.db.execute_transaction(queries)
-            logger.info(f"Richiesta token {richiesta.id_richiesta} aggiornata a {stato}")
+            logger.info(f"Richiesta token {richiesta.id_richiesta} aggiornata a {stato} nel database locale")
         except Exception as e:
-            logger.error(f"Errore nell'aggiornamento della richiesta: {e}")
+            logger.error(f"Errore nell'aggiornamento della richiesta token: {e}")
             raise e
 
+    def get_richiesta_token_by_id(self, id_richiesta: int):
+        """
+        Ottiene una richiesta di token dal suo ID
+        
+        Args:
+            id_richiesta: ID della richiesta di token
+            
+        Returns:
+            RichiestaTokenModel o None se non trovata
+        """
+        try:
+            query = """
+            SELECT rt.Id_richiesta, rt.Id_richiedente, rt.Id_ricevente, rt.Quantita, rt.Stato, rt.Data_richiesta,
+                   am.Nome as nome_mittente, ad.Nome as nome_destinatario
+            FROM RichiestaToken rt
+            JOIN Azienda am ON rt.Id_richiedente = am.Id_azienda
+            JOIN Azienda ad ON rt.Id_ricevente = ad.Id_azienda
+            WHERE rt.Id_richiesta = ?
+            """
+            result = self.db.fetch_one(query, (id_richiesta,))
+            
+            if result:
+                return RichiestaTokenModel(
+                    id_richiesta=result[0],
+                    id_mittente=result[1],
+                    id_destinatario=result[2],
+                    quantita=result[3],
+                    stato=result[4],
+                    data=result[5],
+                    mittente=result[6],
+                    destinatario=result[7]
+                )
+            return None
+        except Exception as e:
+            logger.error(f"Errore nel recupero della richiesta token: {e}")
+            return None
+    
     def send_richiesta_token(self, mittente: int, destinatario: int, quantita: int):
         """
         Invia una richiesta di token da un'azienda a un'altra

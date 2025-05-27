@@ -6,6 +6,7 @@ import os
 import sqlite3
 from session import Session
 from persistence.repository_impl.credential_repository_impl import CredentialRepositoryImpl
+from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
 from configuration.log_load_setting import logger
 import subprocess
 import requests
@@ -30,6 +31,7 @@ w3 = Web3(Web3.HTTPProvider(NODE_URL))
 class BlockchainController:
     def __init__(self):
         self.controller = CredentialRepositoryImpl()
+        self.richieste_controller = RichiesteRepositoryImpl()
         with open(ABI_PATH) as f:
             contract_json = json.load(f)
             abi = contract_json["abi"]
@@ -410,3 +412,126 @@ class BlockchainController:
         except Exception as e:
             logger.error(f"Errore nella verifica della registrazione dell'azienda {address}: {e}")
             return False
+            
+    def firma_richiesta_token(self, destinatario, quantita):
+        """
+        Gestisce la firma di una richiesta di token tramite MetaMask.
+        
+        Args:
+            destinatario: L'ID dell'azienda destinataria della richiesta
+            quantita: La quantità di token richiesti
+        
+        Returns:
+            str: L'esito dell'operazione
+        """
+        account = self.get_address()  # Funzione che recupera account locale
+
+        # Crea un messaggio descrittivo per la richiesta di token
+        messaggio = f"Conferma richiesta di {quantita} token all'azienda con ID {destinatario}"
+        messaggio_encoded = messaggio.replace(" ", "%20")
+
+        # Costruisci l'URL con tutti i parametri necessari
+        url = f"http://localhost:5001/firma_richiesta_token.html?messaggio={messaggio_encoded}&destinatario={destinatario}&quantita={quantita}"
+        
+        # Rileva il sistema operativo e apri il browser in modo appropriato
+        import platform
+        import webbrowser
+        
+        system = platform.system()
+        try:
+            if system == 'Windows':
+                chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                proc = subprocess.Popen([chrome_path, url])
+                proc.wait()
+            elif system == 'Darwin':  # macOS
+                # Usa il browser predefinito su macOS
+                webbrowser.open(url)
+            else:  # Linux e altri
+                # Prova a usare il browser predefinito
+                webbrowser.open(url)
+        except Exception as e:
+            raise Exception(f"Errore nell'apertura del browser: {str(e)}")
+        
+        # Attendi la risposta dal servizio web
+        max_wait = 60  # secondi
+        wait_interval = 3  # secondi
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            try:
+                print(f"Attendo esito richiesta token per l'account {account} e destinatario {destinatario}")
+                response = requests.get(f"http://localhost:5001/esito_richiesta_token/{account}/{destinatario}", timeout=10)
+                data = response.json()
+                if "esito" in data:
+                    esito = data["esito"]
+                    logger.info(f"Esito richiesta token: {esito}")
+                    return esito
+            except requests.RequestException as e:
+                print(f"Errore nella richiesta HTTP: {e}")
+                pass  # Continua a riprovare
+
+            time.sleep(wait_interval)
+
+        raise TimeoutError("Timeout in attesa della firma tramite MetaMask")
+
+    def firma_accettazione_token(self, id_richiesta, mittente, quantita):
+        """
+        Gestisce la firma di un'accettazione di token tramite MetaMask.
+        
+        Args:
+            id_richiesta: L'ID della richiesta di token
+            mittente: L'ID dell'azienda mittente della richiesta
+            quantita: La quantità di token richiesti
+        
+        Returns:
+            str: L'esito dell'operazione
+        """
+        account = self.get_address()  # Funzione che recupera account locale
+
+        # Crea un messaggio descrittivo per l'accettazione di token
+        messaggio = f"Conferma accettazione di {quantita} token richiesti dall'azienda con ID {mittente} (richiesta #{id_richiesta})"
+        messaggio_encoded = messaggio.replace(" ", "%20")
+
+        # Costruisci l'URL con tutti i parametri necessari
+        url = f"http://localhost:5001/firma_accetta_token.html?messaggio={messaggio_encoded}&mittente={mittente}&quantita={quantita}&id_richiesta={id_richiesta}"
+        
+        # Rileva il sistema operativo e apri il browser in modo appropriato
+        import platform
+        import webbrowser
+        
+        system = platform.system()
+        try:
+            if system == 'Windows':
+                chrome_path = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+                proc = subprocess.Popen([chrome_path, url])
+                proc.wait()
+            elif system == 'Darwin':  # macOS
+                # Usa il browser predefinito su macOS
+                webbrowser.open(url)
+            else:  # Linux e altri
+                # Prova a usare il browser predefinito
+                webbrowser.open(url)
+        except Exception as e:
+            raise Exception(f"Errore nell'apertura del browser: {str(e)}")
+        
+        # Attendi la risposta dal servizio web
+        max_wait = 60  # secondi
+        wait_interval = 3  # secondi
+        start_time = time.time()
+
+        while time.time() - start_time < max_wait:
+            try:
+                print(f"Attendo esito accettazione token per l'account {account} e richiesta {id_richiesta}")
+                response = requests.get(f"http://localhost:5001/esito_accettazione_token/{account}/{id_richiesta}", timeout=10)
+                data = response.json()
+                if "esito" in data:
+                    esito = data["esito"]
+                    logger.info(f"Esito accettazione token: {esito}")
+                    return esito
+            except requests.RequestException as e:
+                print(f"Errore nella richiesta HTTP: {e}")
+                pass  # Continua a riprovare
+
+            time.sleep(wait_interval)
+
+        raise TimeoutError("Timeout in attesa della firma tramite MetaMask")

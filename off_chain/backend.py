@@ -6,6 +6,7 @@ import os
 import socket
 import json
 from datetime import datetime
+from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
 
 from web3 import Web3
 from presentation.controller.credential_controller import ControllerAutenticazione
@@ -18,6 +19,8 @@ app = Flask(__name__)
 CORS(app) 
 
 esiti_operazioni = {}
+esiti_richieste_token = {}
+esiti_accettazioni_token = {}
 
 @app.route("/firma.html")
 def firma_html():
@@ -162,6 +165,14 @@ def conferma_operazione():
 @app.route("/firma_azione_compensativa.html")
 def firma_azione_compensativa_html():
     return send_from_directory(BASE_DIR, "firma_azione_compensativa.html")
+
+@app.route("/firma_richiesta_token.html")
+def firma_richiesta_token_html():
+    return send_from_directory(BASE_DIR, "firma_richiesta_token.html")
+
+@app.route("/firma_accetta_token.html")
+def firma_accetta_token_html():
+    return send_from_directory(BASE_DIR, "firma_accetta_token.html")
 
 @app.route("/conferma_azione_compensativa", methods=["POST"])
 def conferma_azione_compensativa():
@@ -311,6 +322,139 @@ def esito_azione_compensativa(address, id_azione=None):
                 return jsonify({"status": "completed", "esito": esito}), 200
     else:
         print(f"Nessuna operazione trovata per l'indirizzo {address}")
+
+    return jsonify({"status": "pending"}), 202
+
+@app.route("/conferma_richiesta_token", methods=["POST"])
+def conferma_richiesta_token():
+    data = request.json
+    try:
+        address = data["address"]
+        messaggio = data["messaggio"]
+        signature = data["signature"]
+        destinatario = data["destinatario"]
+        quantita = data["quantita"]
+
+        # Verifica la firma
+        eth_message = encode_defunct(text=messaggio)
+        recovered = Account.recover_message(eth_message, signature=signature)
+
+        if recovered.lower() != address.lower():
+            return jsonify({"message": "Firma non valida"}), 400
+
+        # Ottieni l'ID dell'azienda dall'indirizzo blockchain
+        controller_auth = ControllerAutenticazione()
+        id_mittente = controller_auth.get_id_by_address(address)
+
+        if not id_mittente:
+            return jsonify({"message": "Indirizzo non associato ad alcuna azienda"}), 400
+
+        # Invia la richiesta di token
+        try:
+            controller = RichiesteRepositoryImpl()
+            id_richiesta = controller.send_richiesta_token(id_mittente, int(destinatario), int(quantita))
+            
+            # Salva l'esito positivo
+            if address not in esiti_richieste_token:
+                esiti_richieste_token[address] = {}
+            
+            esiti_richieste_token[address][destinatario] = f"✅ Richiesta token inviata con successo! ID: {id_richiesta}"
+            
+            return jsonify({
+                "message": "Richiesta token inviata con successo",
+                "id_richiesta": id_richiesta
+            })
+        except Exception as e:
+            # Salva l'esito negativo
+            if address not in esiti_richieste_token:
+                esiti_richieste_token[address] = {}
+            
+            esiti_richieste_token[address][destinatario] = f"❌ Errore nell'invio della richiesta token: {str(e)}"
+            
+            return jsonify({"message": f"Errore nell'invio della richiesta token: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"message": f"Errore nella conferma della richiesta token: {str(e)}"}), 400
+
+@app.route("/conferma_accettazione_token", methods=["POST"])
+def conferma_accettazione_token():
+    data = request.json
+    try:
+        address = data["address"]
+        messaggio = data["messaggio"]
+        signature = data["signature"]
+        id_richiesta = data["id_richiesta"]
+
+        # Verifica la firma
+        eth_message = encode_defunct(text=messaggio)
+        recovered = Account.recover_message(eth_message, signature=signature)
+
+        if recovered.lower() != address.lower():
+            return jsonify({"message": "Firma non valida"}), 400
+
+        # Ottieni l'ID dell'azienda dall'indirizzo blockchain
+        controller_auth = ControllerAutenticazione()
+        id_azienda = controller_auth.get_id_by_address(address)
+
+        if not id_azienda:
+            return jsonify({"message": "Indirizzo non associato ad alcuna azienda"}), 400
+
+        # Accetta la richiesta di token
+        try:
+            controller = RichiesteRepositoryImpl()
+            # Ottieni i dettagli della richiesta
+            richiesta = controller.get_richiesta_token_by_id(int(id_richiesta))
+            
+            if not richiesta:
+                raise ValueError(f"Richiesta token con ID {id_richiesta} non trovata")
+                
+            # Verifica che l'azienda che accetta sia effettivamente il destinatario della richiesta
+            if richiesta.id_destinatario != id_azienda:
+                raise ValueError("Non sei autorizzato ad accettare questa richiesta")
+                
+            # Aggiorna lo stato della richiesta
+            controller.update_richiesta_token(richiesta, "Accettata")
+            
+            # Salva l'esito positivo
+            if address not in esiti_accettazioni_token:
+                esiti_accettazioni_token[address] = {}
+            
+            esiti_accettazioni_token[address][id_richiesta] = f"✅ Richiesta token {id_richiesta} accettata con successo!"
+            
+            return jsonify({
+                "message": "Richiesta token accettata con successo"
+            })
+        except Exception as e:
+            # Salva l'esito negativo
+            if address not in esiti_accettazioni_token:
+                esiti_accettazioni_token[address] = {}
+            
+            esiti_accettazioni_token[address][id_richiesta] = f"❌ Errore nell'accettazione della richiesta token: {str(e)}"
+            
+            return jsonify({"message": f"Errore nell'accettazione della richiesta token: {str(e)}"}), 500
+
+    except Exception as e:
+        return jsonify({"message": f"Errore nella conferma dell'accettazione token: {str(e)}"}), 400
+
+@app.route("/esito_richiesta_token/<address>/<destinatario>", methods=["GET"])
+def esito_richiesta_token(address, destinatario):
+    # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
+    address = address.lower()
+    
+    if address in esiti_richieste_token and destinatario in esiti_richieste_token[address]:
+        esito = esiti_richieste_token[address][destinatario]
+        return jsonify({"status": "completed", "esito": esito}), 200
+
+    return jsonify({"status": "pending"}), 202
+
+@app.route("/esito_accettazione_token/<address>/<id_richiesta>", methods=["GET"])
+def esito_accettazione_token(address, id_richiesta):
+    # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
+    address = address.lower()
+    
+    if address in esiti_accettazioni_token and id_richiesta in esiti_accettazioni_token[address]:
+        esito = esiti_accettazioni_token[address][id_richiesta]
+        return jsonify({"status": "completed", "esito": esito}), 200
 
     return jsonify({"status": "pending"}), 202
 

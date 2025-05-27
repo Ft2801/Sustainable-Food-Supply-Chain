@@ -25,7 +25,7 @@ from persistence.repository_impl.compensation_action_repository_impl import Comp
 from persistence.repository_impl.operation_repository_impl import OperationRepositoryImpl
 from persistence.repository_impl.product_repository_impl import ProductRepositoryImpl
 from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
-
+from presentation.controller.blockchain_controller import BlockchainController
 
 PERMESSI_OPERAZIONI = {
     "Agricola": ["Produzione"],
@@ -246,6 +246,21 @@ class ControllerAzienda:
         
     def update_richiesta_token(self, richiesta: RichiestaTokenModel, stato: str):
         try:
+            # Se lo stato è "Accettata", utilizziamo la firma con Metamask
+            if stato == "Accettata":
+                # Creiamo un'istanza del BlockchainController
+                blockchain_controller = BlockchainController()
+                # Chiamiamo il metodo per la firma dell'accettazione token
+                esito = blockchain_controller.firma_accettazione_token(
+                    id_richiesta=richiesta.id_richiesta,
+                    mittente=richiesta.id_mittente,
+                    quantita=richiesta.quantita
+                )
+                logger.info(f"Esito firma accettazione token: {esito}")
+                # Se l'esito contiene un errore, solleviamo un'eccezione
+                if "❌" in esito:
+                    raise ValueError(f"Errore nella firma dell'accettazione: {esito}")
+            # Aggiorniamo la richiesta nel database
             self.richieste.update_richiesta_token(richiesta, stato)
         except ValueError as e:
             logger.error(f"Errore {e}", exc_info=True)
@@ -255,9 +270,22 @@ class ControllerAzienda:
 
     def send_richiesta_token(self, id_azienda_ricevente: int, quantita: int):
         try:
-            self.richieste.send_richiesta_token(Session().current_user["id_azienda"],id_azienda_ricevente, quantita)
+            # Utilizziamo la firma con Metamask per la richiesta di token
+            blockchain_controller = BlockchainController()
+            # Chiamiamo il metodo per la firma della richiesta token
+            esito = blockchain_controller.firma_richiesta_token(
+                destinatario=id_azienda_ricevente,
+                quantita=quantita
+            )
+            logger.info(f"Esito firma richiesta token: {esito}")
+            # Se l'esito contiene un errore, solleviamo un'eccezione
+            if "❌" in esito:
+                raise ValueError(f"Errore nella firma della richiesta: {esito}")
+            # Se la firma è andata a buon fine, l'invio della richiesta è già stato gestito nel backend
+            # Non è necessario chiamare nuovamente self.richieste.send_richiesta_token
         except Exception as e:
             logger.error(f"Errore {e}", exc_info=True)
+            raise e
 
     def get_aziende(self) -> list[CompanyModel]:
         try:

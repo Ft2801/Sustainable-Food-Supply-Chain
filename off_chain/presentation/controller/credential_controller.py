@@ -97,4 +97,35 @@ class ControllerAutenticazione:
         except Exception as e: # W0719: Cattura eccezione generica
             # W0707: Aggiunto 'from e'
             raise Exception(f"Errore durante il cambio password: {str(e)}") from e
-# C0304: Aggiunta newline finale
+            
+    def get_id_by_address(self, blockchain_address: str) -> int:
+        """
+        Ottiene l'ID dell'azienda a partire dall'indirizzo blockchain.
+        
+        Args:
+            blockchain_address: L'indirizzo blockchain dell'azienda
+            
+        Returns:
+            int: L'ID dell'azienda, o None se non trovato
+        """
+        try:
+            # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
+            blockchain_address = blockchain_address.lower()
+            
+            # Ottieni l'ID dell'azienda dal database
+            query = "SELECT a.Id_azienda FROM Azienda a JOIN Credenziali c ON a.Id_credenziali = c.Id_credenziali WHERE LOWER(c.address) = ?"
+            params = (blockchain_address,)
+            
+            # Esegui la query
+            result = self.credential.db.fetch_one(query, params)
+            
+            if result:
+                logger.info(f"Trovato ID azienda {result} per l'indirizzo blockchain {blockchain_address}")
+                return result
+            else:
+                logger.warning(f"Nessun ID azienda trovato per l'indirizzo blockchain {blockchain_address}")
+                return None
+        except Exception as e:
+            logger.error(f"Errore durante il recupero dell'ID azienda dall'indirizzo blockchain: {str(e)}")
+            return None
+# C0304: Aggiunta newline finale
