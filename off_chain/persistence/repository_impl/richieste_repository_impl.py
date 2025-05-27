@@ -55,14 +55,33 @@ def generate_js_script(script_type, params):
             const contractPath = path.join(__dirname, "{contract_path}");
             const contractJson = JSON.parse(fs.readFileSync(contractPath));
             
-            // Ottieni il signer in modo compatibile con entrambe le versioni
+            // Ottieni tutti gli account disponibili
+            const accounts = await provider.listAccounts();
+            
+            // Cerca l'indirizzo dell'azienda specificata tra gli account disponibili
+            let companyAddress = "{params.get('company_address', '')}"; // Indirizzo dell'azienda
+            let signerIndex = 0; // Default al primo account
+            
+            if (companyAddress) {{
+                console.log(`Cercando indirizzo dell'azienda: ${{companyAddress}}`);
+                for (let i = 0; i < accounts.length; i++) {{
+                    const accountAddress = isEthersV6 ? accounts[i].address : accounts[i];
+                    if (accountAddress.toLowerCase() === companyAddress.toLowerCase()) {{
+                        signerIndex = i;
+                        console.log(`Trovato indirizzo dell'azienda all'indice ${{signerIndex}}: ${{accountAddress}}`);
+                        break;
+                    }}
+                }}
+            }}
+            
+            // Ottieni il signer dell'account dell'azienda
             let signer;
             if (isEthersV6) {{
-                const accounts = await provider.listAccounts();
-                signer = await provider.getSigner(accounts[0].address);
+                signer = await provider.getSigner(accounts[signerIndex].address);
+                console.log(`Usando account ${{signerIndex}} con indirizzo ${{accounts[signerIndex].address}} come signer`);
             }} else {{
-                const accounts = await provider.listAccounts();
-                signer = provider.getSigner(accounts[0]);
+                signer = provider.getSigner(accounts[signerIndex]);
+                console.log(`Usando account ${{signerIndex}} con indirizzo ${{accounts[signerIndex]}} come signer`);
             }}
             
             // Verifica che il provider sia connesso
@@ -133,10 +152,9 @@ def generate_js_script(script_type, params):
                 signer
             );
             
-            // Esegui la transazione
+            // Esegui la transazione - allineata con la firma del contratto
             const tx = await contract.createTokenRequest(
                 "{params['provider_address']}",
-                "{params['token_contract_address']}",
                 {params['amount']},
                 "{params['purpose']}",
                 {params['co2_reduction']}
@@ -169,42 +187,7 @@ def generate_js_script(script_type, params):
         # Modifica lo script base per usare l'indirizzo specifico dell'azienda
         company_script = base_script.replace(contract_path, registry_contract_path)
         
-        # Sostituisci la parte del signer con una versione che usa l'indirizzo dell'azienda
-        company_script = company_script.replace(
-            '''            // Ottieni il signer in modo compatibile con entrambe le versioni
-            let signer;
-            if (isEthersV6) {
-                const accounts = await provider.listAccounts();
-                signer = await provider.getSigner(accounts[0].address);
-            } else {
-                const accounts = await provider.listAccounts();
-                signer = provider.getSigner(accounts[0]);
-            }''',
-            f'''            // Trova l'indice dell'account che corrisponde all'indirizzo dell'azienda
-            const accounts = await provider.listAccounts();
-            let signerIndex = 0;
-            let companyAddress = "{params['company_address']}";
-            
-            // Cerca l'indirizzo dell'azienda tra gli account disponibili
-            for (let i = 0; i < accounts.length; i++) {{
-                const accountAddress = isEthersV6 ? accounts[i].address : accounts[i];
-                if (accountAddress.toLowerCase() === companyAddress.toLowerCase()) {{
-                    signerIndex = i;
-                    console.log(`Trovato indirizzo dell'azienda all'indice ${{signerIndex}}: ${{accountAddress}}`);
-                    break;
-                }}
-            }}
-            
-            // Ottieni il signer per l'account dell'azienda
-            let signer;
-            if (isEthersV6) {{
-                signer = await provider.getSigner(accounts[signerIndex].address);
-                console.log(`Usando account ${{signerIndex}} con indirizzo ${{accounts[signerIndex].address}} come signer`);
-            }} else {{
-                signer = provider.getSigner(accounts[signerIndex]);
-                console.log(`Usando account ${{signerIndex}} con indirizzo ${{accounts[signerIndex]}} come signer`);
-            }}'''
-        )
+        # La parte del signer è già gestita nella base aggiornata
         
         return company_script + f'''
             // Crea un'istanza del contratto SustainableFoodChain
@@ -926,7 +909,8 @@ class RichiesteRepositoryImpl():
                 # Prepara i parametri per lo script
                 script_params = {
                     "contract_address": contract_address,
-                    "request_id": richiesta.id_richiesta
+                    "request_id": richiesta.id_richiesta,
+                    "company_address": provider_address  # Aggiungiamo l'indirizzo dell'azienda destinataria
                 }
                 
                 # Genera lo script

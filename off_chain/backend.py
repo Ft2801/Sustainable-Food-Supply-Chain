@@ -349,20 +349,41 @@ def conferma_richiesta_token():
         if not id_mittente:
             return jsonify({"message": "Indirizzo non associato ad alcuna azienda"}), 400
 
-        # Invia la richiesta di token
+        # Invia la richiesta di token al database locale
         try:
             controller = RichiesteRepositoryImpl()
             id_richiesta = controller.send_richiesta_token(id_mittente, int(destinatario), int(quantita))
+            
+            # Invia la richiesta alla blockchain
+            blockchain_controller = BlockchainController()
+            
+            # Ottieni l'indirizzo Ethereum dell'azienda destinataria
+            # Cerchiamo l'indirizzo blockchain dell'azienda destinataria
+            destinatario_address = controller_auth.get_address_by_id(int(destinatario))
+            if not destinatario_address:
+                raise ValueError(f"Impossibile trovare l'indirizzo blockchain per l'azienda destinataria ID {destinatario}")
+                
+            print(f"Indirizzo azienda destinataria: {destinatario_address}")
+            
+            # Invia la richiesta token sulla blockchain
+            tx_hash = blockchain_controller.crea_richiesta_token(
+                provider_address=destinatario_address,
+                amount=int(quantita),
+                purpose="Richiesta token per sostenibilità",
+                co2_reduction=0,  # Valore predefinito, potrebbe essere specificato dall'utente
+                account_address=address
+            )
             
             # Salva l'esito positivo
             if address not in esiti_richieste_token:
                 esiti_richieste_token[address] = {}
             
-            esiti_richieste_token[address][destinatario] = f"✅ Richiesta token inviata con successo! ID: {id_richiesta}"
+            esiti_richieste_token[address][destinatario] = f"✅ Richiesta token inviata con successo! ID: {id_richiesta} - Tx Hash: {tx_hash}"
             
             return jsonify({
                 "message": "Richiesta token inviata con successo",
-                "id_richiesta": id_richiesta
+                "id_richiesta": id_richiesta,
+                "tx_hash": tx_hash
             })
         except Exception as e:
             # Salva l'esito negativo

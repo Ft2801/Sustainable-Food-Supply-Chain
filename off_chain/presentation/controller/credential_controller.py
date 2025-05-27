@@ -128,4 +128,32 @@ class ControllerAutenticazione:
         except Exception as e:
             logger.error(f"Errore durante il recupero dell'ID azienda dall'indirizzo blockchain: {str(e)}")
             return None
+
+    def get_address_by_id(self, id_azienda: int) -> str:
+        """
+        Ottiene l'indirizzo blockchain di un'azienda a partire dal suo ID.
+        
+        Args:
+            id_azienda: L'ID dell'azienda
+            
+        Returns:
+            str: L'indirizzo blockchain dell'azienda, o None se non trovato
+        """
+        try:
+            # Ottieni l'indirizzo blockchain dal database
+            query = "SELECT c.address FROM Azienda a JOIN Credenziali c ON a.Id_credenziali = c.Id_credenziali WHERE a.Id_azienda = ?"
+            params = (id_azienda,)
+            
+            # Esegui la query
+            result = self.credential.db.fetch_one(query, params)
+            
+            if result:
+                logger.info(f"Trovato indirizzo blockchain {result} per l'ID azienda {id_azienda}")
+                return result
+            else:
+                logger.warning(f"Nessun indirizzo blockchain trovato per l'ID azienda {id_azienda}")
+                return None
+        except Exception as e:
+            logger.error(f"Errore durante il recupero dell'indirizzo blockchain dall'ID azienda: {str(e)}")
+            return None
 # C0304: Aggiunta newline finale

@@ -535,3 +535,61 @@ class BlockchainController:
             time.sleep(wait_interval)
 
         raise TimeoutError("Timeout in attesa della firma tramite MetaMask")
+
+    def crea_richiesta_token(self, provider_address, amount, purpose, co2_reduction, account_address):
+        """
+        Crea una richiesta di token sulla blockchain.
+        
+        Args:
+            provider_address: Indirizzo dell'azienda che fornisce i token
+            amount: Quantità di token richiesti
+            purpose: Scopo della richiesta (sostenibilità)
+            co2_reduction: Stima della riduzione di CO2
+            account_address: Indirizzo dell'account che effettua la richiesta
+            
+        Returns:
+            str: Hash della transazione
+        """
+        try:
+            # Converti l'indirizzo del provider in formato checksum
+            provider_address_checksum = Web3.to_checksum_address(provider_address)
+            requester_address_checksum = Web3.to_checksum_address(account_address)
+            
+            logger.info(f"Invio richiesta token: provider={provider_address_checksum}, amount={amount}, purpose={purpose}, co2_reduction={co2_reduction}")
+            
+            # Ottieni il nonce per l'account
+            nonce = w3.eth.get_transaction_count(requester_address_checksum)
+            
+            # Costruisci la transazione
+            txn = self.contract.functions.createTokenRequest(
+                provider_address_checksum,
+                amount,
+                purpose,
+                co2_reduction
+            ).build_transaction({
+                'from': requester_address_checksum,
+                'gas': 2000000,  # Gas limit
+                'gasPrice': w3.eth.gas_price,
+                'nonce': nonce,
+            })
+            
+            # NOTA: In un ambiente reale, qui dovremmo firmare la transazione con la chiave privata
+            # Ma poiché stiamo usando Hardhat in modalità sviluppo, possiamo inviare direttamente
+            # la transazione senza firmarla, e Hardhat la firmerà automaticamente
+            
+            # Invia la transazione
+            tx_hash = w3.eth.send_transaction(txn)
+            tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            # Verifica lo stato della transazione
+            if tx_receipt['status'] == 1:
+                logger.info(f"Richiesta token inviata con successo. Tx hash: {tx_hash.hex()}")
+                return tx_hash.hex()
+            else:
+                error_msg = f"Errore nell'invio della richiesta token. Transazione fallita. Status: {tx_receipt['status']}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+        except Exception as e:
+            error_msg = f"Errore nell'invio della richiesta token sulla blockchain: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
