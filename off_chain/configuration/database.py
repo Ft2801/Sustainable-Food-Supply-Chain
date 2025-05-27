@@ -59,7 +59,6 @@ class Database:
             print(f"Errore generico nel database: {e}")
             raise e
 
-    @classmethod
     def fetch_results(cls, query, params=()):
         """Esegue una query di selezione e restituisce i risultati."""
         if not hasattr(cls, "conn") or cls.conn is None:
