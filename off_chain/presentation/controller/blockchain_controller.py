@@ -379,7 +379,7 @@ class BlockchainController:
                     if op_details:
                         id_azienda, id_prodotto, co2_consumata, tipo_operazione = op_details
                         
-                        # Calcola i token da assegnare usando la funzione token_opeazione
+                        # Calcola i token da assegnare usando la funzione token_opeazione (per fallback)
                         from persistence.repository_impl.operation_repository_impl import OperationRepositoryImpl
                         op_repo = OperationRepositoryImpl()
                         token_assegnati = op_repo.token_opeazione(co2_consumata, tipo_operazione, id_prodotto)
@@ -390,13 +390,78 @@ class BlockchainController:
                             (id_operazione,)
                         )
                         
-                        # Ora assegna i token all'azienda
-                        cursor.execute(
-                            "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
-                            (token_assegnati, id_azienda)
-                        )
+                        # Invece di aggiornare direttamente i token nel DB, assegna i token tramite il contratto
+                        try:
+                            # Ottieni un nuovo nonce per la transazione
+                            nonce = w3.eth.get_transaction_count(account)
+                            
+                            # Converti i tipi di parametri in formati corretti per il contratto
+                            # Assicurati che id_prodotto sia un intero
+                            id_prodotto_int = int(id_prodotto)
+                            # Assicurati che co2_consumata sia un intero
+                            co2_consumata_int = int(co2_consumata)
+                            
+                            logger.info(f"Chiamata alla funzione assignTokensByConsumption - tipo_operazione: {tipo_operazione}, "
+                                       f"id_prodotto: {id_prodotto_int}, co2_consumata: {co2_consumata_int}")
+                            
+                            # Stampa i dettagli completi dell'operazione per debug
+                            logger.info(f"DETTAGLI COMPLETI - account: {account}, tipo: {tipo_operazione}, "
+                                       f"id_prod: {id_prodotto_int} ({type(id_prodotto_int)}), "
+                                       f"co2: {co2_consumata_int} ({type(co2_consumata_int)})")
+                            
+                            # Controlla se la funzione esiste nel contratto
+                            if 'assignTokensByConsumption' not in dir(self.contract.functions):
+                                funzioni_disponibili = dir(self.contract.functions)
+                                logger.error(f"Funzione assignTokensByConsumption non trovata nel contratto! "
+                                            f"Funzioni disponibili: {funzioni_disponibili}")
+                                raise Exception("Funzione non trovata nel contratto")
+                            
+                            # Prepara la transazione per la funzione assignTokensByConsumption
+                            token_tx = self.contract.functions.assignTokensByConsumption(
+                                tipo_operazione,      # Tipo operazione (es. "produzione", "trasporto")
+                                id_prodotto_int,      # ID prodotto come intero
+                                co2_consumata_int     # Consumo CO2 effettivo come intero
+                            ).build_transaction({
+                                'from': account,
+                                'nonce': nonce,
+                                'gasPrice': gas_price,
+                                'gas': 500000,        # Gas limit aumentato per operazioni complesse
+                            })
+                            
+                            # Invia la transazione
+                            token_tx_hash = w3.eth.send_transaction(token_tx)
+                            logger.info(f"Token assegnati on-chain con transazione: {token_tx_hash.hex()}")
+                            
+                            # Attendi la conferma della transazione
+                            receipt = w3.eth.wait_for_transaction_receipt(token_tx_hash, timeout=120)
+                            if receipt.status == 1:
+                                logger.info(f"Transazione per l'assegnazione dei token completata con successo")
+                                
+                                # Anche se la transazione on-chain è riuscita, aggiorna comunque il database locale
+                                # per mantenere sincronizzati i token tra blockchain e database
+                                cursor.execute(
+                                    "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
+                                    (token_assegnati, id_azienda)
+                                )
+                                logger.info(f"Database locale sincronizzato con lo stato on-chain: {token_assegnati} token")
+                            else:
+                                logger.error(f"Errore nell'assegnazione dei token on-chain")
+                                # Fallback al database locale in caso di errore
+                                cursor.execute(
+                                    "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
+                                    (token_assegnati, id_azienda)
+                                )
+                                logger.info(f"Fallback: token assegnati localmente nel database ({token_assegnati} token)")
+                        except Exception as e:
+                            logger.error(f"Errore nell'assegnazione dei token on-chain: {str(e)}")
+                            # In caso di errore nell'assegnazione on-chain, fallback all'aggiornamento locale
+                            cursor.execute(
+                                "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
+                                (token_assegnati, id_azienda)
+                            )
+                            logger.info(f"Fallback: token assegnati localmente nel database ({token_assegnati} token)")
                         
-                        logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain con {token_assegnati} token assegnati")
+                        logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
                     else:
                         # Se non troviamo l'operazione, aggiorniamo solo il flag
                         cursor.execute(

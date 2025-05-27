@@ -30,6 +30,9 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     event RequestCancelled(uint256 indexed requestId, address indexed requester);
     event SustainabilityVerified(uint256 indexed requestId, address indexed verifier, bool verified);
     
+    // Eventi CO2 Threshold
+    event TokensAssigned(address indexed companyAddress, int256 tokensAmount, uint256 co2Consumed, uint256 threshold);
+    
     // Eventi Operazioni
     event OperationCreated(
         uint256 indexed operationId,
@@ -139,10 +142,15 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         bool isProcessed; // Indica se è un prodotto trasformato
     }
     
+    // Struttura per le soglie di CO2 per operazione e prodotto
+    struct CO2Threshold {
+        uint256 maxThreshold;
+        bool isActive;
+    }
+    
     mapping(address => User) private users;
     mapping(address => bool) private isUserRegistered;
     mapping(address => uint256[]) public companyOperations;
-
     
     mapping(address => Company) public companies;
     address[] public registeredCompanyAddresses; // Mantenuto per query on-chain
@@ -160,6 +168,9 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     mapping(uint256 => Batch) public batches;
     uint256 public nextBatchId = 1;
     mapping(address => uint256[]) private companyBatches;
+    
+    // Mapping per le soglie di CO2: operationType => productId => threshold
+    mapping(string => mapping(uint256 => CO2Threshold)) public co2Thresholds;
     
     modifier onlyRegisteredUser() {
         require(isUserRegistered[msg.sender], "User not registered");
@@ -191,7 +202,69 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         _;
     }
     
-    constructor() ERC20("CO2 Token", "CO2") {}
+    constructor() ERC20("CO2 Token", "CO2") {
+        // Assegna 1000 token iniziali all'indirizzo del deployer
+        _mint(msg.sender, 1000 * 10**decimals());
+        
+        // Inserimento diretto delle soglie dal database
+        // Soglie per operazione "produzione"
+        co2Thresholds["produzione"][1] = CO2Threshold(52, true);
+        co2Thresholds["produzione"][2] = CO2Threshold(54, true);
+        co2Thresholds["produzione"][3] = CO2Threshold(56, true);
+        co2Thresholds["produzione"][4] = CO2Threshold(58, true);
+        co2Thresholds["produzione"][5] = CO2Threshold(60, true);
+        co2Thresholds["produzione"][6] = CO2Threshold(62, true);
+        co2Thresholds["produzione"][7] = CO2Threshold(64, true);
+        co2Thresholds["produzione"][8] = CO2Threshold(66, true);
+        co2Thresholds["produzione"][9] = CO2Threshold(68, true);
+        co2Thresholds["produzione"][10] = CO2Threshold(70, true);
+        
+        // Soglie per operazione "trasporto"
+        co2Thresholds["trasporto"][1] = CO2Threshold(52, true);
+        co2Thresholds["trasporto"][2] = CO2Threshold(54, true);
+        co2Thresholds["trasporto"][3] = CO2Threshold(56, true);
+        co2Thresholds["trasporto"][4] = CO2Threshold(58, true);
+        co2Thresholds["trasporto"][5] = CO2Threshold(60, true);
+        co2Thresholds["trasporto"][6] = CO2Threshold(62, true);
+        co2Thresholds["trasporto"][7] = CO2Threshold(64, true);
+        co2Thresholds["trasporto"][8] = CO2Threshold(66, true);
+        co2Thresholds["trasporto"][9] = CO2Threshold(68, true);
+        co2Thresholds["trasporto"][10] = CO2Threshold(70, true);
+        co2Thresholds["trasporto"][11] = CO2Threshold(72, true);
+        co2Thresholds["trasporto"][12] = CO2Threshold(74, true);
+        co2Thresholds["trasporto"][13] = CO2Threshold(76, true);
+        co2Thresholds["trasporto"][14] = CO2Threshold(78, true);
+        co2Thresholds["trasporto"][15] = CO2Threshold(80, true);
+        co2Thresholds["trasporto"][16] = CO2Threshold(82, true);
+        co2Thresholds["trasporto"][17] = CO2Threshold(84, true);
+        co2Thresholds["trasporto"][18] = CO2Threshold(86, true);
+        co2Thresholds["trasporto"][19] = CO2Threshold(88, true);
+        co2Thresholds["trasporto"][20] = CO2Threshold(90, true);
+        
+        // Soglie per operazione "trasformazione"
+        co2Thresholds["trasformazione"][11] = CO2Threshold(72, true);
+        co2Thresholds["trasformazione"][12] = CO2Threshold(74, true);
+        co2Thresholds["trasformazione"][13] = CO2Threshold(76, true);
+        co2Thresholds["trasformazione"][14] = CO2Threshold(78, true);
+        co2Thresholds["trasformazione"][15] = CO2Threshold(80, true);
+        co2Thresholds["trasformazione"][16] = CO2Threshold(82, true);
+        co2Thresholds["trasformazione"][17] = CO2Threshold(84, true);
+        co2Thresholds["trasformazione"][18] = CO2Threshold(86, true);
+        co2Thresholds["trasformazione"][19] = CO2Threshold(88, true);
+        co2Thresholds["trasformazione"][20] = CO2Threshold(90, true);
+        
+        // Soglie per operazione "vendita"
+        co2Thresholds["vendita"][11] = CO2Threshold(72, true);
+        co2Thresholds["vendita"][12] = CO2Threshold(74, true);
+        co2Thresholds["vendita"][13] = CO2Threshold(76, true);
+        co2Thresholds["vendita"][14] = CO2Threshold(78, true);
+        co2Thresholds["vendita"][15] = CO2Threshold(80, true);
+        co2Thresholds["vendita"][16] = CO2Threshold(82, true);
+        co2Thresholds["vendita"][17] = CO2Threshold(84, true);
+        co2Thresholds["vendita"][18] = CO2Threshold(86, true);
+        co2Thresholds["vendita"][19] = CO2Threshold(88, true);
+        co2Thresholds["vendita"][20] = CO2Threshold(90, true);
+    }
     
     function registerCompany(
         string calldata _name,
@@ -212,6 +285,9 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             50, // Default sustainability score
             block.timestamp
         );
+        
+        // Assegna 100 token iniziali all'azienda registrata
+        _mint(msg.sender, 100 * 10**decimals());
         
         registeredCompanyAddresses.push(msg.sender);
         emit CompanyRegistered(msg.sender, _name, _companyType, _location);
@@ -497,5 +573,46 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     
     function getRequestDetails(uint256 _requestId) external view requestExists(_requestId) returns (TokenRequest memory) {
         return requests[_requestId];
+    }
+    
+    /**
+     * @dev Restituisce la soglia di CO2 per un tipo di operazione e un prodotto
+     * @param operationType Tipo di operazione
+     * @param productId ID del prodotto
+     * @return La soglia massima di CO2 consentita
+     */
+    function getThreshold(string calldata operationType, uint256 productId) external view returns (uint256) {
+        require(co2Thresholds[operationType][productId].isActive, "Soglia non trovata");
+        return co2Thresholds[operationType][productId].maxThreshold;
+    }
+    
+    /**
+     * @dev Assegna o rimuove token in base alla differenza tra soglia e consumo effettivo di CO2
+     * @param operationType Tipo di operazione (deve corrispondere a quello impostato nel costruttore)
+     * @param productId ID del prodotto
+     * @param co2Consumed CO2 consumata effettivamente dall'operazione
+     * @return Restituisce la quantità di token assegnati (positiva) o rimossi (negativa)
+     */
+    function assignTokensByConsumption(string calldata operationType, uint256 productId, uint256 co2Consumed) external returns (int256) {
+        require(co2Thresholds[operationType][productId].isActive, "Soglia non trovata per questa operazione e prodotto");
+        require(companies[msg.sender].isRegistered, "Azienda non registrata");
+        
+        uint256 threshold = co2Thresholds[operationType][productId].maxThreshold;
+        int256 tokensToAssign;
+        
+        if (co2Consumed <= threshold) {
+            // Se il consumo è minore o uguale alla soglia, l'azienda guadagna token
+            tokensToAssign = int256(threshold - co2Consumed);
+            _mint(msg.sender, uint256(tokensToAssign));
+        } else {
+            // Se il consumo è maggiore della soglia, l'azienda perde token
+            tokensToAssign = -int256(co2Consumed - threshold);
+            // Assicurati che l'azienda abbia abbastanza token da perdere
+            require(balanceOf(msg.sender) >= uint256(-tokensToAssign), "Saldo token insufficiente");
+            _burn(msg.sender, uint256(-tokensToAssign));
+        }
+        
+        emit TokensAssigned(msg.sender, tokensToAssign, co2Consumed, threshold);
+        return tokensToAssign;
     }
 }
