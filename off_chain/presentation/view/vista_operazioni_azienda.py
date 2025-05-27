@@ -181,23 +181,16 @@ class OperazioniAziendaView(QWidget):
             if esito:
                 # Aggiorna il database direttamente
                 try:
-                    # Importa le dipendenze necessarie
-                    import sqlite3
-                    import os
-                    
-                    # Ottieni il percorso del database
-                    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-                    DATABASE_PATH = os.path.join(PROJECT_ROOT, 'off_chain', 'database', 'database.db')
-                    
-                    # Aggiorna il flag blockchain_registered nel database
-                    conn = sqlite3.connect(DATABASE_PATH)
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
-                        (operazione.id_operazione,)
+                    # Utilizziamo il controller blockchain per registrare l'operazione e aggiornare i token
+                    # L'operazione è già stata firmata, ora dobbiamo invocare il metodo che aggiorna i token
+                    # e imposta il flag blockchain_registered
+                    blockchain_controller.invia_operazione(
+                        operation_type=operazione.nome_operazione,
+                        description=f"Operazione {operazione.nome_operazione} per {operazione.nome_prodotto}",
+                        batch_id=operazione.id_lotto,
+                        id_operazione=operazione.id_operazione,
+                        account_address=blockchain_controller.get_address()
                     )
-                    conn.commit()
-                    conn.close()
                     
                     QMessageBox.information(
                         self,

@@ -349,9 +349,9 @@ class BlockchainController:
             logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
-                operation_type,
+                operation_type_int,  # Usa il valore convertito a intero
                 description,
-                1
+                batch_id_int  # Usa il valore convertito a intero
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
@@ -367,13 +367,46 @@ class BlockchainController:
                 try:
                     conn = sqlite3.connect(DATABASE_PATH)
                     cursor = conn.cursor()
+                    # Recupera i dettagli dell'operazione per calcolare i token da assegnare
                     cursor.execute(
-                        "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                        """SELECT O.Id_azienda, O.Id_prodotto, O.Consumo_CO2, O.Tipo 
+                           FROM Operazione O 
+                           WHERE O.Id_operazione = ?""",
                         (id_operazione,)
                     )
+                    op_details = cursor.fetchone()
+                    
+                    if op_details:
+                        id_azienda, id_prodotto, co2_consumata, tipo_operazione = op_details
+                        
+                        # Calcola i token da assegnare usando la funzione token_opeazione
+                        from persistence.repository_impl.operation_repository_impl import OperationRepositoryImpl
+                        op_repo = OperationRepositoryImpl()
+                        token_assegnati = op_repo.token_opeazione(co2_consumata, tipo_operazione, id_prodotto)
+                        
+                        # Aggiorna l'operazione come registrata sulla blockchain
+                        cursor.execute(
+                            "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                            (id_operazione,)
+                        )
+                        
+                        # Ora assegna i token all'azienda
+                        cursor.execute(
+                            "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
+                            (token_assegnati, id_azienda)
+                        )
+                        
+                        logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain con {token_assegnati} token assegnati")
+                    else:
+                        # Se non troviamo l'operazione, aggiorniamo solo il flag
+                        cursor.execute(
+                            "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                            (id_operazione,)
+                        )
+                        logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
+                        
                     conn.commit()
                     conn.close()
-                    logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
                 except Exception as e:
                     logger.error(f"Errore nell'aggiornamento dello stato dell'operazione: {e}")
                     # Non solleviamo l'eccezione qui per non interrompere il flusso principale

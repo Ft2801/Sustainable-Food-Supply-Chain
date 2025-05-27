@@ -134,10 +134,11 @@ class OperationRepositoryImpl(ABC):
 
             queries.append((query, params))
 
-            token_assegnati = self.token_opeazione(co2,evento,prodotto)
-
-            value_update= (co2,token_assegnati,azienda)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # Registrazione del consumo CO2 (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2, azienda)
+            queries.append((query, params))
 
             self.db.execute_transaction(queries)
 
@@ -176,10 +177,11 @@ class OperationRepositoryImpl(ABC):
 
             queries.append((query,value))
 
-            token_assegnati = self.token_opeazione(co2,tipo_evento,id_tipo_prodotto)
-            
-            value_update= (co2,token_assegnati,azienda,)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # Registrazione del consumo CO2 (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2, azienda)
+            queries.append((query, params))
 
             self.db.execute_transaction(queries)
 
@@ -256,10 +258,11 @@ class OperationRepositoryImpl(ABC):
             queries.append((query_mag, value_mag))
 
             
-            token_assegnati = self.token_opeazione(co2_emessa,evento,id_prodotto)
-
-            value_update= (co2_emessa,token_assegnati,id_azienda_trasporto)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # Registrazione del consumo CO2 (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2_emessa, id_azienda_trasporto)
+            queries.append((query, params))
 
 
 
@@ -320,10 +323,11 @@ class OperationRepositoryImpl(ABC):
                     params = (value_output_lotto, materia.id_lotto, quantita_usata)
                     queries.append((query_comp, params))
 
-            # 6. Aggiorna i token e CO2 dell'azienda
-            token = self.token_opeazione(co2_consumata, tipo_evento, id_tipo_prodotto)
-            value_update = (co2_consumata, token, id_azienda)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # 6. Aggiorna solo la CO2 dell'azienda (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2_consumata, id_azienda)
+            queries.append((query, params))
             
             # 7. Esegui la transazione
             self.db.execute_transaction(queries)
