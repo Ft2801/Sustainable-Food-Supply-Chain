@@ -57,12 +57,12 @@
     
             // Crea un'istanza del contratto SustainableFoodChain
             const contract = new ethers.Contract(
-                "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",  // Indirizzo del contratto SustainableFoodChain
+                "0x5FbDB2315678afecb367f032d93F642f64180aa3",  // Indirizzo del contratto SustainableFoodChain
                 contractJson.abi,
                 signer
             );
             
-            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9`);
+            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0x5FbDB2315678afecb367f032d93F642f64180aa3`);
             
             // Verifica se l'azienda è già registrata
             try {
