@@ -4,14 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/**
- * @title SustainableFoodChain
- * @dev Un contratto unificato per la supply chain sostenibile, con registro aziende,
- *      token CO2 (ERC20), e meccanismi di scambio e tracciabilità.
- *      Semplificato con l'integrazione di ERC20 da OpenZeppelin.
- */
 contract SustainableFoodChain is ReentrancyGuard, ERC20 {
-    // ======== EVENTI ========
     // Eventi User Registry
     event UserRegistered(address indexed userAddress, string name, string role);
     event UserUpdated(address indexed userAddress, string name, string role);
@@ -73,7 +66,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         uint256 timestamp
     );
     
-    // ======== STRUTTURE DATI ========
     struct User {
         string name;
         string email;
@@ -147,7 +139,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         bool isProcessed; // Indica se è un prodotto trasformato
     }
     
-    // ======== STATO ========
     mapping(address => User) private users;
     mapping(address => bool) private isUserRegistered;
     mapping(address => uint256[]) public companyOperations;
@@ -170,10 +161,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     uint256 public nextBatchId = 1;
     mapping(address => uint256[]) private companyBatches;
     
-    // Variabili e mapping per ERC20 (name, symbol, decimals, _balances, _allowances)
-    // sono ora gestite dalla classe base ERC20.sol
-    
-    // ======== MODIFICATORI ========
     modifier onlyRegisteredUser() {
         require(isUserRegistered[msg.sender], "User not registered");
         _;
@@ -204,37 +191,8 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         _;
     }
     
-    constructor() ERC20("CO2 Token", "CO2") { // Inizializza il token ERC20
-        // È possibile mintare una supply iniziale qui, ad es. al deployer:
-        // _mint(msg.sender, 1000000 * (10**decimals())); // 1 Milione di token
-    }
+    constructor() ERC20("CO2 Token", "CO2") {}
     
-    // ======== FUNZIONI USER REGISTRY ========
-    function registerUser(
-        string memory _name,
-        string memory _email,
-        string memory _role
-    ) external {
-        require(!isUserRegistered[msg.sender], "User already registered");
-        require(bytes(_name).length > 0, "Name cannot be empty");
-        // Aggiungere validazione email se necessario (più complesso on-chain)
-        require(bytes(_role).length > 0, "Role cannot be empty");
-
-        users[msg.sender] = User(_name, _email, _role, true, block.timestamp);
-        isUserRegistered[msg.sender] = true;
-        emit UserRegistered(msg.sender, _name, _role);
-    }
-
-    function getUser(address _userAddress) external view returns (User memory) {
-        require(isUserRegistered[_userAddress], "User not registered");
-        return users[_userAddress];
-    }
-
-    function isUserAddressRegistered(address _userAddress) external view returns (bool) {
-        return isUserRegistered[_userAddress];
-    }
-    
-    // ======== FUNZIONI COMPANY REGISTRY ========
     function registerCompany(
         string calldata _name,
         CompanyType _companyType,
@@ -277,27 +235,12 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         return registeredCompanyAddresses; 
     }
     
-    function updateSustainabilityScore(address _companyAddress, uint256 _newScore) external onlyRegisteredCompany(_companyAddress) {
-        require(_newScore <= 100, "Score must be between 0 and 100");
-        // Solo il proprietario dell'azienda o una logica interna possono aggiornare il punteggio
-        require(msg.sender == companies[_companyAddress].owner || msg.sender == address(this), "Not authorized to update score");
-        
-        uint256 oldScore = companies[_companyAddress].sustainabilityScore;
-        companies[_companyAddress].sustainabilityScore = _newScore;
-        emit SustainabilityScoreUpdated(_companyAddress, oldScore, _newScore);
-    }
-    
     function updateCertifications(string calldata _certifications) external onlyRegisteredCompany(msg.sender) {
         companies[msg.sender].sustainabilityCertifications = _certifications;
         emit CertificationsUpdated(msg.sender, _certifications);
     }
 
-    // Funzione di ricerca aziende per tipo rimossa perché non utilizzata
-    
-    // ======== FUNZIONI PER OPERAZIONI, AZIONI COMPENSATIVE, LOTTI ========
-    // (Queste sezioni rimangono strutturalmente simili, ma l'interazione con i token è cambiata)
-
-    event DebugOperation(uint256 operationId, address sender);
+   event DebugOperation(uint256 operationId, address sender);
 
     function registerOperation(
         OperationType operationType,
@@ -350,34 +293,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         companyCompensationActions[msg.sender].push(actionId);
         emit CompensationActionCreated(actionId, msg.sender, actionType, block.timestamp, co2Reduction, description);
         return actionId;
-    }
-
-    function verifyCompensationAction(uint256 actionId, bool isVerified) external {
-        CompensationAction storage action = compensationActions[actionId];
-        require(action.id > 0, "Action does not exist");
-        // Modello Semplificato: solo l'azienda che l'ha creata può "verificarla"
-        // In un sistema reale, questo richiederebbe un ruolo di verificatore autorizzato.
-        require(msg.sender == action.companyAddress, "Not authorized to verify this action");
-        
-        action.isVerified = isVerified;
-        
-        if (isVerified) {
-            // Aggiorna punteggio sostenibilità
-            uint256 currentScore = companies[action.companyAddress].sustainabilityScore;
-            uint256 scoreIncrease = action.co2Reduction / 100; // Esempio: 1 punto ogni 100kg CO2
-            uint256 newScore = currentScore + scoreIncrease;
-            if (newScore > 100) newScore = 100;
-            if (newScore != currentScore) {
-                 companies[action.companyAddress].sustainabilityScore = newScore;
-                 emit SustainabilityScoreUpdated(action.companyAddress, currentScore, newScore);
-            }
-
-            // Mint tokens come reward (esempio: 1 token per ogni 10kg di CO2 ridotta)
-            uint256 tokenReward = (action.co2Reduction / 10) * (10**decimals()); // Scalato per i decimali del token
-            if (tokenReward > 0) {
-                _mint(action.companyAddress, tokenReward);
-            }
-        }
     }
     
     function getCompanyCompensationActions(address companyAddress) external view returns (uint256[] memory) {
@@ -454,16 +369,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         return batches[batchId].operationIds;
     }
 
-    // ======== FUNZIONI PER LA TRASFORMAZIONE DEI PRODOTTI ========
-    /**
-     * @dev Crea un nuovo lotto derivante dalla trasformazione di materie prime esistenti
-     * @param productName Nome del prodotto trasformato
-     * @param quantity Quantità del prodotto trasformato
-     * @param metadata Metadati aggiuntivi sul prodotto
-     * @param rawMaterialBatchIds Array di ID dei lotti di materie prime utilizzati
-     * @param description Descrizione del processo di trasformazione
-     * @return ID del nuovo lotto creato
-     */
     function createProcessedBatch(
         string calldata productName,
         uint256 quantity,
@@ -485,10 +390,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         return batchId;
     }
     
-    /**
-     * @dev Funzione interna per verificare la proprietà delle materie prime
-     * @param rawMaterialBatchIds Array di ID dei lotti di materie prime da verificare
-     */
     function _verifyRawMaterialsOwnership(uint256[] calldata rawMaterialBatchIds) internal view {
         for (uint256 i = 0; i < rawMaterialBatchIds.length; i++) {
             uint256 batchId = rawMaterialBatchIds[i];
@@ -498,14 +399,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         }
     }
     
-    /**
-     * @dev Funzione interna per creare i dati del lotto trasformato
-     * @param batchId ID del nuovo lotto
-     * @param productName Nome del prodotto
-     * @param quantity Quantità del prodotto
-     * @param metadata Metadati del prodotto
-     * @param rawMaterialBatchIds Array di ID dei lotti di materie prime utilizzati
-     */
     function _createProcessedBatchData(
         uint256 batchId,
         string calldata productName,
@@ -532,34 +425,16 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         emit BatchCreated(batchId, msg.sender, productName, quantity, block.timestamp, metadata);
     }
     
-    /**
-     * @dev Ottiene gli ID dei lotti di materie prime utilizzati per un lotto trasformato
-     * @param batchId ID del lotto di cui si vogliono conoscere le materie prime
-     * @return Array di ID dei lotti di materie prime utilizzati
-     */
     function getBatchRawMaterials(uint256 batchId) external view returns (uint256[] memory) {
         require(batches[batchId].id > 0, "Lotto non esistente");
         return batches[batchId].rawMaterialBatchIds;
     }
     
-    /**
-     * @dev Verifica se un lotto è un prodotto trasformato
-     * @param batchId ID del lotto da verificare
-     * @return True se il lotto è un prodotto trasformato, False altrimenti
-     */
     function isBatchProcessed(uint256 batchId) external view returns (bool) {
         require(batches[batchId].id > 0, "Lotto non esistente");
         return batches[batchId].isProcessed;
     }
     
-    // ======== FUNZIONI TOKEN SPECIFICHE DEL CONTRATTO ========
-    // Le funzioni standard ERC20 (balanceOf, transfer, approve, etc.) sono ereditate
-    // e non necessitano di essere riscritte.
-
-    // Nota: la funzione applyCO2Impact è stata rimossa perché non utilizzata
-    // La gestione dell'impatto CO2 è ora implementata off-chain
-    
-    // ======== FUNZIONI TOKEN EXCHANGE ========
     function createTokenRequest(
         address _provider,
         uint256 _amount, // Quantità di token (già scalata per i decimali)
@@ -598,8 +473,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     {
         TokenRequest storage currentRequest = requests[_requestId];
         
-        // Il provider (msg.sender) trasferisce i token al richiedente.
-        // La funzione transfer() ereditata da ERC20.sol trasferisce da msg.sender.
         ERC20.transfer(currentRequest.requester, currentRequest.amount); 
         
         currentRequest.status = RequestStatus.Accepted;
@@ -622,32 +495,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         emit RequestRejected(_requestId, msg.sender, _reason);
     }
     
-    // Funzione di cancellazione richiesta token rimossa perché non utilizzata
-    
     function getRequestDetails(uint256 _requestId) external view requestExists(_requestId) returns (TokenRequest memory) {
         return requests[_requestId];
-    }
-    
-    // Funzione di verifica sostenibilità rimossa perché non utilizzata
-    
-    function getSustainableRequests(uint256 _minCO2Reduction, bool _onlyVerified) external view returns (uint256[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 1; i < nextRequestId; i++) {
-            if (requests[i].id != 0 && 
-                requests[i].estimatedCO2Reduction >= _minCO2Reduction &&
-                (!_onlyVerified || requests[i].isSustainabilityVerified)) {
-                count++;
-            }
-        }
-        uint256[] memory result = new uint256[](count);
-        uint256 index = 0;
-        for (uint256 i = 1; i < nextRequestId; i++) {
-             if (requests[i].id != 0 && 
-                requests[i].estimatedCO2Reduction >= _minCO2Reduction &&
-                (!_onlyVerified || requests[i].isSustainabilityVerified)) {
-                result[index++] = i;
-            }
-        }
-        return result;
     }
 }

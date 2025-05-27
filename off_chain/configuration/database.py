@@ -17,7 +17,7 @@ class Database:
         """Initialize the database connection if not already initialized."""
         if not self._connection_initialized:
             try:
-                self.conn = sqlite3.connect(DATABASE_PATH, timeout=10)  # Connessione al database
+                self.conn = sqlite3.connect(DATABASE_PATH, timeout=10, check_same_thread=False)  # Connessione al database
                 # Enable foreign key constraints
                 self.conn.execute("PRAGMA foreign_keys = ON")
                 self.cur = self.conn.cursor()  # Cursore
