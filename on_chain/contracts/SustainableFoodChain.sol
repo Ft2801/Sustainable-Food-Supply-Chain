@@ -142,7 +142,9 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         uint256 creationTimestamp;
         string metadata;
         uint256[] operationIds;
+        uint256[] rawMaterialBatchIds; // IDs dei lotti di materie prime utilizzati
         bool isActive;
+        bool isProcessed; // Indica se è un prodotto trasformato
     }
     
     // ======== STATO ========
@@ -223,26 +225,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         emit UserRegistered(msg.sender, _name, _role);
     }
 
-    function updateUser(
-        string memory _name,
-        string memory _email,
-        string memory _role
-    ) external onlyRegisteredUser {
-        User storage user = users[msg.sender];
-        require(user.isActive, "User is not active");
-        
-        user.name = _name;
-        user.email = _email;
-        user.role = _role;
-        emit UserUpdated(msg.sender, _name, _role);
-    }
-
-    function deactivateUser() external onlyRegisteredUser {
-        require(users[msg.sender].isActive, "User already deactivated");
-        users[msg.sender].isActive = false;
-        emit UserDeactivated(msg.sender);
-    }
-
     function getUser(address _userAddress) external view returns (User memory) {
         require(isUserRegistered[_userAddress], "User not registered");
         return users[_userAddress];
@@ -310,22 +292,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         emit CertificationsUpdated(msg.sender, _certifications);
     }
 
-    function getCompaniesByType(CompanyType _companyType) external view returns (address[] memory) {
-        uint256 count = 0;
-        for (uint256 i = 0; i < registeredCompanyAddresses.length; i++) {
-            if (companies[registeredCompanyAddresses[i]].companyType == _companyType) {
-                count++;
-            }
-        }
-        address[] memory result = new address[](count);
-        uint256 index = 0;
-        for (uint256 i = 0; i < registeredCompanyAddresses.length; i++) {
-            if (companies[registeredCompanyAddresses[i]].companyType == _companyType) {
-                result[index++] = registeredCompanyAddresses[i];
-            }
-        }
-        return result;
-    }
+    // Funzione di ricerca aziende per tipo rimossa perché non utilizzata
     
     // ======== FUNZIONI PER OPERAZIONI, AZIONI COMPENSATIVE, LOTTI ========
     // (Queste sezioni rimangono strutturalmente simili, ma l'interazione con i token è cambiata)
@@ -429,6 +396,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     ) external onlyRegisteredCompany(msg.sender) returns (uint256) {
         uint256 batchId = nextBatchId++;
         uint256[] memory emptyOperationIds = new uint256[](0);
+        uint256[] memory emptyRawMaterialIds = new uint256[](0);
         
         batches[batchId] = Batch(
             batchId,
@@ -439,7 +407,9 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             block.timestamp,
             metadata,
             emptyOperationIds,
-            true
+            emptyRawMaterialIds, // Nessuna materia prima per un lotto iniziale
+            true,
+            false // Non è un prodotto trasformato
         );
         companyBatches[msg.sender].push(batchId);
         emit BatchCreated(batchId, msg.sender, productName, quantity, block.timestamp, metadata);
@@ -484,40 +454,110 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         return batches[batchId].operationIds;
     }
 
+    // ======== FUNZIONI PER LA TRASFORMAZIONE DEI PRODOTTI ========
+    /**
+     * @dev Crea un nuovo lotto derivante dalla trasformazione di materie prime esistenti
+     * @param productName Nome del prodotto trasformato
+     * @param quantity Quantità del prodotto trasformato
+     * @param metadata Metadati aggiuntivi sul prodotto
+     * @param rawMaterialBatchIds Array di ID dei lotti di materie prime utilizzati
+     * @param description Descrizione del processo di trasformazione
+     * @return ID del nuovo lotto creato
+     */
+    function createProcessedBatch(
+        string calldata productName,
+        uint256 quantity,
+        string calldata metadata,
+        uint256[] calldata rawMaterialBatchIds,
+        string calldata description
+    ) external onlyRegisteredCompany(msg.sender) returns (uint256) {
+        require(rawMaterialBatchIds.length > 0, "Deve essere fornito almeno un lotto di materia prima");
+        
+        // Verifica che l'azienda possieda tutte le materie prime indicate
+        _verifyRawMaterialsOwnership(rawMaterialBatchIds);
+        
+        // Crea il nuovo lotto trasformato
+        uint256 batchId = nextBatchId++;
+        _createProcessedBatchData(batchId, productName, quantity, metadata, rawMaterialBatchIds);
+        
+        // Registra un'operazione di trasformazione
+        registerOperation(OperationType.Processing, description, batchId);
+        return batchId;
+    }
+    
+    /**
+     * @dev Funzione interna per verificare la proprietà delle materie prime
+     * @param rawMaterialBatchIds Array di ID dei lotti di materie prime da verificare
+     */
+    function _verifyRawMaterialsOwnership(uint256[] calldata rawMaterialBatchIds) internal view {
+        for (uint256 i = 0; i < rawMaterialBatchIds.length; i++) {
+            uint256 batchId = rawMaterialBatchIds[i];
+            require(batches[batchId].id > 0, "Lotto di materia prima non esistente");
+            require(batches[batchId].isActive, "Lotto di materia prima non attivo");
+            require(batches[batchId].currentOwner == msg.sender, "Non sei il proprietario di tutti i lotti di materie prime");
+        }
+    }
+    
+    /**
+     * @dev Funzione interna per creare i dati del lotto trasformato
+     * @param batchId ID del nuovo lotto
+     * @param productName Nome del prodotto
+     * @param quantity Quantità del prodotto
+     * @param metadata Metadati del prodotto
+     * @param rawMaterialBatchIds Array di ID dei lotti di materie prime utilizzati
+     */
+    function _createProcessedBatchData(
+        uint256 batchId,
+        string calldata productName,
+        uint256 quantity,
+        string calldata metadata,
+        uint256[] calldata rawMaterialBatchIds
+    ) internal {
+        uint256[] memory emptyOperationIds = new uint256[](0);
+        
+        batches[batchId] = Batch(
+            batchId,
+            msg.sender,
+            msg.sender,
+            productName,
+            quantity,
+            block.timestamp,
+            metadata,
+            emptyOperationIds,
+            rawMaterialBatchIds, // Collega le materie prime utilizzate
+            true,
+            true // Contrassegna come prodotto trasformato
+        );
+        companyBatches[msg.sender].push(batchId);
+        emit BatchCreated(batchId, msg.sender, productName, quantity, block.timestamp, metadata);
+    }
+    
+    /**
+     * @dev Ottiene gli ID dei lotti di materie prime utilizzati per un lotto trasformato
+     * @param batchId ID del lotto di cui si vogliono conoscere le materie prime
+     * @return Array di ID dei lotti di materie prime utilizzati
+     */
+    function getBatchRawMaterials(uint256 batchId) external view returns (uint256[] memory) {
+        require(batches[batchId].id > 0, "Lotto non esistente");
+        return batches[batchId].rawMaterialBatchIds;
+    }
+    
+    /**
+     * @dev Verifica se un lotto è un prodotto trasformato
+     * @param batchId ID del lotto da verificare
+     * @return True se il lotto è un prodotto trasformato, False altrimenti
+     */
+    function isBatchProcessed(uint256 batchId) external view returns (bool) {
+        require(batches[batchId].id > 0, "Lotto non esistente");
+        return batches[batchId].isProcessed;
+    }
+    
     // ======== FUNZIONI TOKEN SPECIFICHE DEL CONTRATTO ========
     // Le funzioni standard ERC20 (balanceOf, transfer, approve, etc.) sono ereditate
     // e non necessitano di essere riscritte.
 
-    /**
-     * @dev Applica l'impatto di CO2 di un'operazione, mintando o bruciando token.
-     * @param companyAddr Indirizzo dell'azienda.
-     * @param consumedCO2 CO2 consumato.
-     * @param thresholdCO2 Soglia di CO2.
-     * @param co2TokenValue Valore in token per unità di CO2 (es. 1 token per 1kg di CO2).
-     * Attenzione: questa funzione dovrebbe essere chiamata da un'entità autorizzata (es. oracolo, admin)
-     * per evitare manipolazioni se i dati di CO2 non sono verificabili on-chain.
-     */
-    function applyCO2Impact(address companyAddr, uint256 consumedCO2, uint256 thresholdCO2, uint256 co2TokenValue) public nonReentrant {
-        require(companies[companyAddr].isRegistered, "Company not registered");
-        // Aggiungere qui un controllo sull'autorizzazione di msg.sender se necessario
-        // require(msg.sender == <authorized_address>, "Unauthorized CO2 impact reporter");
-
-        if (consumedCO2 < thresholdCO2) {
-            uint256 rewardAmount = (thresholdCO2 - consumedCO2) * co2TokenValue;
-            if (rewardAmount > 0) {
-                 _mint(companyAddr, rewardAmount);
-            }
-        } else if (consumedCO2 > thresholdCO2) {
-            uint256 penaltyAmount = (consumedCO2 - thresholdCO2) * co2TokenValue;
-            if (penaltyAmount > 0) {
-                if (balanceOf(companyAddr) >= penaltyAmount) { // balanceOf() è ereditato
-                    _burn(companyAddr, penaltyAmount);
-                } else {
-                    _burn(companyAddr, balanceOf(companyAddr)); // Brucia il massimo possibile
-                }
-            }
-        }
-    }
+    // Nota: la funzione applyCO2Impact è stata rimossa perché non utilizzata
+    // La gestione dell'impatto CO2 è ora implementata off-chain
     
     // ======== FUNZIONI TOKEN EXCHANGE ========
     function createTokenRequest(
@@ -582,60 +622,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         emit RequestRejected(_requestId, msg.sender, _reason);
     }
     
-    function cancelTokenRequest(uint256 _requestId)
-        external
-        onlyRegisteredCompany(msg.sender)
-        onlyRequester(_requestId)
-        requestExists(_requestId)
-        requestIsPending(_requestId)
-        nonReentrant
-    {
-        TokenRequest storage currentRequest = requests[_requestId];
-        currentRequest.status = RequestStatus.Cancelled;
-        currentRequest.lastUpdateTimestamp = block.timestamp;
-        emit RequestCancelled(_requestId, msg.sender);
-    }
+    // Funzione di cancellazione richiesta token rimossa perché non utilizzata
     
     function getRequestDetails(uint256 _requestId) external view requestExists(_requestId) returns (TokenRequest memory) {
         return requests[_requestId];
     }
     
-    function verifySustainability(uint256 _requestId, bool _verified)
-        external
-        // Modello Semplificato: solo il provider della richiesta può "verificare"
-        // le affermazioni di sostenibilità del richiedente legate a questa richiesta.
-        onlyRegisteredCompany(msg.sender)
-        onlyProvider(_requestId) 
-        requestExists(_requestId)
-        nonReentrant
-    {
-        TokenRequest storage currentRequest = requests[_requestId];
-        require(currentRequest.status == RequestStatus.Accepted || currentRequest.status == RequestStatus.Pending, "Request not in a verifiable state");
-
-        currentRequest.isSustainabilityVerified = _verified;
-        currentRequest.lastUpdateTimestamp = block.timestamp;
-        emit SustainabilityVerified(_requestId, msg.sender, _verified);
-        
-        if (_verified) {
-            Company storage requesterCompany = companies[currentRequest.requester];
-            if (requesterCompany.isRegistered) {
-                uint256 oldScore = requesterCompany.sustainabilityScore;
-                uint256 scoreIncrease = 0;
-                if (currentRequest.estimatedCO2Reduction > 1000) scoreIncrease = 5;
-                else if (currentRequest.estimatedCO2Reduction > 500) scoreIncrease = 3;
-                else if (currentRequest.estimatedCO2Reduction > 100) scoreIncrease = 1;
-
-                if (scoreIncrease > 0) {
-                    uint256 newScore = oldScore + scoreIncrease;
-                    if (newScore > 100) newScore = 100;
-                    if (newScore != oldScore) {
-                       requesterCompany.sustainabilityScore = newScore;
-                       emit SustainabilityScoreUpdated(currentRequest.requester, oldScore, newScore);
-                    }
-                }
-            }
-        }
-    }
+    // Funzione di verifica sostenibilità rimossa perché non utilizzata
     
     function getSustainableRequests(uint256 _minCO2Reduction, bool _onlyVerified) external view returns (uint256[] memory) {
         uint256 count = 0;

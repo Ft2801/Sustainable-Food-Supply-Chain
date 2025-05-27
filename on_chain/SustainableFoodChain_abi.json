@@ -653,34 +653,6 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "companyAddr",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "consumedCO2",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "thresholdCO2",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "co2TokenValue",
-        "type": "uint256"
-      }
-    ],
-    "name": "applyCO2Impact",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
         "name": "spender",
         "type": "address"
       },
@@ -769,22 +741,14 @@
         "internalType": "bool",
         "name": "isActive",
         "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "isProcessed",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_requestId",
-        "type": "uint256"
-      }
-    ],
-    "name": "cancelTokenRequest",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -946,6 +910,45 @@
   {
     "inputs": [
       {
+        "internalType": "string",
+        "name": "productName",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "quantity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "metadata",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "rawMaterialBatchIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      }
+    ],
+    "name": "createProcessedBatch",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "_provider",
         "type": "address"
@@ -974,13 +977,6 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "deactivateUser",
-    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -1063,8 +1059,18 @@
             "type": "uint256[]"
           },
           {
+            "internalType": "uint256[]",
+            "name": "rawMaterialBatchIds",
+            "type": "uint256[]"
+          },
+          {
             "internalType": "bool",
             "name": "isActive",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "isProcessed",
             "type": "bool"
           }
         ],
@@ -1098,17 +1104,17 @@
   {
     "inputs": [
       {
-        "internalType": "enum SustainableFoodChain.CompanyType",
-        "name": "_companyType",
-        "type": "uint8"
+        "internalType": "uint256",
+        "name": "batchId",
+        "type": "uint256"
       }
     ],
-    "name": "getCompaniesByType",
+    "name": "getBatchRawMaterials",
     "outputs": [
       {
-        "internalType": "address[]",
+        "internalType": "uint256[]",
         "name": "",
-        "type": "address[]"
+        "type": "uint256[]"
       }
     ],
     "stateMutability": "view",
@@ -1485,6 +1491,25 @@
         "internalType": "struct SustainableFoodChain.User",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "batchId",
+        "type": "uint256"
+      }
+    ],
+    "name": "isBatchProcessed",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -2011,29 +2036,6 @@
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "_name",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_email",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_role",
-        "type": "string"
-      }
-    ],
-    "name": "updateUser",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "actionId",
         "type": "uint256"
@@ -2045,24 +2047,6 @@
       }
     ],
     "name": "verifyCompensationAction",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_requestId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "_verified",
-        "type": "bool"
-      }
-    ],
-    "name": "verifySustainability",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
