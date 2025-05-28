@@ -53,3 +53,6 @@ coverage.json
 typechain/
 typechain-types/
 
+#indirizzo_contract
+on_chain/contract_address.json
+
