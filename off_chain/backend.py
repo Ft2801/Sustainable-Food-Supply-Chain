@@ -172,6 +172,16 @@ def firma_richiesta_token_html():
 
 @app.route("/firma_accetta_token.html")
 def firma_accetta_token_html():
+    # Ottieni i parametri dalla query string
+    messaggio = request.args.get('messaggio')
+    mittente = request.args.get('mittente')
+    quantita = request.args.get('quantita')
+    id_richiesta = request.args.get('id_richiesta')
+    
+    # Se mancano i parametri necessari, restituisci un errore
+    if not all([messaggio, mittente, quantita, id_richiesta]):
+        return "Errore: Parametri mancanti nell'URL. Assicurati di includere: messaggio, mittente, quantita, id_richiesta", 400
+    
     return send_from_directory(BASE_DIR, "firma_accetta_token.html")
 
 @app.route("/conferma_azione_compensativa", methods=["POST"])
@@ -404,7 +414,11 @@ def conferma_accettazione_token():
         address = data["address"]
         messaggio = data["messaggio"]
         signature = data["signature"]
-        id_richiesta = data["id_richiesta"]
+        # Converti l'id_richiesta in intero
+        try:
+            id_richiesta = int(data["id_richiesta"])
+        except (ValueError, TypeError):
+            return jsonify({"message": "L'ID della richiesta deve essere un numero valido"}), 400
 
         # Verifica la firma
         eth_message = encode_defunct(text=messaggio)

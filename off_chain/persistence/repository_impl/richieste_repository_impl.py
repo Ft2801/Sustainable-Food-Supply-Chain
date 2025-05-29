@@ -599,11 +599,16 @@ class RichiesteRepositoryImpl():
     def get_richieste_ric_token(self, id_azienda: int) -> list[RichiestaTokenModel]:
 
         try:
+            # Query allineata con il costruttore RichiestaTokenModel:
+            # (id_richiesta, id_mittente, mittente, id_destinatario, destinatario, quantita, stato)
             self.query_builder.select(
-                "r.Id_richiesta",
-                "r.Id_richiedente", "rich.Nome AS Nome_richiedente",
-                "r.Id_ricevente", "rice.Nome AS Nome_ricevente",
-                "r.Quantita", "r.Stato"
+                "r.Id_richiesta",      # id_richiesta
+                "r.Id_richiedente",    # id_mittente
+                "rich.Nome",           # mittente
+                "r.Id_ricevente",     # id_destinatario
+                "rice.Nome",          # destinatario
+                "r.Quantita",         # quantita
+                "r.Stato"             # stato
             )\
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
@@ -621,11 +626,16 @@ class RichiesteRepositoryImpl():
     def get_richiesta_inviata_token(self, id_azienda: int) -> list[RichiestaTokenModel]:
 
         try:
+            # Query allineata con il costruttore RichiestaTokenModel:
+            # (id_richiesta, id_mittente, mittente, id_destinatario, destinatario, quantita, stato)
             self.query_builder.select(
-                "r.Id_richiesta",
-                "r.Id_richiedente", "rich.Nome AS Nome_richiedente",
-                "r.Id_ricevente", "rice.Nome AS Nome_ricevente",
-                "r.Quantita", "r.Stato"
+                "r.Id_richiesta",      # id_richiesta
+                "r.Id_richiedente",    # id_mittente
+                "rich.Nome",           # mittente
+                "r.Id_ricevente",     # id_destinatario
+                "rice.Nome",          # destinatario
+                "r.Quantita",         # quantita
+                "r.Stato"             # stato
             )\
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \
@@ -646,11 +656,16 @@ class RichiesteRepositoryImpl():
         """
         try:
             # Recupera le operazioni dal database locale
+            # Query allineata con il costruttore RichiestaTokenModel:
+            # (id_richiesta, id_mittente, mittente, id_destinatario, destinatario, quantita, stato)
             self.query_builder.select(
-                "r.Id_richiesta",
-                "r.Id_richiedente", "rich.Nome AS Nome_richiedente",
-                "r.Id_ricevente", "rice.Nome AS Nome_ricevente",
-                "r.Quantita", "r.Stato"
+                "r.Id_richiesta",      # id_richiesta
+                "r.Id_richiedente",    # id_mittente
+                "rich.Nome",           # mittente
+                "r.Id_ricevente",     # id_destinatario
+                "rice.Nome",          # destinatario
+                "r.Quantita",         # quantita
+                "r.Stato"             # stato
             )\
             .table("RichiestaToken AS r") \
             .join("Azienda AS rich", "rich.Id_azienda", "r.Id_richiedente") \

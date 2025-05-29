@@ -472,27 +472,6 @@ class DatabaseMigrations:
                     VALUES (?, ?, ?)
                 """, (id_lotto, desc, id_az))
 
-            
-                
-                
-           
-
-            # Richiesta di prodotto da parte di un rivenditore (vendita)
-            db.execute_query("""
-                INSERT INTO Richiesta (
-                    Id_richiedente, Id_ricevente, Id_trasportatore, 
-                    Id_prodotto, Quantita, Stato_ricevente, Stato_trasportatore
-                )
-                VALUES ( ?, ?, ?, ?, ?, ?, ?)
-            """, (  
-                1,  # Id_richiedente (azienda che vende il succo di mela in bottiglia)
-                2,  # Id_ricevente (azienda di distribuzione)
-                3,  # Id_trasportatore (trasportatore)
-                2,  # Id prodotto "Succo di mela in bottiglia"
-                50.0,  # Quantità richiesta
-                'In attesa',  # Stato_ricevente
-                'In attesa'   # Stato_trasportatore
-            ))
 
             seed_soglie =[
                 ("produzione","1","52","b990173ff0b8d24e9d41dbaa64a39cda476c54cf50b465811c788ee36a211369"),

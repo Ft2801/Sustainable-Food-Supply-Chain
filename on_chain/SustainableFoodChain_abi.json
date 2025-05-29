@@ -1084,6 +1084,41 @@
   },
   {
     "inputs": [],
+    "name": "getAllOperations",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "utente",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "tipo",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "messaggio",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "valore",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct SustainableFoodChain.Message[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "getAllRegisteredCompanyAddresses",
     "outputs": [
       {
