@@ -492,6 +492,16 @@ class BlockchainController:
         except Exception as e:
             logger.error(f"Errore nel recupero delle operazioni per {address}: {e}")
             raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+        
+
+    def get_all_op(self):
+        try:
+            res = self.contract.functions.getAllOperations().call()
+            logger.info(f"Operazioni recuperate per l'azienda : {res}")
+            return res
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle operazioni per : {e}")
+            raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
             
     def is_company_registered(self, address):
         """Verifica se un indirizzo Ethereum è registrato come azienda sulla blockchain

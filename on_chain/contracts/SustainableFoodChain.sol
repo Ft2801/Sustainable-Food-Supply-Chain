@@ -147,6 +147,20 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         uint256 maxThreshold;
         bool isActive;
     }
+
+    struct Message {
+        address utente;
+        string tipo;
+        string messaggio;
+        uint256 valore;
+    }
+
+    Message[] private messaggi;
+
+    function getAllOperations() public view returns (Message[] memory) {
+        return messaggi;
+    }
+
     
     mapping(address => User) private users;
     mapping(address => bool) private isUserRegistered;
@@ -285,6 +299,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             50, // Default sustainability score
             block.timestamp
         );
+
+        messaggi.push(Message({
+            utente: msg.sender,
+            tipo : "registrazione",
+            messaggio: _name,
+            valore: 1
+        }));
         
         // Assegna 100 token iniziali all'azienda registrata
         _mint(msg.sender, 100 * 10**decimals());
@@ -318,6 +339,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
    event DebugOperation(uint256 operationId, address sender);
 
+
     function registerOperation(
         OperationType operationType,
         string memory description,
@@ -334,6 +356,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             batchId,
             true
         );
+
+        messaggi.push(Message({
+            utente: msg.sender,
+            tipo : "operazione",
+            messaggio: description,
+            valore: batchId
+        }));
 
         companyOperations[msg.sender].push(operationId);
         emit DebugOperation(operationId, msg.sender);
@@ -366,6 +395,15 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             description,
             false // Deve essere verificata
         );
+
+        messaggi.push(Message({
+            utente: msg.sender,
+            tipo : "azione",
+            messaggio: description,
+            valore: co2Reduction
+        }));
+
+
         companyCompensationActions[msg.sender].push(actionId);
         emit CompensationActionCreated(actionId, msg.sender, actionType, block.timestamp, co2Reduction, description);
         return actionId;
@@ -535,6 +573,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             _estimatedCO2Reduction,
             false
         );
+
+        messaggi.push(Message({
+            utente: msg.sender,
+            tipo : "richiesta",
+            messaggio: "id_request",
+            valore: requestId
+        }));
         emit RequestCreated(requestId, msg.sender, _provider, _amount, _sustainabilityPurpose, _estimatedCO2Reduction);
         return requestId;
     }

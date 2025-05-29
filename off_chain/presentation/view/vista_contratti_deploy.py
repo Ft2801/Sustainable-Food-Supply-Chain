@@ -1,35 +1,43 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidget, QPushButton, QMessageBox
 from presentation.controller.blockchain_controller import BlockchainController
 
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QLabel, QPushButton
+)
+
 class OperazioniCompanyView(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.controller = BlockchainController()
-
-        self.setWindowTitle("Operazioni registrate")
-
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Messaggi registrati sulla blockchain")
+        self.resize(600, 400)
         self.layout = QVBoxLayout()
-        self.info_label = QLabel(f"Operazioni per l'azienda:")
-        self.list_widget = QListWidget()
-        self.refresh_button = QPushButton("Aggiorna")
-
-        self.layout.addWidget(self.info_label)
-        self.layout.addWidget(self.list_widget)
-        self.layout.addWidget(self.refresh_button)
         self.setLayout(self.layout)
 
-        self.refresh_button.clicked.connect(self.carica_operazioni)
+        self.label = QLabel("Messaggi:")
+        self.layout.addWidget(self.label)
 
-        self.carica_operazioni()
+        self.table = QTableWidget()
+        self.layout.addWidget(self.table)
 
-    def carica_operazioni(self):
-        self.list_widget.clear()
+        self.button = QPushButton("Aggiorna messaggi")
+        self.button.clicked.connect(self.load_data)
+        self.layout.addWidget(self.button)
+
+        self.load_data()
+
+    def load_data(self):
         try:
-            operazioni = self.controller.get_operazioni_company()
-            if not operazioni:
-                self.list_widget.addItem("Nessuna operazione registrata.")
-            else:
-                for op_id in operazioni:
-                    self.list_widget.addItem(f"Operazione ID: {op_id}")
+            controller = BlockchainController()
+            messaggi = controller.get_all_op()
+            self.table.setRowCount(len(messaggi))
+            self.table.setColumnCount(4)
+            self.table.setHorizontalHeaderLabels(["Mittente","Tipo", "Messaggio"])
+
+            for i, m in enumerate(messaggi):
+                self.table.setItem(i, 0, QTableWidgetItem(m[0]))  # tipo
+                self.table.setItem(i, 1, QTableWidgetItem(m[1]))
+                self.table.setItem(i, 2, QTableWidgetItem(m[2]))
+                self.table.setItem(i, 3, QTableWidgetItem(m[3]))  # messaggio
+
         except Exception as e:
-            QMessageBox.critical(self, "Errore", f"Errore nel recupero delle operazioni:\n{str(e)}")
+            self.label.setText(f"Errore: {str(e)}")
