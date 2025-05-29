@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Firma Richiesta Token</title>
-    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js" type="application/javascript"></script>
+    <!-- Rimuoviamo ethers.js perché non è necessario -->
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -135,6 +135,13 @@
                     if (typeof window.ethereum === 'undefined') {
                         showStatus('MetaMask non è installato. Per favore installa MetaMask per continuare.', 'error');
                         return;
+                    }
+                    
+                    // Assicuriamoci che l'oggetto ethereum sia completamente caricato
+                    if (!window.ethereum.isMetaMask) {
+                        showStatus('Attendere il caricamento completo di MetaMask...', 'info');
+                        // Attendiamo un po' per dare tempo a MetaMask di inizializzarsi
+                        await new Promise(resolve => setTimeout(resolve, 1000));
                     }
                     
                     showStatus('Connessione a MetaMask...', 'info');
