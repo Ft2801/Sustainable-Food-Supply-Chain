@@ -54,5 +54,6 @@ typechain/
 typechain-types/
 
 #indirizzo_contract
-on_chain/contract_address.json
+./on_chain/contract_address.json
+./off_chain/contract_address.json
 
