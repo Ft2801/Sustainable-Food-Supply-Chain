@@ -36,8 +36,7 @@ class OperazioniCompanyView(QWidget):
             for i, m in enumerate(messaggi):
                 self.table.setItem(i, 0, QTableWidgetItem(m[0]))  # tipo
                 self.table.setItem(i, 1, QTableWidgetItem(m[1]))
-                self.table.setItem(i, 2, QTableWidgetItem(m[2]))
-                self.table.setItem(i, 3, QTableWidgetItem(m[3]))  # messaggio
+                self.table.setItem(i, 2, QTableWidgetItem(m[3]))  # messaggio
 
         except Exception as e:
             self.label.setText(f"Errore: {str(e)}")
