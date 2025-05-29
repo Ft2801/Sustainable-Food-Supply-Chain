@@ -50,7 +50,8 @@ class VistaStatoAzienda(QMainWindow):
         self.co2_risparmiata_totale_input = QLineEdit(str(azienda.co2_compensata)) 
 
         self.token_label = QLabel("Token accumulati")
-        self.token_label_input = QLineEdit(str(azienda.token)) 
+        token_balance = self.controller.blockchainconroller.get_my_token_balance()
+        self.token_label_input = QLineEdit(str(token_balance))
 
         self.cambia_password_button = QPushButton('Cambia password')
         self.cambia_password_button.clicked.connect(self.apri_cambia_password)

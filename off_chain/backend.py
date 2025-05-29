@@ -22,6 +22,7 @@ esiti_operazioni = {}
 esiti_richieste_token = {}
 esiti_accettazioni_token = {}
 
+
 @app.route("/firma.html")
 def firma_html():
     return send_from_directory(BASE_DIR, "firma.html")
@@ -428,43 +429,31 @@ def conferma_accettazione_token():
             return jsonify({"message": "Firma non valida"}), 400
 
         # Ottieni l'ID dell'azienda dall'indirizzo blockchain
-        controller_auth = ControllerAutenticazione()
-        id_azienda = controller_auth.get_id_by_address(address)
-
-        if not id_azienda:
-            return jsonify({"message": "Indirizzo non associato ad alcuna azienda"}), 400
-
-        # Accetta la richiesta di token
         try:
-            controller = RichiesteRepositoryImpl()
-            # Ottieni i dettagli della richiesta
-            richiesta = controller.get_richiesta_token_by_id(int(id_richiesta))
+            controller = BlockchainController()
+
+            tx_hash = controller.accetta_richiesta_token(
+                account_address=address,
+                id_richiesta= id_richiesta
+            )
+
             
-            if not richiesta:
-                raise ValueError(f"Richiesta token con ID {id_richiesta} non trovata")
-                
-            # Verifica che l'azienda che accetta sia effettivamente il destinatario della richiesta
-            if richiesta.id_destinatario != id_azienda:
-                raise ValueError("Non sei autorizzato ad accettare questa richiesta")
-                
-            # Aggiorna lo stato della richiesta
-            controller.update_richiesta_token(richiesta, "Accettata")
-            
-            # Salva l'esito positivo
             if address not in esiti_accettazioni_token:
                 esiti_accettazioni_token[address] = {}
             
-            esiti_accettazioni_token[address][id_richiesta] = f"✅ Richiesta token {id_richiesta} accettata con successo!"
+            esiti_accettazioni_token[address][id_richiesta] = f"✅ Richiesta token accettata con successo! ID: {id_richiesta} - Tx Hash: {tx_hash}"
             
             return jsonify({
-                "message": "Richiesta token accettata con successo"
+                "message": "Richiesta token accettata con successo",
+                "id_richiesta": id_richiesta,
+                "tx_hash": tx_hash
             })
         except Exception as e:
             # Salva l'esito negativo
-            if address not in esiti_accettazioni_token:
-                esiti_accettazioni_token[address] = {}
+            if address not in esiti_richieste_token:
+                esiti_richieste_token[address] = {}
             
-            esiti_accettazioni_token[address][id_richiesta] = f"❌ Errore nell'accettazione della richiesta token: {str(e)}"
+            esiti_richieste_token[address][id_richiesta] = f"❌ Errore nell'accettazione della richiesta token: {str(e)}"
             
             return jsonify({"message": f"Errore nell'accettazione della richiesta token: {str(e)}"}), 500
 

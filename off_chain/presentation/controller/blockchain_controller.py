@@ -502,6 +502,26 @@ class BlockchainController:
         except Exception as e:
             logger.error(f"Errore nel recupero delle operazioni per : {e}")
             raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+        
+    def get_my_token_balance(self):
+        try:
+            # Ottieni l'indirizzo dell'account corrente
+            address = self.get_address()
+            checksum_address = Web3.to_checksum_address(address)
+            
+            # Chiama la funzione del contratto
+            balance = self.contract.functions.getMyTokenBalance().call({
+                'from': checksum_address
+            })
+            
+            logger.info(f"Balance recuperato per l'indirizzo {address}: {balance}")
+            return balance
+            
+        except Exception as e:
+            logger.error(f"Errore nel recupero del balance: {e}")
+            raise Exception(f"Errore durante il recupero del balance: {str(e)}")
+        
+
             
     def is_company_registered(self, address):
         """Verifica se un indirizzo Ethereum è registrato come azienda sulla blockchain
@@ -699,5 +719,60 @@ class BlockchainController:
                 raise Exception(error_msg)
         except Exception as e:
             error_msg = f"Errore nell'invio della richiesta token sulla blockchain: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
+        
+
+    def accetta_richiesta_token(self, id_richiesta,account_address):
+        """
+        Crea una richiesta di token sulla blockchain.
+        
+        Args:
+            provider_address: Indirizzo dell'azienda che fornisce i token
+            amount: Quantità di token richiesti
+            purpose: Scopo della richiesta (sostenibilità)
+            co2_reduction: Stima della riduzione di CO2
+            account_address: Indirizzo dell'account che effettua la richiesta
+            
+        Returns:
+            str: Hash della transazione
+        """
+        try:
+            
+            requester_address_checksum = Web3.to_checksum_address(account_address)
+            
+            logger.info(f"Accetto richiesta token: provider={account_address}, id={id_richiesta}")
+            
+            # Ottieni il nonce per l'account
+            nonce = w3.eth.get_transaction_count(requester_address_checksum)
+            
+            # Costruisci la transazione
+            txn = self.contract.functions.acceptTokenRequest(
+                id_richiesta
+            ).build_transaction({
+                'from': requester_address_checksum,
+                'gas': 2000000,  # Gas limit
+                'gasPrice': w3.eth.gas_price,
+                'nonce': nonce,
+            })
+            
+            # NOTA: In un ambiente reale, qui dovremmo firmare la transazione con la chiave privata
+            # Ma poiché stiamo usando Hardhat in modalità sviluppo, possiamo inviare direttamente
+            # la transazione senza firmarla, e Hardhat la firmerà automaticamente
+            
+            # Invia la transazione
+            tx_hash = w3.eth.send_transaction(txn)
+            tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            # Verifica lo stato della transazione
+            if tx_receipt['status'] == 1:
+                logger.info(f"Accettazione token inviata con successo. Tx hash: {tx_hash.hex()}")
+                return tx_hash.hex()
+            else:
+                error_msg = f"Errore nell'accettazione della richiesta token. Transazione fallita. Status: {tx_receipt['status']}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+        except Exception as e:
+            error_msg = f"Errore nell'accettazione della richiesta token sulla blockchain: {str(e)}"
             logger.error(error_msg)
             raise Exception(error_msg)

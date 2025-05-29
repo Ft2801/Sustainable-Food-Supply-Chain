@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract SustainableFoodChain is ReentrancyGuard, ERC20 {
+
+
     // Eventi User Registry
     event UserRegistered(address indexed userAddress, string name, string role);
     event UserUpdated(address indexed userAddress, string name, string role);
@@ -380,6 +382,10 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         return operations[operationId];
     }
 
+    function getMyTokenBalance() external view returns (uint256) {
+        return balanceOf(msg.sender);
+    }
+
     function registerCompensationAction(
         string calldata actionType,
         uint256 co2Reduction, // in kg
@@ -595,6 +601,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         TokenRequest storage currentRequest = requests[_requestId];
         
         ERC20.transfer(currentRequest.requester, currentRequest.amount); 
+
+        messaggi.push(Message({
+            utente: msg.sender,
+            tipo : "accettazione",
+            messaggio: "id_request",
+            valore: _requestId
+        }));
         
         currentRequest.status = RequestStatus.Accepted;
         currentRequest.lastUpdateTimestamp = block.timestamp;
