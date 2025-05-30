@@ -377,7 +377,7 @@ class OperationRepositoryImpl(ABC):
         """, (tipo_operazione, id_prodotto))
 
         if not result:
-            raise ValueError("Soglia non trovata.")
+            raise ValueError(f"Soglia non trovata. {tipo_operazione},{id_prodotto}")
         
 
         tipo_operazione, id_prodotto, soglia_massima, firma = result[0]

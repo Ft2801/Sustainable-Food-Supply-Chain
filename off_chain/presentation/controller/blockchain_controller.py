@@ -58,7 +58,7 @@ class BlockchainController:
 
         account = self.get_address()  # Funzione che recupera account locale
 
-        messaggio = f"Conferma operazione {tipo} sil lotto {id_lotto} con id op {id_operazione}"
+        messaggio = f"Conferma operazione {tipo} lotto {id_lotto} con id op {id_operazione}"
         messaggio_encoded = messaggio.replace(" ", "%20")
 
         url = f"http://localhost:5001/firma_operazione.html?messaggio={messaggio_encoded}&tipo={tipo}&lotto={id_lotto}&op={id_operazione}"
@@ -332,10 +332,16 @@ class BlockchainController:
             result = db.fetch_results(query=query_op,params=params)
 
             if result:
-                id_prodotto, co2Consumed, quantita = result[0]
+                id_prodotto, co2Consumed_db, quantita_db = result[0]
                 
             else:
                 raise Exception("Errore nel'inserimento dell'operazione")
+            
+            try:
+                co2Consumed = int(co2Consumed_db)
+                quantita = int(quantita_db)
+            except ValueError as e:
+                raise ValueError(f"co2 o quantita non interi")
 
 
             operation_type_map = {
