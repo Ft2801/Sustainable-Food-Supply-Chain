@@ -311,24 +311,26 @@ class BlockchainController:
     def invia_operazione(self, operation_type, description, batch_id, id_operazione, account_address):
         """Registra un'operazione sulla blockchain"""
         try:
-            # Debugging dei tipi di dati ricevuti
-            logger.info(f"DATI RICEVUTI - operation_type: {operation_type} (tipo: {type(operation_type)}), "
-                        f"batch_id: {batch_id} (tipo: {type(batch_id)}), "
-                        f"description: {description} (tipo: {type(description)})")
+            # Log dei parametri di input con formato strutturato
+            logger.info(f"[Operazione #{id_operazione}] Parametri: tipo={operation_type}, lotto={batch_id}, descrizione='{description}'")
             
-
+            # Recupero informazioni sui lotti di input dal database
             db = Database()
-            query = "SELECT id_lotto_input,quantità_utilizzata FROM ComposizioneLotto WHERE id_lotto_output = ? "
+            query = "SELECT id_lotto_input, quantità_utilizzata FROM ComposizioneLotto WHERE id_lotto_output = ? "
             params = (batch_id,)
             result = db.fetch_results(query=query, params=params)
-
-
-
+            
+            # Estrazione dei dati dai risultati della query
             id_lotti = [row[0] for row in result] if result else []
             quantita_lotti = [row[1] for row in result] if result else []
-
-
-            logger.info(f"I LOTTI DI INPUT SONO: {id_lotti} CON QUANTITA {quantita_lotti} \n \n\n\n")
+            
+            # Log dei lotti di input con formato strutturato
+            if id_lotti:
+                logger.info(f"[Operazione #{id_operazione}] Composizione: lotto {batch_id} composto da {len(id_lotti)} lotti di input")
+                for i, (lotto_id, quantita) in enumerate(zip(id_lotti, quantita_lotti)):
+                    logger.info(f"  - Input #{i+1}: lotto {lotto_id}, quantità {quantita}")
+            else:
+                logger.info(f"[Operazione #{id_operazione}] Nessun lotto di input (operazione di produzione primaria)")
 
             query_op = "SELECT Id_prodotto, Consumo_CO2, quantita FROM Operazione WHERE Id_operazione = ? "
             params = (id_operazione,)
@@ -391,9 +393,10 @@ class BlockchainController:
                 logger.warning(f"Impossibile convertire batch_id a intero: {batch_id}, impostando a 1")
                 batch_id_int = 1
             
-            logger.info(f" lotto={batch_id_int} composto da {id_lotti}, e quantita {quantita_lotti}")
+            logger.info(f"[Operazione #{id_operazione}] Preparazione transazione: lotto={batch_id_int}, tipo={operation_type_int}")
 
-            tx = self.contract.functions.registerOperation(
+            # 1. Registra l'operazione
+            tx_register = self.contract.functions.registerOperation(
                 id_operazione,
                 operation_type_int,  # Usa il valore convertito a intero
                 batch_id_int,
@@ -406,24 +409,38 @@ class BlockchainController:
                 'gasPrice': gas_price,
                 'gas': 650000,
             })
-            account = Web3.to_checksum_address(account_address)
+            
+            # Invia la prima transazione
+            tx_hash_register = w3.eth.send_transaction(tx_register)
+            receipt_register = w3.eth.wait_for_transaction_receipt(tx_hash_register, timeout=120)
+            logger.info(f"[Operazione #{id_operazione}] Transazione 1/3 (registerOperation): {tx_hash_register.hex()}, status={receipt_register.status}")
+            
+            # Incrementa il nonce per la prossima transazione
             nonce = w3.eth.get_transaction_count(account)
-
-            self.contract.functions.createComposizioneLotto(
-                batch_id_int,
-                id_lotti,
-                quantita_lotti
-            ).build_transaction({
-                'from': account,
-                'nonce': nonce,
-                'gasPrice': gas_price,
-                'gas': 650000,
-            })
-
-            account = Web3.to_checksum_address(account_address)
-            nonce = w3.eth.get_transaction_count(account)
-
-            self.contract.functions.assignTokensByConsumption(
+            
+            # 2. Crea la composizione del lotto (solo se ci sono lotti di input)
+            if id_lotti and len(id_lotti) > 0:
+                tx_composizione = self.contract.functions.createComposizioneLotto(
+                    batch_id_int,
+                    id_lotti,
+                    quantita_lotti
+                ).build_transaction({
+                    'from': account,
+                    'nonce': nonce,
+                    'gasPrice': gas_price,
+                    'gas': 650000,
+                })
+                
+                # Invia la seconda transazione
+                tx_hash_composizione = w3.eth.send_transaction(tx_composizione)
+                receipt_composizione = w3.eth.wait_for_transaction_receipt(tx_hash_composizione, timeout=120)
+                logger.info(f"[Operazione #{id_operazione}] Transazione 2/3 (createComposizioneLotto): {tx_hash_composizione.hex()}, status={receipt_composizione.status}")
+                
+                # Incrementa il nonce per la prossima transazione
+                nonce = w3.eth.get_transaction_count(account)
+            
+            # 3. Assegna i token in base al consumo di CO2
+            tx_token = self.contract.functions.assignTokensByConsumption(
                 soglia_op,
                 co2Consumed
             ).build_transaction({
@@ -432,9 +449,14 @@ class BlockchainController:
                 'gasPrice': gas_price,
                 'gas': 650000,
             })
-
-            # Firma e invia la transazione
-            tx_hash = w3.eth.send_transaction(tx)
+            
+            # Invia la terza transazione
+            tx_hash_token = w3.eth.send_transaction(tx_token)
+            receipt_token = w3.eth.wait_for_transaction_receipt(tx_hash_token, timeout=120)
+            logger.info(f"[Operazione #{id_operazione}] Transazione 3/3 (assignTokensByConsumption): {tx_hash_token.hex()}, status={receipt_token.status}, CO2: soglia={soglia_op}, consumata={co2Consumed}")
+            
+            # Usa l'hash della prima transazione come riferimento principale
+            tx_hash = tx_hash_register
 
             receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
 
@@ -509,24 +531,52 @@ class BlockchainController:
             logger.error(f"Errore nel recupero delle operazioni per : {e}")
             raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
         
-    def getComposizione(self,id):
+    def getComposizione(self, id_lotto):
+        """
+        Recupera la catena completa di lotti e creatori per un lotto specifico.
+        
+        Args:
+            id_lotto: ID del lotto di cui recuperare la catena
+            
+        Returns:
+            tuple: (ids[], creatori[]) - Array di ID lotti e relativi creatori nella catena
+        """
         try:
-            res = self.contract.functions.getCatenaConCreatori(id).call()
-            logger.info(f"composizione : {res}")
-            return res
+            logger.info(f"[Lotto #{id_lotto}] Recupero catena di tracciabilità")
+            # getCatenaConCreatori restituisce una tupla (ids[], creatori[])
+            ids, creatori = self.contract.functions.getCatenaConCreatori(id_lotto).call()
+            
+            # Log dettagliato della catena di lotti
+            if ids and len(ids) > 0:
+                logger.info(f"[Lotto #{id_lotto}] Catena di tracciabilità: trovati {len(ids)} lotti nella catena")
+                for i, (lotto_id, creatore) in enumerate(zip(ids, creatori)):
+                    logger.info(f"  - Anello #{i+1}: lotto {lotto_id}, creatore {creatore}")
+            else:
+                logger.info(f"[Lotto #{id_lotto}] Nessun lotto trovato nella catena di tracciabilità")
+                
+            return (ids, creatori)
         except Exception as e:
-            logger.error(f"Errore nel recupero delle operazioni per : {e}")
-            raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+            logger.error(f"[Lotto #{id_lotto}] Errore nel recupero della catena di tracciabilità: {e}")
+            raise Exception(f"Errore durante il recupero della catena di tracciabilità: {str(e)}")
 
         
     def get_all_comp(self):
+        """
+        Recupera tutte le composizioni di lotti registrate sulla blockchain.
+        """
         try:
-            res = self.contract.functions.getAllComposizioni().call()
-            logger.info(f"Operazioni recuperate per l'azienda : {res}")
-            return res
+            logger.info("Recupero di tutte le composizioni di lotti dalla blockchain")
+            composizioni = self.contract.functions.getAllComposizioni().call()
+            
+            if composizioni and len(composizioni) > 0:
+                logger.info(f"Trovate {len(composizioni)} composizioni di lotti sulla blockchain")
+            else:
+                logger.info("Nessuna composizione di lotti trovata sulla blockchain")
+                
+            return composizioni
         except Exception as e:
-            logger.error(f"Errore nel recupero delle operazioni per : {e}")
-            raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+            logger.error(f"Errore nel recupero delle composizioni di lotti: {e}")
+            raise Exception(f"Errore durante il recupero delle composizioni di lotti: {str(e)}")
         
     def get_my_token_balance(self):
         try:
