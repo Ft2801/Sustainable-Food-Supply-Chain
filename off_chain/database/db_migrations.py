@@ -220,7 +220,7 @@ class DatabaseMigrations:
                 Data_operazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 Consumo_CO2 REAL NOT NULL,
                 quantita REAL NOT NULL CHECK(quantita > 0),
-                Tipo TEXT CHECK(tipo IN ('produzione', 'trasporto', 'trasformazione', 'vendita')) NOT NULL,
+                Tipo TEXT CHECK(tipo IN ('produzione','cessione', 'trasporto', 'trasformazione', 'vendita')) NOT NULL,
                 blockchain_registered BOOLEAN DEFAULT 0,
                 FOREIGN KEY (Id_azienda) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE,
                 FOREIGN KEY (Id_prodotto) REFERENCES Prodotto(Id_prodotto) ON DELETE CASCADE

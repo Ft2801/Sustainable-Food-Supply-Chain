@@ -145,7 +145,7 @@ def conferma_operazione():
         # Chiamata al controller per inviare sulla blockchain
         controller = BlockchainController()
         tx_hash = controller.invia_operazione(
-            operation_type=operation_type,
+            operation_type=tipo,
             description=messaggio,
             batch_id=batch_id,
             id_operazione=id_operazione,

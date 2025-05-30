@@ -7,10 +7,12 @@ import sqlite3
 from session import Session
 from persistence.repository_impl.credential_repository_impl import CredentialRepositoryImpl
 from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
+from persistence.repository_impl.operation_repository_impl import OperationRepositoryImpl
 from configuration.log_load_setting import logger
 import subprocess
 import requests
 import time
+from configuration.database import Database
 
 # CONFIGURAZIONE
 NODE_URL = "http://127.0.0.1:8545"  # Nodo Hardhat
@@ -314,6 +316,44 @@ class BlockchainController:
                         f"batch_id: {batch_id} (tipo: {type(batch_id)}), "
                         f"description: {description} (tipo: {type(description)})")
             
+
+            db = Database()
+            query = "SELECT id_lotto_input,quantità FROM ComposizioneLotto WHERE id_lotto_output = ? "
+            params = (batch_id,)
+            result = db.fetch_results(query=query, params=params)
+
+
+
+            id_lotti = [row[0] for row in result] if result else [2001,2002]
+            quantita_lotti = [row[1] for row in result] if result else [20,10]
+
+            query_op = "SELECT Id_prodotto, Consumo_CO2, quantita FROM Operazione WHERE Id_operazione = ? "
+            params = (id_operazione,)
+            result = db.fetch_results(query=query_op,params=params)
+
+            if result:
+                id_prodotto, co2Consumed, quantita = result[0]
+                
+            else:
+                raise Exception("Errore nel'inserimento dell'operazione")
+
+
+            operation_type_map = {
+                "Produzione": 0,
+                "Trasformazione": 1,
+                "Distribuzione": 2,
+                "Vendita": 3
+            }
+            tipo_bc = operation_type_map.get(operation_type, 0)
+
+
+
+            
+            rep = OperationRepositoryImpl()
+            soglia_op = rep.recupera_soglia(operation_type,id_prodotto)
+
+
+            
             # Verifica e gestisci tipi di dati anomali
             if isinstance(operation_type, list):
                 logger.warning(f"operation_type è una lista: {operation_type}, usando il primo elemento o 0")
@@ -328,14 +368,10 @@ class BlockchainController:
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
 
-            # Assicurati che i tipi di dati siano corretti per il contratto
-            # operation_type deve essere uint8
-            # batch_id deve essere uint256
-            # description è una stringa
             
             # Converti i tipi se necessario - usa try/except per gestire casi di stringa
             try:
-                operation_type_int = int(operation_type)  # Converti in intero per uint8
+                operation_type_int = int(tipo_bc)  # Converti in intero per uint8
             except (ValueError, TypeError):
                 logger.warning(f"Impossibile convertire operation_type a intero: {operation_type}, impostando a 0")
                 operation_type_int = 0
@@ -349,132 +385,70 @@ class BlockchainController:
             logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
 
             tx = self.contract.functions.registerOperation(
+                id_operazione,
                 operation_type_int,  # Usa il valore convertito a intero
                 description,
-                batch_id_int  # Usa il valore convertito a intero
+                batch_id_int,
+                quantita,
+                soglia_op,
+                co2Consumed,
+                id_lotti,
+                quantita_lotti  # Usa il valore convertito a intero
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
                 'gasPrice': gas_price,
-                'gas': 300000,
+                'gas': 650000,
             })
 
             # Firma e invia la transazione
             tx_hash = w3.eth.send_transaction(tx)
+
+            receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+
+            if receipt.status == 1:
             
             # Aggiorna lo stato dell'operazione nel database
-            if id_operazione is not None:
-                try:
-                    conn = sqlite3.connect(DATABASE_PATH)
-                    cursor = conn.cursor()
-                    # Recupera i dettagli dell'operazione per calcolare i token da assegnare
-                    cursor.execute(
-                        """SELECT O.Id_azienda, O.Id_prodotto, O.Consumo_CO2, O.Tipo 
-                           FROM Operazione O 
-                           WHERE O.Id_operazione = ?""",
-                        (id_operazione,)
-                    )
-                    op_details = cursor.fetchone()
-                    
-                    if op_details:
-                        id_azienda, id_prodotto, co2_consumata, tipo_operazione = op_details
-                        
-                        # Calcola i token da assegnare usando la funzione token_opeazione (per fallback)
-                        from persistence.repository_impl.operation_repository_impl import OperationRepositoryImpl
-                        op_repo = OperationRepositoryImpl()
-                        token_assegnati = op_repo.token_opeazione(co2_consumata, tipo_operazione, id_prodotto)
-                        
-                        # Aggiorna l'operazione come registrata sulla blockchain
+                if id_operazione is not None:
+                    try:
+                        conn = sqlite3.connect(DATABASE_PATH)
+                        cursor = conn.cursor()
+                        # Recupera i dettagli dell'operazione per calcolare i token da assegnare
                         cursor.execute(
-                            "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                            """SELECT O.Id_azienda, O.Id_prodotto, O.Consumo_CO2, O.Tipo 
+                            FROM Operazione O 
+                            WHERE O.Id_operazione = ?""",
                             (id_operazione,)
                         )
+                        op_details = cursor.fetchone()
+                        
+                        if op_details:
+                            id_azienda, id_prodotto, co2_consumata, tipo_operazione = op_details
+                            
+                            op_repo = OperationRepositoryImpl()
+                            token_assegnati = op_repo.token_opeazione(co2_consumata, tipo_operazione, id_prodotto)
+                            
+                            # Aggiorna l'operazione come registrata sulla blockchain
+                            cursor.execute(
+                                "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
+                                (id_operazione,)
+                            )
+
+                            cursor.execute(
+                                    "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
+                                    (token_assegnati, id_azienda)
+                                )
+                            logger.info(f"Database locale sincronizzato con lo stato on-chain: {token_assegnati} token")
+                    except Exception as e:
+                        #gestire roll back
+                        pass
+
+                    finally:
+                        conn.commit()
+                        conn.close()
+
                         
                         # Invece di aggiornare direttamente i token nel DB, assegna i token tramite il contratto
-                        try:
-                            # Ottieni un nuovo nonce per la transazione
-                            nonce = w3.eth.get_transaction_count(account)
-                            
-                            # Converti i tipi di parametri in formati corretti per il contratto
-                            # Assicurati che id_prodotto sia un intero
-                            id_prodotto_int = int(id_prodotto)
-                            # Assicurati che co2_consumata sia un intero
-                            co2_consumata_int = int(co2_consumata)
-                            
-                            logger.info(f"Chiamata alla funzione assignTokensByConsumption - tipo_operazione: {tipo_operazione}, "
-                                       f"id_prodotto: {id_prodotto_int}, co2_consumata: {co2_consumata_int}")
-                            
-                            # Stampa i dettagli completi dell'operazione per debug
-                            logger.info(f"DETTAGLI COMPLETI - account: {account}, tipo: {tipo_operazione}, "
-                                       f"id_prod: {id_prodotto_int} ({type(id_prodotto_int)}), "
-                                       f"co2: {co2_consumata_int} ({type(co2_consumata_int)})")
-                            
-                            # Controlla se la funzione esiste nel contratto
-                            if 'assignTokensByConsumption' not in dir(self.contract.functions):
-                                funzioni_disponibili = dir(self.contract.functions)
-                                logger.error(f"Funzione assignTokensByConsumption non trovata nel contratto! "
-                                            f"Funzioni disponibili: {funzioni_disponibili}")
-                                raise Exception("Funzione non trovata nel contratto")
-                            
-                            # Prepara la transazione per la funzione assignTokensByConsumption
-                            token_tx = self.contract.functions.assignTokensByConsumption(
-                                tipo_operazione,      # Tipo operazione (es. "produzione", "trasporto")
-                                id_prodotto_int,      # ID prodotto come intero
-                                co2_consumata_int     # Consumo CO2 effettivo come intero
-                            ).build_transaction({
-                                'from': account,
-                                'nonce': nonce,
-                                'gasPrice': gas_price,
-                                'gas': 500000,        # Gas limit aumentato per operazioni complesse
-                            })
-                            
-                            # Invia la transazione
-                            token_tx_hash = w3.eth.send_transaction(token_tx)
-                            logger.info(f"Token assegnati on-chain con transazione: {token_tx_hash.hex()}")
-                            
-                            # Attendi la conferma della transazione
-                            receipt = w3.eth.wait_for_transaction_receipt(token_tx_hash, timeout=120)
-                            if receipt.status == 1:
-                                logger.info(f"Transazione per l'assegnazione dei token completata con successo")
-                                
-                                # Anche se la transazione on-chain è riuscita, aggiorna comunque il database locale
-                                # per mantenere sincronizzati i token tra blockchain e database
-                                cursor.execute(
-                                    "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
-                                    (token_assegnati, id_azienda)
-                                )
-                                logger.info(f"Database locale sincronizzato con lo stato on-chain: {token_assegnati} token")
-                            else:
-                                logger.error(f"Errore nell'assegnazione dei token on-chain")
-                                # Fallback al database locale in caso di errore
-                                cursor.execute(
-                                    "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
-                                    (token_assegnati, id_azienda)
-                                )
-                                logger.info(f"Fallback: token assegnati localmente nel database ({token_assegnati} token)")
-                        except Exception as e:
-                            logger.error(f"Errore nell'assegnazione dei token on-chain: {str(e)}")
-                            # In caso di errore nell'assegnazione on-chain, fallback all'aggiornamento locale
-                            cursor.execute(
-                                "UPDATE Azienda SET Token = Token + ? WHERE Id_azienda = ?",
-                                (token_assegnati, id_azienda)
-                            )
-                            logger.info(f"Fallback: token assegnati localmente nel database ({token_assegnati} token)")
-                        
-                        logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
-                    else:
-                        # Se non troviamo l'operazione, aggiorniamo solo il flag
-                        cursor.execute(
-                            "UPDATE Operazione SET blockchain_registered = 1 WHERE Id_operazione = ?",
-                            (id_operazione,)
-                        )
-                        logger.info(f"Operazione {id_operazione} marcata come registrata sulla blockchain")
-                        
-                    conn.commit()
-                    conn.close()
-                except Exception as e:
-                    logger.error(f"Errore nell'aggiornamento dello stato dell'operazione: {e}")
-                    # Non solleviamo l'eccezione qui per non interrompere il flusso principale
             
             return tx_hash.hex()
         
@@ -497,6 +471,25 @@ class BlockchainController:
     def get_all_op(self):
         try:
             res = self.contract.functions.getAllOperations().call()
+            logger.info(f"Operazioni recuperate per l'azienda : {res}")
+            return res
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle operazioni per : {e}")
+            raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+        
+    def getComposizione(self):
+        try:
+            res = self.contract.functions.getCatenaConCreatori().call()
+            logger.info(f"Operazioni recuperate per l'azienda : {res}")
+            return res
+        except Exception as e:
+            logger.error(f"Errore nel recupero delle operazioni per : {e}")
+            raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
+
+        
+    def get_all_comp(self):
+        try:
+            res = self.contract.functions.getAllLotti().call()
             logger.info(f"Operazioni recuperate per l'azienda : {res}")
             return res
         except Exception as e:

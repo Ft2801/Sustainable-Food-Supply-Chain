@@ -7,6 +7,7 @@ TIPO_AZIENDA_CERTIFICATORE = "Certificatore"
 
 # Tipi di operazione
 TIPO_OP_PRODUZIONE = "produzione"
+TIPO_OP_CESSIONE = "cessione"
 TIPO_OP_TRASPORTO = "trasporto"
 TIPO_OP_TRASFORMAZIONE = "trasformazione"
 TIPO_OP_VENDITA = "vendita"

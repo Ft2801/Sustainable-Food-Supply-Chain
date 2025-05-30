@@ -42,7 +42,8 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         OperationType operationType,
         uint256 timestamp,
         string description,
-        uint256 batchId
+        uint256 batchId,
+        uint256 quantita
     );
     
     // Eventi Azioni Compensative
@@ -69,6 +70,12 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         address indexed fromAddress,
         address indexed toAddress,
         uint256 timestamp
+    );
+
+    event LottoComposto(
+        uint256 indexed id_lotto_output,
+        uint256 indexed id_lotto_input,
+        uint256 quantita
     );
     
     struct User {
@@ -117,6 +124,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         uint256 timestamp;
         string description;
         uint256 batchId;
+        uint256 quantita;
         bool isValid;
     }
     
@@ -143,6 +151,14 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         bool isActive;
         bool isProcessed; // Indica se è un prodotto trasformato
     }
+
+    struct ComposizioneLotto {
+        uint256 id_lotto_output;
+        uint256 id_lotto_input;
+        uint256 quantita;
+    }
+
+    ComposizioneLotto[] public composizioniLotto;
     
     // Struttura per le soglie di CO2 per operazione e prodotto
     struct CO2Threshold {
@@ -157,13 +173,51 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         uint256 valore;
     }
 
+    struct Lotto {
+        uint256 id_lotto;
+        address creatore;
+        uint256 quantita_totale;
+        uint256 timestamp;
+    }
+
+    mapping(uint256 => Lotto) public lotti;
+    uint256[] public tuttiLotti;
+
+    function creaLotto(uint256 id_lotto, uint256 quantita) public returns (uint256) {
+        require(quantita > 0, "Quantita deve essere maggiore di zero");
+        require(lotti[id_lotto].id_lotto == 0, "ID gia usato");
+
+        lotti[id_lotto] = Lotto({
+            id_lotto: id_lotto,
+            creatore: msg.sender,
+            quantita_totale: quantita,
+            timestamp: block.timestamp
+        });
+
+        tuttiLotti.push(id_lotto);
+        return id_lotto;
+    }
+
+    function getAllLotti() public view returns (Lotto[] memory) {
+        Lotto[] memory elenco = new Lotto[](tuttiLotti.length);
+        for (uint256 i = 0; i < tuttiLotti.length; i++) {
+            elenco[i] = lotti[tuttiLotti[i]];
+        }
+        return elenco;
+    }
+
+
     Message[] private messaggi;
 
     function getAllOperations() public view returns (Message[] memory) {
         return messaggi;
     }
 
+
     
+    mapping(uint256 => bool) private usedBatchIds;
+    mapping(uint256 => bool) private lista_op;
+
     mapping(address => User) private users;
     mapping(address => bool) private isUserRegistered;
     mapping(address => uint256[]) public companyOperations;
@@ -175,7 +229,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     uint256 public nextRequestId = 1;
     
     mapping(uint256 => Operation) public operations;
-    uint256 public nextOperationId = 1;
+    
     
     mapping(uint256 => CompensationAction) public compensationActions;
     uint256 public nextCompensationActionId = 1;
@@ -222,64 +276,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         // Assegna 1000 token iniziali all'indirizzo del deployer
         _mint(msg.sender, 1000 * 10**decimals());
         
-        // Inserimento diretto delle soglie dal database
-        // Soglie per operazione "produzione"
-        co2Thresholds["produzione"][1] = CO2Threshold(52, true);
-        co2Thresholds["produzione"][2] = CO2Threshold(54, true);
-        co2Thresholds["produzione"][3] = CO2Threshold(56, true);
-        co2Thresholds["produzione"][4] = CO2Threshold(58, true);
-        co2Thresholds["produzione"][5] = CO2Threshold(60, true);
-        co2Thresholds["produzione"][6] = CO2Threshold(62, true);
-        co2Thresholds["produzione"][7] = CO2Threshold(64, true);
-        co2Thresholds["produzione"][8] = CO2Threshold(66, true);
-        co2Thresholds["produzione"][9] = CO2Threshold(68, true);
-        co2Thresholds["produzione"][10] = CO2Threshold(70, true);
-        
-        // Soglie per operazione "trasporto"
-        co2Thresholds["trasporto"][1] = CO2Threshold(52, true);
-        co2Thresholds["trasporto"][2] = CO2Threshold(54, true);
-        co2Thresholds["trasporto"][3] = CO2Threshold(56, true);
-        co2Thresholds["trasporto"][4] = CO2Threshold(58, true);
-        co2Thresholds["trasporto"][5] = CO2Threshold(60, true);
-        co2Thresholds["trasporto"][6] = CO2Threshold(62, true);
-        co2Thresholds["trasporto"][7] = CO2Threshold(64, true);
-        co2Thresholds["trasporto"][8] = CO2Threshold(66, true);
-        co2Thresholds["trasporto"][9] = CO2Threshold(68, true);
-        co2Thresholds["trasporto"][10] = CO2Threshold(70, true);
-        co2Thresholds["trasporto"][11] = CO2Threshold(72, true);
-        co2Thresholds["trasporto"][12] = CO2Threshold(74, true);
-        co2Thresholds["trasporto"][13] = CO2Threshold(76, true);
-        co2Thresholds["trasporto"][14] = CO2Threshold(78, true);
-        co2Thresholds["trasporto"][15] = CO2Threshold(80, true);
-        co2Thresholds["trasporto"][16] = CO2Threshold(82, true);
-        co2Thresholds["trasporto"][17] = CO2Threshold(84, true);
-        co2Thresholds["trasporto"][18] = CO2Threshold(86, true);
-        co2Thresholds["trasporto"][19] = CO2Threshold(88, true);
-        co2Thresholds["trasporto"][20] = CO2Threshold(90, true);
-        
-        // Soglie per operazione "trasformazione"
-        co2Thresholds["trasformazione"][11] = CO2Threshold(72, true);
-        co2Thresholds["trasformazione"][12] = CO2Threshold(74, true);
-        co2Thresholds["trasformazione"][13] = CO2Threshold(76, true);
-        co2Thresholds["trasformazione"][14] = CO2Threshold(78, true);
-        co2Thresholds["trasformazione"][15] = CO2Threshold(80, true);
-        co2Thresholds["trasformazione"][16] = CO2Threshold(82, true);
-        co2Thresholds["trasformazione"][17] = CO2Threshold(84, true);
-        co2Thresholds["trasformazione"][18] = CO2Threshold(86, true);
-        co2Thresholds["trasformazione"][19] = CO2Threshold(88, true);
-        co2Thresholds["trasformazione"][20] = CO2Threshold(90, true);
-        
-        // Soglie per operazione "vendita"
-        co2Thresholds["vendita"][11] = CO2Threshold(72, true);
-        co2Thresholds["vendita"][12] = CO2Threshold(74, true);
-        co2Thresholds["vendita"][13] = CO2Threshold(76, true);
-        co2Thresholds["vendita"][14] = CO2Threshold(78, true);
-        co2Thresholds["vendita"][15] = CO2Threshold(80, true);
-        co2Thresholds["vendita"][16] = CO2Threshold(82, true);
-        co2Thresholds["vendita"][17] = CO2Threshold(84, true);
-        co2Thresholds["vendita"][18] = CO2Threshold(86, true);
-        co2Thresholds["vendita"][19] = CO2Threshold(88, true);
-        co2Thresholds["vendita"][20] = CO2Threshold(90, true);
     }
     
     function registerCompany(
@@ -343,34 +339,117 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
 
     function registerOperation(
+        uint256 id_operazione,
         OperationType operationType,
-        string memory description,
-        uint256 batchId
-    ) public returns (uint256) {
-        uint256 operationId = nextOperationId++;
+        string calldata description,
+        uint256 batchId,
+        uint256 quantita,
+        uint256 soglia_op,
+        uint256 co2Consumed,
+        uint256[] calldata id_lotti,
+        uint256[] calldata quantita_lotti
+    ) external returns (uint256) {
+        require(id_lotti.length == quantita_lotti.length, "Array length mismatch");
+        require(!usedBatchIds[batchId], "Batch ID already used");
+        require(!lista_op[id_operazione], "Operazione  registrata");
 
-        operations[operationId] = Operation(
+        uint256 operationId;
+
+        
+        usedBatchIds[batchId] = true;
+        lista_op[id_operazione] = true;
+
+
+        operations[id_operazione] = Operation(
             operationId,
             msg.sender,
             operationType,
             block.timestamp,
             description,
             batchId,
+            quantita,
             true
         );
-
-        messaggi.push(Message({
-            utente: msg.sender,
-            tipo : "operazione",
-            messaggio: description,
-            valore: batchId
-        }));
+    
 
         companyOperations[msg.sender].push(operationId);
-        emit DebugOperation(operationId, msg.sender);
+        emit OperationCreated(operationId, msg.sender, operationType, block.timestamp, description, batchId, quantita);
 
-        emit OperationCreated(operationId, msg.sender, operationType, block.timestamp, description, batchId);
+        creaLotto(batchId,quantita);
+
+        assignTokensByConsumption(operationType, soglia_op, co2Consumed);
+
+        if (operationType != OperationType.Production) {
+            createComposizioneLotto(batchId, id_lotti, quantita_lotti);
+        }
+
         return operationId;
+    }
+
+
+    function createComposizioneLotto(
+        uint256 id_lotto_output,
+        uint256[] calldata id_lotti_input,
+        uint256[] calldata quantita_input
+    ) internal {
+        require(id_lotti_input.length == quantita_input.length, "Array length mismatch");
+
+        for (uint256 i = 0; i < id_lotti_input.length; i++) {
+            uint256 idInput = id_lotti_input[i];
+            uint256 quantitaRichiesta = quantita_input[i];
+
+            // Verifica che il lotto esista
+            require(lotti[idInput].id_lotto != 0, "Lotto input inesistente");
+
+            // Verifica disponibilità quantità
+            require(lotti[idInput].quantita_totale >= quantitaRichiesta, "Quantita insufficiente nel lotto");
+
+            // Sottrai la quantità dal lotto input
+            lotti[idInput].quantita_totale -= quantitaRichiesta;
+
+            // Registra la composizione
+            composizioniLotto.push(ComposizioneLotto({
+                id_lotto_output: id_lotto_output,
+                id_lotto_input: idInput,
+                quantita: quantitaRichiesta
+            }));
+
+        }
+    }
+
+
+    function getCatenaConCreatori(uint256 idLotto)  public  view returns (uint256[] memory ids,
+            address[] memory creatori ) {
+        uint256[] memory buffer = new uint256[](tuttiLotti.length);
+        uint256 count = 0;
+        uint256 index = 0;
+
+        buffer[count++] = idLotto;
+
+        while (index < count) {
+            uint256 current = buffer[index++];
+            for (uint256 i = 0; i < composizioniLotto.length; i++) {
+                if (composizioniLotto[i].id_lotto_output == current) {
+                    buffer[count++] = composizioniLotto[i].id_lotto_input;
+                }
+            }
+        }
+
+        uint256[] memory idsOut = new uint256[](count);
+        address[] memory creatoriOut = new address[](count);
+
+        for (uint256 j = 0; j < count; j++) {
+            idsOut[j] = buffer[j];
+            creatoriOut[j] = lotti[buffer[j]].creatore;
+        }
+
+        return (idsOut, creatoriOut);
+    }
+
+
+
+    function getAllComposizioni() public view returns (ComposizioneLotto[] memory) {
+        return composizioniLotto;
     }
     
     function getCompanyOperations(address companyAddress) external view returns (uint256[] memory) {
@@ -384,7 +463,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
     function getMyTokenBalance() external view returns (uint256) {
         uint256 rawBalance = balanceOf(msg.sender);
-        return rawBalance / (10 ** decimals());
+        return rawBalance;
     }
 
     function registerCompensationAction(
@@ -403,13 +482,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             false // Deve essere verificata
         );
 
-        messaggi.push(Message({
-            utente: msg.sender,
-            tipo : "azione",
-            messaggio: description,
-            valore: co2Reduction
-        }));
-
+        _mint(msg.sender, uint256(co2Reduction));
 
         companyCompensationActions[msg.sender].push(actionId);
         emit CompensationActionCreated(actionId, msg.sender, actionType, block.timestamp, co2Reduction, description);
@@ -451,7 +524,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         emit BatchCreated(batchId, msg.sender, productName, quantity, block.timestamp, metadata);
         
         // Registra automaticamente un'operazione di produzione
-        registerOperation(OperationType.Production, "Initial batch production", batchId);
+        //registerOperation(OperationType.Production, "Initial batch production", batchId);
         return batchId;
     }
 
@@ -467,7 +540,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         require(batch.currentOwner == msg.sender, "Not the batch owner");
         require(companies[toAddress].isRegistered, "Recipient not a registered company");
         
-        registerOperation(operationType, description, batchId);
+        //registerOperation(operationType, description, batchId);
         
         address previousOwner = batch.currentOwner;
         batch.currentOwner = toAddress;
@@ -507,7 +580,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         _createProcessedBatchData(batchId, productName, quantity, metadata, rawMaterialBatchIds);
         
         // Registra un'operazione di trasformazione
-        registerOperation(OperationType.Processing, description, batchId);
+        //registerOperation(OperationType.Processing, description, batchId);
         return batchId;
     }
     
@@ -648,30 +721,25 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     /**
      * @dev Assegna o rimuove token in base alla differenza tra soglia e consumo effettivo di CO2
      * @param operationType Tipo di operazione (deve corrispondere a quello impostato nel costruttore)
-     * @param productId ID del prodotto
+     * @param soglia_co2 del prodotto
      * @param co2Consumed CO2 consumata effettivamente dall'operazione
      * @return Restituisce la quantità di token assegnati (positiva) o rimossi (negativa)
      */
-    function assignTokensByConsumption(string calldata operationType, uint256 productId, uint256 co2Consumed) external returns (int256) {
-        require(co2Thresholds[operationType][productId].isActive, "Soglia non trovata per questa operazione e prodotto");
+    function assignTokensByConsumption(OperationType operationType, uint256 soglia_co2, uint256 co2Consumed) internal returns (int256) {
         require(companies[msg.sender].isRegistered, "Azienda non registrata");
         
-        uint256 threshold = co2Thresholds[operationType][productId].maxThreshold;
-        int256 tokensToAssign;
         
-        if (co2Consumed <= threshold) {
-            // Se il consumo è minore o uguale alla soglia, l'azienda guadagna token
-            tokensToAssign = int256(threshold - co2Consumed);
+        int256 tokensToAssign = int256(soglia_co2) - int256(co2Consumed); // positivo se premio, negativo se penalità
+
+        if (tokensToAssign > 0) {
+            // Premio: assegna token
             _mint(msg.sender, uint256(tokensToAssign));
-        } else {
-            // Se il consumo è maggiore della soglia, l'azienda perde token
-            tokensToAssign = -int256(co2Consumed - threshold);
-            // Assicurati che l'azienda abbia abbastanza token da perdere
-            require(balanceOf(msg.sender) >= uint256(-tokensToAssign), "Saldo token insufficiente");
-            _burn(msg.sender, uint256(-tokensToAssign));
+        } else if (tokensToAssign < 0) {
+            // Penalità: brucia token
+            uint256 toBurn = uint256(-tokensToAssign); // usa il valore assoluto
+            require(balanceOf(msg.sender) >= toBurn, "Saldo token insufficiente");
+            _burn(msg.sender, toBurn);
         }
-        
-        emit TokensAssigned(msg.sender, tokensToAssign, co2Consumed, threshold);
         return tokensToAssign;
     }
 }

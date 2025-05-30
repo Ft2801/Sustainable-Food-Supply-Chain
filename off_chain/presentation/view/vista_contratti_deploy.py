@@ -28,16 +28,22 @@ class OperazioniCompanyView(QWidget):
     def load_data(self):
         try:
             controller = BlockchainController()
-            messaggi = controller.get_all_op()
+            messaggi = controller.get_all_comp()
             self.table.setRowCount(len(messaggi))
             self.table.setColumnCount(4)
-            self.table.setHorizontalHeaderLabels(["Mittente","Tipo", "Messaggio"])
+            self.table.setHorizontalHeaderLabels(["ido","idin", "qt"])
 
             for i, m in enumerate(messaggi):
-                self.table.setItem(i, 0, QTableWidgetItem(m[0]))  # tipo
-                self.table.setItem(i, 1, QTableWidgetItem(m[1]))
-                self.table.setItem(i, 2, QTableWidgetItem(m[3]))
-                self.table.setItem(i, 3, QTableWidgetItem(str(m[3])) ) # messaggio
+                self.table.setItem(i, 0, QTableWidgetItem(str(m[0])))  # tipo
+                self.table.setItem(i, 1, QTableWidgetItem(str(m[1])))
+                self.table.setItem(i, 2, QTableWidgetItem(str(m[2])))
+
+
+            ids, creatori = controller.getComposizione()
+
+            for i in range(len(ids)):
+                print(f"Lotto ID: {ids[i]}, Creatore: {creatori[i]}")
+                
 
         except Exception as e:
             self.label.setText(f"Errore: {str(e)}")

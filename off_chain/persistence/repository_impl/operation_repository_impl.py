@@ -224,7 +224,7 @@ class OperationRepositoryImpl(ABC):
        
 
             query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
-            params = (id_azienda_ricevente,id_prodotto, value_output_lotto, quantita, 0,db_default_string.TIPO_OP_VENDITA)
+            params = (id_azienda_ricevente,id_prodotto, value_output_lotto, quantita, 0,db_default_string.TIPO_OP_CESSIONE)
 
             queries.append((query,params))
 
@@ -370,6 +370,8 @@ class OperationRepositoryImpl(ABC):
         
 
     def recupera_soglia(self, tipo_operazione: str, id_prodotto: int) ->int:
+        if tipo_operazione == db_default_string.TIPO_OP_CESSIONE:
+            return 0
         result = self.db.fetch_results("""
             SELECT Operazione, Prodotto, Soglia_Massima, firma FROM Soglie WHERE Operazione = ? AND Prodotto = ?
         """, (tipo_operazione, id_prodotto))

@@ -178,37 +178,14 @@ class OperazioniAziendaView(QWidget):
 
             )
 
-            if esito:
-                # Aggiorna il database direttamente
-                try:
-                    # Utilizziamo il controller blockchain per registrare l'operazione e aggiornare i token
-                    # L'operazione è già stata firmata, ora dobbiamo invocare il metodo che aggiorna i token
-                    # e imposta il flag blockchain_registered
-                    blockchain_controller.invia_operazione(
-                        operation_type=operazione.nome_operazione,
-                        description=f"Operazione {operazione.nome_operazione} per {operazione.nome_prodotto}",
-                        batch_id=operazione.id_lotto,
-                        id_operazione=operazione.id_operazione,
-                        account_address=blockchain_controller.get_address()
-                    )
-                    
-                    QMessageBox.information(
-                        self,
-                        "Registrazione riuscita",
-                        f"L'operazione '{esito}' è stata registrata con successo sulla blockchain."
-                    )
-                    
+            if esito:                 
+                                      
                     # Aggiorna lo stato dell'operazione nella tabella
-                    operazione.blockchain_registered = True
-                    self.aggiorna_tabella()
-                    # Ricarica le operazioni per mostrare lo stato aggiornato
-                    self.ricarica_operazioni()
-                except Exception as db_error:
-                    QMessageBox.warning(
-                        self,
-                        "Avviso",
-                        f"L'operazione è stata registrata sulla blockchain, ma si è verificato un errore nell'aggiornamento del database locale: {str(db_error)}"
-                    )
+                operazione.blockchain_registered = True
+                self.aggiorna_tabella()
+                # Ricarica le operazioni per mostrare lo stato aggiornato
+                self.ricarica_operazioni()
+                
             
         except Exception as e:
             QMessageBox.critical(
