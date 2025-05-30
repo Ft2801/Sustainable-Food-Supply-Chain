@@ -383,7 +383,8 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     }
 
     function getMyTokenBalance() external view returns (uint256) {
-        return balanceOf(msg.sender);
+        uint256 rawBalance = balanceOf(msg.sender);
+        return rawBalance / (10 ** decimals());
     }
 
     function registerCompensationAction(
