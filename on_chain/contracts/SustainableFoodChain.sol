@@ -273,8 +273,8 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     }
     
     constructor() ERC20("CO2 Token", "CO2") {
-        // Assegna 1000 token iniziali all'indirizzo del deployer
-        _mint(msg.sender, 1000 * 10**decimals());
+        // Assegna 100 token iniziali all'indirizzo del deployer
+        _mint(msg.sender, 100);
         
     }
     
@@ -300,7 +300,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
         
         // Assegna 100 token iniziali all'azienda registrata
-        _mint(msg.sender, 100 * 10**decimals());
+        _mint(msg.sender, 100);
         
         registeredCompanyAddresses.push(msg.sender);
         emit CompanyRegistered(msg.sender, _name, _companyType, _location);
