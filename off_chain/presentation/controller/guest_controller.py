@@ -103,9 +103,9 @@ class ControllerGuest:
             logger.error(f"Errore durante il caricamento del prodotto con ID {prodotto_id}: {str(e)}")
             return None
 
-    def get_prodotti(self) -> list[ProdottoFinito]:
+    def get_prodotti(self, solo_blockchain=True) -> list[ProdottoFinito]:
         try:
-            return self.product.get_lista_prodotti()
+            return self.product.get_lista_prodotti(solo_blockchain=solo_blockchain)
         except Exception as e:
             logger.error(f"Errore durante il recupero dei prodotti: {str(e)}")
             return []

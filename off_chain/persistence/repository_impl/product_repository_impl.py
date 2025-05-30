@@ -217,21 +217,25 @@ class ProductRepositoryImpl( ABC):
         return lotto
     
 
-    def get_lista_prodotti(self):
+    def get_lista_prodotti(self, solo_blockchain=False):
 
-        query,value = (
-            self.query_builder.select(
-                "Prodotto.nome",
-                "Operazione.Id_lotto",
-                "Azienda.nome",
-                "Operazione.Id_prodotto",
-            )
-            .table("Operazione")
-            .join("Azienda", "Operazione.Id_azienda", "Azienda.Id_azienda")
-            .join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto")
-            .where("Operazione.Tipo", "=", db_default_string.TIPO_OP_VENDITA)
-            .get_query()
+        # Costruisci la query di base
+        query_builder = self.query_builder.select(
+            "Prodotto.nome",
+            "Operazione.Id_lotto",
+            "Azienda.nome",
+            "Operazione.Id_prodotto",
         )
+        query_builder = query_builder.table("Operazione")
+        query_builder = query_builder.join("Azienda", "Operazione.Id_azienda", "Azienda.Id_azienda")
+        query_builder = query_builder.join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto")
+        query_builder = query_builder.where("Operazione.Tipo", "=", db_default_string.TIPO_OP_VENDITA)
+        
+        # Se richiesto, filtra solo le operazioni registrate in blockchain
+        if solo_blockchain:
+            query_builder = query_builder.where("Operazione.blockchain_registered", "=", 1)
+            
+        query, value = query_builder.get_query()
         
         try:
             # Esegui direttamente il raw SQL (non serve builder qui)
