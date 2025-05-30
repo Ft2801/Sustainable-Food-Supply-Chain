@@ -495,7 +495,7 @@ class BlockchainController:
         
     def get_all_comp(self):
         try:
-            res = self.contract.functions.getAllLotti().call()
+            res = self.contract.functions.getAllOperations().call()
             logger.info(f"Operazioni recuperate per l'azienda : {res}")
             return res
         except Exception as e:
