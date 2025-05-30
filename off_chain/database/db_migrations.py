@@ -396,81 +396,8 @@ class DatabaseMigrations:
                     VALUES (?, ?)
                 """, (nome, stato))            
 
-            
 
-
-            # Operazioni di produzione delle materie prime
-            operazioni = [
-    # Produzione mele
-                (1, 1, 1001, 50.0, 100.0, 'produzione'),
-                # Produzione zucchero
-                (1, 2, 1002, 25.0, 50.0, 'produzione'),
-                # Trasformazione in succo
-                (2, 1, 1010, 25.0, 50.0, 'trasporto'),
-
-                (2, 2, 1020, 25.0, 50.0, 'trasporto'),
-
-                (3, 3, 1100, 10.0, 100.0, 'trasformazione'),
-
-                (2, 3, 1011, 25.0, 50.0, 'trasporto'),
-
-                (4, 3, 2000, 1.0, 10.0, 'vendita'),
-
-                
-            ]
-
-            for op in operazioni:
-                # Aggiungi il valore di default per blockchain_registered (0 = False)
-                op_with_blockchain = op + (0,)  # Aggiungi blockchain_registered = 0 (False)
-                db.execute_query("""
-                    INSERT OR IGNORE INTO Operazione (Id_azienda, Id_prodotto, Id_lotto, Consumo_CO2, quantita, Tipo, blockchain_registered)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, op_with_blockchain)
-
-            SEED_MAGAZZINO = [
-
-                
-                (1,1001, 100),
-                (1,1002,50),
-                (3,1010,200),
-                (3,1020,100)
-            ]
-
-            for id_az, id_lot, qt in SEED_MAGAZZINO:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO Magazzino (id_azienda, id_lotto, quantita)
-                    VALUES (?, ?,?)
-                """, (id_az, id_lot,qt))
-
-            # ComposizioneLotto: il succo di mela in bottiglia è fatto da mele e zucchero
-            composizioni = [
-                  # usa 40 zucchero
-                (1010, 1001, 50.0),
-                (1020, 1002, 50.0),
-                (1100,1010,20),
-                (1100,1020,20),
-                (1011,1100,10),
-                (2000,1011,5)
-            ]
-
-            for output_lotto, input_lotto, quantita_usata in composizioni:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO ComposizioneLotto (id_lotto_output, id_lotto_input, quantità_utilizzata)
-                    VALUES (?, ?, ?)
-                """, (output_lotto, input_lotto, quantita_usata))
-
-            certificati = [
-                (1001,"desc1",5),
-                (1100,"des2c",5),
-                (2000,"desc3",5)
-
-            ]
-
-            for id_lotto, desc, id_az in certificati:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO Certificato (Id_lotto, Descrizione, Id_azienda_certificatore)
-                    VALUES (?, ?, ?)
-                """, (id_lotto, desc, id_az))
+        
 
 
             seed_soglie =[
