@@ -485,7 +485,7 @@ class BlockchainController:
         
     def getComposizione(self):
         try:
-            res = self.contract.functions.getCatenaConCreatori().call()
+            res = self.contract.functions.getCatenaConCreatori(5).call()
             logger.info(f"Operazioni recuperate per l'azienda : {res}")
             return res
         except Exception as e:
