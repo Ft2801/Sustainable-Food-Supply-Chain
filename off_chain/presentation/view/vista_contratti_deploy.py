@@ -37,6 +37,7 @@ class OperazioniCompanyView(QWidget):
                 self.table.setItem(i, 0, QTableWidgetItem(str(m[0])))  # tipo
                 self.table.setItem(i, 1, QTableWidgetItem(str(m[1])))
                 self.table.setItem(i, 2, QTableWidgetItem(str(m[2])))
+                self.table.setItem(i, 3, QTableWidgetItem(str(m[3])))
 
 
             ids, creatori = controller.getComposizione()

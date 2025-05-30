@@ -298,12 +298,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             block.timestamp
         );
 
-        messaggi.push(Message({
-            utente: msg.sender,
-            tipo : "registrazione",
-            messaggio: _name,
-            valore: 1
-        }));
         
         // Assegna 100 token iniziali all'azienda registrata
         _mint(msg.sender, 100 * 10**decimals());
@@ -397,6 +391,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         for (uint256 i = 0; i < id_lotti_input.length; i++) {
             uint256 idInput = id_lotti_input[i];
             uint256 quantitaRichiesta = quantita_input[i];
+
+        messaggi.push(Message({
+            utente: msg.sender,
+            tipo : "registrazione",
+            messaggio: "lotto",
+            valore: id_lotto_output
+        }));
 
             // Verifica che il lotto esista
             require(lotti[idInput].id_lotto != 0, "Lotto input inesistente");
@@ -653,13 +654,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
             _estimatedCO2Reduction,
             false
         );
-
-        messaggi.push(Message({
-            utente: msg.sender,
-            tipo : "richiesta",
-            messaggio: "id_request",
-            valore: requestId
-        }));
         emit RequestCreated(requestId, msg.sender, _provider, _amount, _sustainabilityPurpose, _estimatedCO2Reduction);
         return requestId;
     }
@@ -676,12 +670,6 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
         
         ERC20.transfer(currentRequest.requester, currentRequest.amount); 
 
-        messaggi.push(Message({
-            utente: msg.sender,
-            tipo : "accettazione",
-            messaggio: "id_request",
-            valore: _requestId
-        }));
         
         currentRequest.status = RequestStatus.Accepted;
         currentRequest.lastUpdateTimestamp = block.timestamp;
