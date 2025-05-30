@@ -2,38 +2,42 @@
 
 ## Presentazione dell'Applicazione
 
-Il progetto Sustainable Food Supply Chain è un'applicazione innovativa che integra tecnologie blockchain con un'interfaccia utente tradizionale per gestire e tracciare la filiera alimentare in modo sostenibile. Questo sistema permette di registrare, verificare e monitorare ogni fase della catena di approvvigionamento alimentare, garantendo trasparenza, sicurezza e sostenibilità ambientale.
+Il progetto Sustainable Food Supply Chain è un'applicazione innovativa che integra tecnologie blockchain con un'interfaccia utente tradizionale per gestire e tracciare la filiera alimentare in modo sostenibile. Questo sistema permette di registrare, verificare e monitorare ogni fase della catena di approvvigionamento alimentare, garantendo trasparenza, sicurezza e sostenibilità ambientale. Permette anche agli utenti comuni la possibilità di accedere come Guest per visualizzare tutti i dati relativi al consumo di CO2 dei prodotti e lotti, oltre che alle certificazioni di qualità.
 
 L'applicazione è divisa in due componenti principali:
 - **off_chain**: Interfaccia utente e logica applicativa in Python con PyQt5
-- **on_chain**: Smart contracts e interazione blockchain basati su Ethereum/Hardhat
+- **on_chain**: Smart contracts e interazione blockchain basati su Ethereum e Hardhat
+
+L'applicazione utilizza MetaMask per l'interazione con la blockchain, consentendo agli utenti di firmare transazioni in modo sicuro per operazioni che coinvolgono token e richieste di prodotti; questo viene fatto poiché non è una buona pratica inserire la propria chiave privata all'interno dell'applicazione.
 
 ## Features
 
-- **Registrazione Utenti e Aziende**: Gestione di utenti e aziende nel sistema
+- **Registrazione Aziende**: Gestione di aziende nel sistema
 - **Tracciabilità Prodotti**: Monitoraggio completo del ciclo di vita dei prodotti alimentari
 - **Gestione Operazioni**: Registrazione e verifica delle operazioni nella filiera
-- **Controllo Qualità**: Verifica della qualità dei prodotti in ogni fase
 - **Metriche di Sostenibilità**: Monitoraggio dell'impatto ambientale
-- **Token CO2**: Sistema di tokenizzazione per la compensazione delle emissioni di carbonio
+- **Token CO2**: Sistema di tokenizzazione per la gestione delle emissioni di carbonio, utilizzato sia per le operazioni che per le azioni compensative
 - **Scambio Token**: Piattaforma per lo scambio di token tra aziende
-- **Richieste Prodotti**: Sistema di richiesta e approvazione di nuovi prodotti
+- **Richieste Prodotti**: Sistema di richiesta e approvazione per lo scambio di prodotti tra aziende
+- **Azioni Compensative**: Sistema di richiesta e approvazione per le azioni compensative di CO2
+- **Certificazioni**: Sistema di richiesta e approvazione per le certificazioni di qualità
 
 ### Requisiti Generali
 - Git
 - Python 3.8 o superiore
 - Node.js 14.x o superiore
 - npm 6.x o superiore
-- PyQt5==5.15.9
-- web3==1.10.0
-- pyotp==2.8.0
-- pyyaml==6.0
-- sqlite3==2.6.0
-- flask==3.0.2
-- flask_cors==4.0.0
+- PyQt5
+- Web3
+- PyOTP
+- PyYAML
+- SQLite
+- Flask
+- Flask-CORS
 - Hardhat
 - Ethers.js
 - OpenZeppelin Contracts
+- Metamask
 
 ## Installazione
 
@@ -44,7 +48,7 @@ git clone https://github.com/Ft2801/Sustainable-Food-Supply-Chain.git
 cd Sustainable-Food-Supply-Chain
 ```
 
-### Installazione Dipendenze off_chain (Python)
+### Installazione Dipendenze
 
 ```bash
 pip install -r requirements.txt
@@ -52,16 +56,10 @@ pip install -r requirements.txt
 
 Il file requirements.txt contiene tutte le dipendenze Python necessarie per l'applicazione.
 
-### Installazione Dipendenze on_chain (Blockchain)
-
-```bash
-cd on_chain
-npm install
-```
-
 ### Configurazione Environment
 
 L'applicazione utilizza SQLite come database, quindi non è necessario configurare un server database esterno. Il database verrà creato automaticamente al primo avvio dell'applicazione.
+È consigliabile disattivare il comando relativo alle migrazioni dopo il primo avvio dell'applicazione.
 
 ### Setup dell'Ambiente Hardhat
 
@@ -81,21 +79,28 @@ npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzepp
 
 ## Come Avviare l'Applicazione
 
+Per avviare l'applicazione completa, è necessario eseguire due componenti:
 
+1. Avviare il server backend per la comunicazione con MetaMask:
+```bash
+cd off_chain
+python backend.py
+```
 
+2. Avviare l'interfaccia utente principale:
 ```bash
 cd off_chain
 python main.py
 ```
 
-Questo script eseguirà automaticamente le seguenti operazioni:
+Questi script eseguiranno automaticamente le seguenti operazioni:
 
-1. Verifica e installazione di Hardhat se necessario
-2. Avvio di un nodo Hardhat in un terminale separato
-3. Compilazione e deployment dei contratti smart
-4. Configurazione del database
-5. Avvio dell'interfaccia grafica
-
+1. Configurazione dell'ambiente Python e installazione delle dipendenze
+2. Verifica e installazione di Hardhat se necessario
+3. Avvio di un nodo Hardhat in un terminale separato
+4. Compilazione e deployment dei contratti smart
+5. Configurazione del database
+6. Avvio dell'interfaccia grafica
 
 ## Struttura del Progetto
 
@@ -122,7 +127,8 @@ off_chain/
 ├── tests/             # Test unitari
 ├── blockchain_manager.py  # Gestione dell'interazione con la blockchain
 ├── gui_manager.py     # Gestione dell'interfaccia grafica
-└── main.py            # Punto di ingresso dell'applicazione
+├── main.py            # Punto di ingresso principale dell'applicazione (avvia l'interfaccia PyQt5)
+└── backend.py         # Server Flask per la comunicazione con MetaMask e la blockchain
 ```
 
 ### Struttura on_chain
@@ -130,20 +136,10 @@ off_chain/
 ```
 on_chain/
 ├── contracts/         # Smart contracts Solidity
-│   ├── CO2Token.sol           # Token per la compensazione CO2
-│   ├── CompanyRegistry.sol     # Registro delle aziende
-│   ├── IERC20.sol              # Interfaccia standard per token
-│   ├── OperationRegistry.sol   # Registro delle operazioni
-│   ├── ProductRegistry.sol     # Registro dei prodotti
-│   ├── ProductRequest.sol      # Gestione richieste prodotti
-│   ├── QualityControl.sol      # Controllo qualità
-│   ├── SupplyChain.sol         # Gestione della filiera
-│   ├── SupplyChainCO2.sol      # Gestione CO2 nella filiera
-│   ├── SustainabilityMetrics.sol # Metriche di sostenibilità
-│   ├── TokenExchange.sol       # Scambio di token
-│   └── UserRegistry.sol        # Registro degli utenti
+│   ├── SustainableFoodChain.sol   # Contratto principale per le operazioni sui Token
 ├── migrations/        # Script di migrazione/deployment
 ├── scripts/           # Script di utilità
+├── controller/        # Controller per le operazioni
 ├── hardhat.config.js  # Configurazione di Hardhat
 └── package.json       # Dipendenze Node.js
 ```
@@ -152,14 +148,13 @@ on_chain/
 
 L'applicazione utilizza Hardhat per simulare una blockchain Ethereum locale. Il contratto principale SustainableFoodChain integra diverse funzionalità:
 
-- **Registro Utenti**: Registrazione e gestione degli utenti nel sistema
-- **Registro Aziende**: Gestione delle aziende di diversi tipi (Agricola, Trasportatore, Trasformatore, Rivenditore, Certificatore)
-- **Token CO2**: Sistema di token per la compensazione delle emissioni di carbonio
+- **Registro Aziende**: Registrazione e gestione delle aziende di diversi tipi (Agricola, Trasportatore, Trasformatore, Rivenditore, Certificatore)
+- **Token CO2**: Sistema di token per la gestione delle emissioni di carbonio, utilizzato sia per le operazioni che per le azioni compensative
 - **Scambio Token**: Meccanismo per lo scambio di token tra aziende per compensare l'impatto ambientale
-- **Certificazioni**: Verifica e registrazione delle certificazioni di sostenibilità
-- Scambio di token tra aziende
+- **Richieste di prodotti**: Meccanismo per la richiesta e approvazione di prodotti tra aziende
+- **Gestione dei lotti**: Meccanismo per la gestione dei lotti di prodotti
 
-I contratti vengono compilati e deployati automaticamente all'avvio dell'applicazione, creando un ambiente blockchain completo per testare e utilizzare tutte le funzionalità del sistema.
 
----
+Il contratto viene compilato e deployato automaticamente all'avvio dell'applicazione, creando un ambiente blockchain completo per testare e utilizzare tutte le funzionalità del sistema.
 
+Viene utilizzato MetaMask per interagire con la blockchain; infatti per confermare tutti i tipi di operazione che riguardano i token e le richieste di prodotti viene sfruttato MetaMask per firmare in modo sicuro le transazioni. Per i test e le dimostrazioni del progetto è stato utilizzato un account di prova.
