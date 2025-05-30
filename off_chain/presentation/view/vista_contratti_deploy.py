@@ -40,10 +40,10 @@ class OperazioniCompanyView(QWidget):
                 self.table.setItem(i, 3, QTableWidgetItem(str(m[3])))
 
 
-            ids, creatori = controller.getComposizione()
-
-            for i in range(len(ids)):
-                print(f"Lotto ID: {ids[i]}, Creatore: {creatori[i]}")
+            
+            print(str(controller.getComposizione(4)))
+            print(str(controller.getComposizione(3)))
+            print(str(controller.getComposizione(2)))
                 
 
         except Exception as e:

@@ -318,14 +318,17 @@ class BlockchainController:
             
 
             db = Database()
-            query = "SELECT id_lotto_input,quantità FROM ComposizioneLotto WHERE id_lotto_output = ? "
+            query = "SELECT id_lotto_input,quantità_utilizzata FROM ComposizioneLotto WHERE id_lotto_output = ? "
             params = (batch_id,)
             result = db.fetch_results(query=query, params=params)
 
 
 
-            id_lotti = [row[0] for row in result] if result else [2001,2002]
-            quantita_lotti = [row[1] for row in result] if result else [20,10]
+            id_lotti = [row[0] for row in result] if result else []
+            quantita_lotti = [row[1] for row in result] if result else []
+
+
+            logger.info(f"I LOTTI DI INPUT SONO: {id_lotti} CON QUANTITA {quantita_lotti} \n \n\n\n")
 
             query_op = "SELECT Id_prodotto, Consumo_CO2, quantita FROM Operazione WHERE Id_operazione = ? "
             params = (id_operazione,)
@@ -388,18 +391,41 @@ class BlockchainController:
                 logger.warning(f"Impossibile convertire batch_id a intero: {batch_id}, impostando a 1")
                 batch_id_int = 1
             
-            logger.info(f"Invio operazione: tipo={operation_type_int}, lotto={batch_id_int}, desc={description}")
+            logger.info(f" lotto={batch_id_int} composto da {id_lotti}, e quantita {quantita_lotti}")
 
             tx = self.contract.functions.registerOperation(
                 id_operazione,
                 operation_type_int,  # Usa il valore convertito a intero
-                description,
                 batch_id_int,
                 quantita,
-                soglia_op,
-                co2Consumed,
                 id_lotti,
                 quantita_lotti  # Usa il valore convertito a intero
+            ).build_transaction({
+                'from': account,
+                'nonce': nonce,
+                'gasPrice': gas_price,
+                'gas': 650000,
+            })
+            account = Web3.to_checksum_address(account_address)
+            nonce = w3.eth.get_transaction_count(account)
+
+            self.contract.functions.createComposizioneLotto(
+                batch_id_int,
+                id_lotti,
+                quantita_lotti
+            ).build_transaction({
+                'from': account,
+                'nonce': nonce,
+                'gasPrice': gas_price,
+                'gas': 650000,
+            })
+
+            account = Web3.to_checksum_address(account_address)
+            nonce = w3.eth.get_transaction_count(account)
+
+            self.contract.functions.assignTokensByConsumption(
+                soglia_op,
+                co2Consumed
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
@@ -483,10 +509,10 @@ class BlockchainController:
             logger.error(f"Errore nel recupero delle operazioni per : {e}")
             raise Exception(f"Errore durante il recupero delle operazioni: {str(e)}")
         
-    def getComposizione(self):
+    def getComposizione(self,id):
         try:
-            res = self.contract.functions.getCatenaConCreatori(4).call()
-            logger.info(f"Operazioni recuperate per l'azienda : {res}")
+            res = self.contract.functions.getCatenaConCreatori(id).call()
+            logger.info(f"composizione : {res}")
             return res
         except Exception as e:
             logger.error(f"Errore nel recupero delle operazioni per : {e}")
@@ -495,7 +521,7 @@ class BlockchainController:
         
     def get_all_comp(self):
         try:
-            res = self.contract.functions.getAllLotti().call()
+            res = self.contract.functions.getAllComposizioni().call()
             logger.info(f"Operazioni recuperate per l'azienda : {res}")
             return res
         except Exception as e:

@@ -310,6 +310,31 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id_lotto_output",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id_lotto_input",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "quantita",
+        "type": "uint256"
+      }
+    ],
+    "name": "ComposizioneLottoCreata",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": false,
         "internalType": "uint256",
         "name": "operationId",
@@ -370,18 +395,6 @@
         "internalType": "enum SustainableFoodChain.OperationType",
         "name": "operationType",
         "type": "uint8"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
       },
       {
         "indexed": false,
@@ -738,6 +751,30 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "soglia_co2",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "co2Consumed",
+        "type": "uint256"
+      }
+    ],
+    "name": "assignTokensByConsumption",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -1054,6 +1091,29 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "id_lotto_output",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "id_lotti_input",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "quantita_input",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "createComposizioneLotto",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "string",
         "name": "productName",
         "type": "string"
@@ -1072,11 +1132,6 @@
         "internalType": "uint256[]",
         "name": "rawMaterialBatchIds",
         "type": "uint256[]"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
       }
     ],
     "name": "createProcessedBatch",
@@ -1563,6 +1618,30 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "id_lotto_output",
+        "type": "uint256"
+      }
+    ],
+    "name": "getComposizioneLotto",
+    "outputs": [
+      {
+        "internalType": "uint256[]",
+        "name": "id_lotti_input",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "quantita",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "getMyTokenBalance",
     "outputs": [
@@ -1601,16 +1680,6 @@
             "internalType": "enum SustainableFoodChain.OperationType",
             "name": "operationType",
             "type": "uint8"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "description",
-            "type": "string"
           },
           {
             "internalType": "uint256",
@@ -1887,16 +1956,6 @@
       },
       {
         "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
         "name": "batchId",
         "type": "uint256"
       },
@@ -1984,11 +2043,6 @@
         "type": "uint8"
       },
       {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
         "internalType": "uint256",
         "name": "batchId",
         "type": "uint256"
@@ -1996,16 +2050,6 @@
       {
         "internalType": "uint256",
         "name": "quantita",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "soglia_op",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "co2Consumed",
         "type": "uint256"
       },
       {
@@ -2197,16 +2241,6 @@
         "internalType": "address",
         "name": "toAddress",
         "type": "address"
-      },
-      {
-        "internalType": "enum SustainableFoodChain.OperationType",
-        "name": "operationType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
       }
     ],
     "name": "transferBatch",

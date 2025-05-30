@@ -196,8 +196,8 @@ class DatabaseMigrations:
                 Tipo TEXT CHECK(Tipo IN ('Agricola', 'Trasportatore', 'Trasformatore', 'Rivenditore', 'Certificatore')),
                 Nome TEXT NOT NULL,
                 Indirizzo TEXT NOT NULL,
-                Co2_emessa REAL NOT NULL DEFAULT 0,
-                Co2_compensata REAL NOT NULL DEFAULT 0,
+                Co2_emessa INTEGER NOT NULL DEFAULT 0,
+                Co2_compensata INTEGER NOT NULL DEFAULT 0,
                 Token INTEGER NOT NULL DEFAULT 100 CHECK(Token >= 0),
                 CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (Id_credenziali) REFERENCES Credenziali(Id_credenziali) ON DELETE CASCADE
@@ -231,7 +231,7 @@ class DatabaseMigrations:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 id_lotto_output INTEGER NOT NULL,
                 id_lotto_input INTEGER NOT NULL,
-                quantità_utilizzata REAL NOT NULL CHECK(quantità_utilizzata > 0),
+                quantità_utilizzata INTEGER NOT NULL CHECK(quantità_utilizzata > 0),
                 FOREIGN KEY (id_lotto_input) REFERENCES Operazione(Id_lotto)
             )
             ''',
@@ -250,7 +250,7 @@ class DatabaseMigrations:
                 Id_azione INTEGER PRIMARY KEY AUTOINCREMENT,
                 Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 Id_azienda INTEGER NOT NULL,
-                Co2_compensata REAL NOT NULL,
+                Co2_compensata INTEGER NOT NULL,
                 Nome_azione TEXT NOT NULL,
                 blockchain_registered BOOLEAN DEFAULT 0,
                 FOREIGN KEY (Id_azienda) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE
@@ -260,7 +260,7 @@ class DatabaseMigrations:
             CREATE TABLE Magazzino (
                 id_azienda TEXT NOT NULL,
                 id_lotto TEXT NOT NULL,
-                quantita REAL NOT NULL CHECK(quantita >= 0),
+                quantita INTEGER NOT NULL CHECK(quantita >= 0),
                 PRIMARY KEY (id_azienda, id_lotto),
                 FOREIGN KEY (id_azienda) REFERENCES Azienda(Id_azienda),
                 FOREIGN KEY (id_lotto) REFERENCES Operazione(Id_lotto)
@@ -273,7 +273,7 @@ class DatabaseMigrations:
                 Id_ricevente INTEGER NOT NULL,
                 Id_trasportatore INTEGER NOT NULL,
                 Id_prodotto INTEGER NOT NULL,
-                Quantita REAL NOT NULL,
+                Quantita INTEGER NOT NULL,
                 Stato_ricevente TEXT CHECK(Stato_ricevente IN ('In attesa', 'Accettata', 'Rifiutata')),
                 Stato_trasportatore TEXT CHECK(Stato_trasportatore IN ('In attesa', 'Accettata', 'Rifiutata')),
                 Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
