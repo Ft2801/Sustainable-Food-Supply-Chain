@@ -155,6 +155,7 @@ def conferma_operazione():
         if address not in esiti_operazioni:
             esiti_operazioni[address] = {}
         esiti_operazioni[address][id_operazione] = f"✅ Operazione registrata con successo. Tx hash: {tx_hash}"
+        print(f"Salvato esito per {address}/{id_operazione}: {esiti_operazioni[address][id_operazione]}")
         return jsonify({"message": esiti_operazioni[address][id_operazione]})
 
     except Exception as e:
@@ -280,13 +281,34 @@ def conferma_azione_compensativa():
 
 
 
-@app.route("/esito_operazione/<address>/<int:id_operazione>", methods=["GET"])
+@app.route("/esito_operazione/<address>/<id_operazione>", methods=["GET"])
 def esito_operazione(address, id_operazione):
-    print(f"{esiti_operazioni}")
+    # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
+    address = address.lower()
+    print(f"Verifico esito operazione per {address}/{id_operazione}, esiti disponibili: {esiti_operazioni.get(address, {})}")
+    
+    # Prova a convertire l'ID in intero
+    try:
+        id_operazione_int = int(id_operazione)
+        print(f"ID operazione convertito in intero: {id_operazione_int}")
+    except (ValueError, TypeError):
+        id_operazione_int = None
+        print(f"Impossibile convertire l'ID operazione in intero: {id_operazione}")
+    
+    # Controlla sia l'ID come stringa che come intero
     if address in esiti_operazioni:
         if id_operazione in esiti_operazioni[address]:
             esito = esiti_operazioni[address][id_operazione]
+            print(f"Trovato esito per ID stringa {id_operazione}: {esito}")
             return jsonify({"status": "completed", "esito": esito}), 200
+        elif id_operazione_int is not None and id_operazione_int in esiti_operazioni[address]:
+            esito = esiti_operazioni[address][id_operazione_int]
+            print(f"Trovato esito per ID intero {id_operazione_int}: {esito}")
+            return jsonify({"status": "completed", "esito": esito}), 200
+        else:
+            print(f"Nessun esito trovato per ID {id_operazione} o {id_operazione_int}")
+    else:
+        print(f"Nessuna operazione trovata per l'indirizzo {address}")
 
     return jsonify({"status": "pending"}), 202
 
@@ -442,6 +464,16 @@ def conferma_accettazione_token():
                 esiti_accettazioni_token[address] = {}
             
             esiti_accettazioni_token[address][id_richiesta] = f"✅ Richiesta token accettata con successo! ID: {id_richiesta} - Tx Hash: {tx_hash}"
+            print(f"Salvato esito per {address}/{id_richiesta}: {esiti_accettazioni_token[address][id_richiesta]}")
+            
+            # Aggiorna lo stato della richiesta nel database
+            try:
+                from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
+                richieste_repo = RichiesteRepositoryImpl()
+                richieste_repo.update_richiesta_token_by_id(id_richiesta, "Accettata")
+                print(f"Stato della richiesta token {id_richiesta} aggiornato a 'Accettata' nel database")
+            except Exception as e:
+                print(f"Errore nell'aggiornamento dello stato della richiesta token: {e}")
             
             return jsonify({
                 "message": "Richiesta token accettata con successo",
@@ -475,10 +507,30 @@ def esito_richiesta_token(address, destinatario):
 def esito_accettazione_token(address, id_richiesta):
     # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
     address = address.lower()
+    print(f"Verifico esito per {address}/{id_richiesta}, disponibili: {esiti_accettazioni_token.get(address, {})}")
     
-    if address in esiti_accettazioni_token and id_richiesta in esiti_accettazioni_token[address]:
-        esito = esiti_accettazioni_token[address][id_richiesta]
-        return jsonify({"status": "completed", "esito": esito}), 200
+    # Prova a convertire l'ID in intero
+    try:
+        id_richiesta_int = int(id_richiesta)
+        print(f"ID richiesta convertito in intero: {id_richiesta_int}")
+    except (ValueError, TypeError):
+        id_richiesta_int = None
+        print(f"Impossibile convertire l'ID richiesta in intero: {id_richiesta}")
+    
+    # Controlla sia l'ID come stringa che come intero
+    if address in esiti_accettazioni_token:
+        if id_richiesta in esiti_accettazioni_token[address]:
+            esito = esiti_accettazioni_token[address][id_richiesta]
+            print(f"Trovato esito per ID stringa {id_richiesta}: {esito}")
+            return jsonify({"status": "completed", "esito": esito}), 200
+        elif id_richiesta_int is not None and id_richiesta_int in esiti_accettazioni_token[address]:
+            esito = esiti_accettazioni_token[address][id_richiesta_int]
+            print(f"Trovato esito per ID intero {id_richiesta_int}: {esito}")
+            return jsonify({"status": "completed", "esito": esito}), 200
+        else:
+            print(f"Nessun esito trovato per ID {id_richiesta} o {id_richiesta_int}")
+    else:
+        print(f"Nessuna operazione trovata per l'indirizzo {address}")
 
     return jsonify({"status": "pending"}), 202
 
