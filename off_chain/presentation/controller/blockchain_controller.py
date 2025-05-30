@@ -81,8 +81,8 @@ class BlockchainController:
         except Exception as e:
             raise Exception(f"Errore nell'apertura del browser: {str(e)}")
         
-        max_wait = 60  # secondi
-        wait_interval = 3  # secondi
+        max_wait = 10  # secondi
+        wait_interval = 2  # secondi
         start_time = time.time()
 
         while time.time() - start_time < max_wait:
@@ -485,7 +485,7 @@ class BlockchainController:
         
     def getComposizione(self):
         try:
-            res = self.contract.functions.getCatenaConCreatori(5).call()
+            res = self.contract.functions.getCatenaConCreatori(4).call()
             logger.info(f"Operazioni recuperate per l'azienda : {res}")
             return res
         except Exception as e:

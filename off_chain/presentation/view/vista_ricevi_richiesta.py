@@ -2,7 +2,7 @@
 # pylint: disable= import-error
 # pylint: disable= line-too-long
 # pylint: disable= trailing-whitespace
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QStandardItemModel, QStandardItem, QIcon
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout,
                              QPushButton, QMessageBox)
