@@ -206,7 +206,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
     struct Lotto {
         uint256 id_lotto;
-        address creatore;
+        address possessore;
         uint256 quantita_totale;
         uint256 timestamp;
     }
@@ -214,13 +214,13 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
     mapping(uint256 => Lotto) public lotti;
     uint256[] public tuttiLotti;
 
-    function creaLotto(uint256 id_lotto, uint256 quantita) public returns (uint256) {
+    function creaLotto(uint256 id_lotto, uint256 quantita,address azienda_proprietaria) public returns (uint256) {
         require(quantita > 0, "Quantita deve essere maggiore di zero");
         require(lotti[id_lotto].id_lotto == 0, "ID gia usato");
 
         lotti[id_lotto] = Lotto({
             id_lotto: id_lotto,
-            creatore: msg.sender,
+            possessore: azienda_proprietaria,
             quantita_totale: quantita,
             timestamp: block.timestamp
         });
@@ -362,56 +362,73 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
 
    event DebugOperation(uint256 operationId, address sender);
 
+   struct OperazioneInput {
+        uint16 idOperazione;
+        OperationType operationType;
+        uint16 batchId;
+        uint16 quantita;
+        uint256[] idLotti;
+        uint256[] quantitaLotti;
+        uint16 sogliaCO2;
+        uint16 consumoCO2;
+    }
+
+
 
     function registerOperation(
-        uint256 id_operazione,
-        OperationType operationType,
-        uint256 batchId,
-        uint256 quantita,
-        uint256[] calldata id_lotti,
-        uint256[] calldata quantita_lotti
+        OperazioneInput calldata input, address az_proprietaria_lotto
     ) external returns (uint256) {
-        require(id_lotti.length == quantita_lotti.length, "Array length mismatch");
-        require(!usedBatchIds[batchId], "Batch ID already used");
-        require(!lista_op[id_operazione], "Operazione  registrata");
+        require(input.idLotti.length == input.quantitaLotti.length, "Array length mismatch");
+        require(!usedBatchIds[input.batchId], "Batch ID already used");
+        require(!lista_op[input.idOperazione], "Operazione  registrata");
         
-        usedBatchIds[batchId] = true;
-        lista_op[id_operazione] = true;
+        usedBatchIds[input.batchId] = true;
+        lista_op[input.idOperazione] = true;
 
 
-        operations[id_operazione] = Operation(
-            id_operazione,
+        operations[input.idOperazione] = Operation(
+            input.idOperazione,
             msg.sender,
-            operationType,
-            batchId,
-            quantita,
+            input.operationType,
+            input.batchId,
+            input.quantita,
             true
         );
     
 
-        companyOperations[msg.sender].push(id_operazione);
-        emit OperationCreated(id_operazione, msg.sender, operationType, batchId, quantita);
+        companyOperations[msg.sender].push(input.idOperazione);
+        emit OperationCreated(input.idOperazione, msg.sender, input.operationType, input.batchId, input.quantita);
 
-        creaLotto(batchId,quantita);
+        creaLotto(input.batchId,input.quantita,az_proprietaria_lotto);
+
+            createComposizioneLotto(
+                input.batchId,
+                input.idLotti,
+                input.quantitaLotti
+            );
+        assignTokensByConsumption(input.sogliaCO2,input.consumoCO2);
+        
 
 
-        return id_operazione;
+        return input.idOperazione;
     }
 
 
     function createComposizioneLotto(
-        uint256 id_lotto_output,
+        uint16 id_lotto_output,
         uint256[] calldata id_lotti_input,
         uint256[] calldata quantita_input
-    ) external {
+    ) internal {
         require(id_lotti_input.length == quantita_input.length, "Array length mismatch");
 
-        for (uint256 i = 0; i < id_lotti_input.length; i++) {
+        for (uint16 i = 0; i < id_lotti_input.length; i++) {
             uint256 idInput = id_lotti_input[i];
             uint256 quantitaRichiesta = quantita_input[i];
 
             // Verifica che il lotto esista
             require(lotti[idInput].id_lotto != 0, "Lotto input inesistente");
+
+            require(lotti[idInput].possessore == msg.sender,"Non puoi fare opeazioni su questo lotto, contatta il fornitore");
 
             // Verifica disponibilità quantità
             require(lotti[idInput].quantita_totale >= quantitaRichiesta, "Quantita insufficiente nel lotto");
@@ -467,7 +484,7 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
  
         for (uint256 j = 0; j < count; j++) {
             idsOut[j] = buffer[j];
-            creatoriOut[j] = lotti[buffer[j]].creatore;
+            creatoriOut[j] = lotti[buffer[j]].possessore;
         }
  
         return (idsOut, creatoriOut);
@@ -735,18 +752,18 @@ contract SustainableFoodChain is ReentrancyGuard, ERC20 {
      * @param co2Consumed CO2 consumata effettivamente dall'operazione
      * @return Restituisce la quantità di token assegnati (positiva) o rimossi (negativa)
      */
-    function assignTokensByConsumption( uint256 soglia_co2, uint256 co2Consumed) external returns (int256) {
+    function assignTokensByConsumption( uint16 soglia_co2, uint16 co2Consumed) internal returns (int256) {
         require(companies[msg.sender].isRegistered, "Azienda non registrata");
         
         
-        int256 tokensToAssign = int256(soglia_co2) - int256(co2Consumed); // positivo se premio, negativo se penalità
+        int16 tokensToAssign = int16(soglia_co2) - int16(co2Consumed); // positivo se premio, negativo se penalità
 
         if (tokensToAssign > 0) {
             // Premio: assegna token
-            _mint(msg.sender, uint256(tokensToAssign));
+            _mint(msg.sender, uint16(tokensToAssign));
         } else if (tokensToAssign < 0) {
             // Penalità: brucia token
-            uint256 toBurn = uint256(-tokensToAssign); // usa il valore assoluto
+            uint256 toBurn = uint16(-tokensToAssign); // usa il valore assoluto
             require(balanceOf(msg.sender) >= toBurn, "Saldo token insufficiente");
             _burn(msg.sender, toBurn);
         }

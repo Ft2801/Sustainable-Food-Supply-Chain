@@ -220,13 +220,17 @@ class OperationRepositoryImpl(ABC):
             params = (value_output_lotto, id_lotto_input, quantita)  
 
             queries.append((query,params))
-            
-       
 
             query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
             params = (id_azienda_ricevente,id_prodotto, value_output_lotto, quantita, 0,db_default_string.TIPO_OP_CESSIONE)
 
             queries.append((query,params))
+
+            query = "INSERT INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?, ?)"
+            params =(id_azienda_trasporto,value_output_lotto,quantita)
+            queries.append((query,params))
+            
+       
 
 
             #Trasporto
