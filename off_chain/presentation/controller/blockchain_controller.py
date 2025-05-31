@@ -350,18 +350,31 @@ class BlockchainController:
 
 
             operation_type_map = {
-                "Produzione": 0,
-                "Trasformazione": 1,
-                "Distribuzione": 2,
-                "Vendita": 3
+                "produzione": 0,
+                "trasformazione": 1,
+                "distribuzione": 2,
+                "vendita": 3
             }
             tipo_bc = operation_type_map.get(operation_type, 0)
+
+            query = """
+            SELECT c.Address
+            FROM Magazzino AS m
+            JOIN Azienda AS a ON m.id_azienda = a.Id_azienda
+            JOIN Credenziali AS c ON a.Id_credenziali = c.Id_credenziali
+            WHERE m.id_lotto = ?
+            """
+            params = (batch_id,)
+            account_lotto = db.fetch_results(query=query, params=params)
+
+            logger.info(f"account destinazione lotto: {account_lotto}")
 
 
 
             
             rep = OperationRepositoryImpl()
             soglia_op = rep.recupera_soglia(operation_type,id_prodotto)
+            logger.info(f"soglia_recuperata = {soglia_op}")
 
 
             
@@ -392,17 +405,31 @@ class BlockchainController:
             except (ValueError, TypeError):
                 logger.warning(f"Impossibile convertire batch_id a intero: {batch_id}, impostando a 1")
                 batch_id_int = 1
+
+            azienda_proprietaria_lotto = Web3.to_checksum_address(account_lotto[0][0])
+
+            logger.info(f"indirizzo destinaario {azienda_proprietaria_lotto}")
             
             logger.info(f"[Operazione #{id_operazione}] Preparazione transazione: lotto={batch_id_int}, tipo={operation_type_int}")
 
+            input_struct = {
+                'idOperazione': id_operazione,  # Converti esplicitamente in intero
+                'operationType': operation_type_int,
+                'batchId': batch_id_int,
+                'quantita': quantita,  # Converti esplicitamente in intero
+                'idLotti': id_lotti ,  # Converti ogni ID in intero
+                'quantitaLotti': quantita_lotti,  # Converti ogni quantità in intero
+                'sogliaCO2': soglia_op,  # Converti esplicitamente in intero
+                'consumoCO2': co2Consumed  # Converti esplicitamente in intero
+            }
+            
             # 1. Registra l'operazione
+
+
+
             tx_register = self.contract.functions.registerOperation(
-                id_operazione,
-                operation_type_int,  # Usa il valore convertito a intero
-                batch_id_int,
-                quantita,
-                id_lotti,
-                quantita_lotti  # Usa il valore convertito a intero
+                input_struct,
+                azienda_proprietaria_lotto  # Usa il valore convertito a intero
             ).build_transaction({
                 'from': account,
                 'nonce': nonce,
@@ -415,6 +442,7 @@ class BlockchainController:
             receipt_register = w3.eth.wait_for_transaction_receipt(tx_hash_register, timeout=120)
             logger.info(f"[Operazione #{id_operazione}] Transazione 1/3 (registerOperation): {tx_hash_register.hex()}, status={receipt_register.status}")
             
+            """
             # Incrementa il nonce per la prossima transazione
             nonce = w3.eth.get_transaction_count(account)
             
@@ -454,7 +482,7 @@ class BlockchainController:
             tx_hash_token = w3.eth.send_transaction(tx_token)
             receipt_token = w3.eth.wait_for_transaction_receipt(tx_hash_token, timeout=120)
             logger.info(f"[Operazione #{id_operazione}] Transazione 3/3 (assignTokensByConsumption): {tx_hash_token.hex()}, status={receipt_token.status}, CO2: soglia={soglia_op}, consumata={co2Consumed}")
-            
+            """
             # Usa l'hash della prima transazione come riferimento principale
             tx_hash = tx_hash_register
 
