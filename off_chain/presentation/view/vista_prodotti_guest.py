@@ -11,10 +11,6 @@ from presentation.controller.guest_controller import ControllerGuest
 from model.prodotto_finito_cliente import ProdottoFinito
 
 
-
-
-
-
 class ProdottiFinitiView(QWidget):
 
     def __init__(self, parent=None):

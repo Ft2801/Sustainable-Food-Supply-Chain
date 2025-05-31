@@ -27,6 +27,7 @@ class VistaStatoAzienda(QMainWindow):
         self.callback = callback
         self.controller = ControllerAutenticazione()
         azienda : CompanyModel = self.controller.get_user()
+        address = self.controller.blockchainconroller.get_address()
         
 
         # Elementi di layout
@@ -39,6 +40,9 @@ class VistaStatoAzienda(QMainWindow):
         self.tipo_label = QLabel("Tipo")
         self.tipo_input = QLineEdit(str(azienda.tipo))
 
+        self.addresslabel = QLabel("Indirizzo Blockchain")
+        self.addressinput = QLineEdit(str(address))
+
         self.co2_consumata_totale_label = QLabel("CO2 consumata totale")
         self.co2_consumata_totale_input = QLineEdit(str(azienda.co2_consumata))
 
@@ -46,7 +50,8 @@ class VistaStatoAzienda(QMainWindow):
         self.co2_risparmiata_totale_input = QLineEdit(str(azienda.co2_compensata)) 
 
         self.token_label = QLabel("Token accumulati")
-        self.token_label_input = QLineEdit(str(azienda.token)) 
+        token_balance = self.controller.blockchainconroller.get_my_token_balance()
+        self.token_label_input = QLineEdit(str(token_balance))
 
         self.cambia_password_button = QPushButton('Cambia password')
         self.cambia_password_button.clicked.connect(self.apri_cambia_password)
@@ -103,6 +108,10 @@ class VistaStatoAzienda(QMainWindow):
 
             self.co2_risparmiata_totale_input.setReadOnly(True)
             funzioni_utili.add_field_to_form(self.co2_risparmiata_totale_label, self.co2_risparmiata_totale_input,
+                                             form_layout)
+            
+            self.co2_risparmiata_totale_input.setReadOnly(True)
+            funzioni_utili.add_field_to_form(self.addresslabel, self.addressinput,
                                              form_layout)
             
             self.token_label_input.setReadOnly(True)

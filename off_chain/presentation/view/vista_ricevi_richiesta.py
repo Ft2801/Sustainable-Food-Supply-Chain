@@ -2,7 +2,7 @@
 # pylint: disable= import-error
 # pylint: disable= line-too-long
 # pylint: disable= trailing-whitespace
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QStandardItemModel, QStandardItem, QIcon
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QLabel, QListView, QHBoxLayout,
                              QPushButton, QMessageBox)
@@ -92,26 +92,37 @@ class VistaRiceviRichiesta(QMainWindow):
     def accetta_richiesta(self):
         selected_index = self.list_view.selectedIndexes()
 
-        if selected_index:
-            selected_item = selected_index[0].row()
-            richiesta = self.lista_prova[selected_item]
+        if not selected_index:
+            QMessageBox.warning(self, "Errore", "Seleziona una richiesta da accettare")
+            return
 
-            try:
+        selected_item = selected_index[0].row()
+        richiesta = self.lista_prova[selected_item]
 
-                if richiesta.stato != "In attesa":
-                    raise ValueError("Richiesta già accettata o rifiutata.")
+        try:
+            if richiesta.stato != "In attesa":
+                raise ValueError("Richiesta già accettata o rifiutata.")
 
-                self.controller.update_richiesta_token(richiesta , "Accettata")
-                QMessageBox.information(self, "Supply Chain", f"{richiesta} accettata")
-                # Aggiorna la lista dopo l'accettazione della richiesta
-                self.lista_prova = self.controller.get_richieste_ric_token()
-                self.genera_lista()
-            except ValueError as e:
-                QMessageBox.warning(self, "Errore", str(e))
-                return
-            
-        else:
-            QMessageBox.warning(self, "Nessuna selezione", "Nessun item è stato selezionato.")
+            # Prepara i parametri per la pagina di firma
+            from urllib.parse import urlencode
+            params = {
+                'messaggio': f'Accetto {richiesta.quantita} token da {richiesta.mittente}',
+                'mittente': richiesta.mittente,
+                'quantita': str(richiesta.quantita),  # Converti in stringa
+                'id_richiesta': str(richiesta.id_richiesta)  # Converti in stringa
+            }
+
+            # Apri la pagina di firma in una nuova finestra del browser
+            import webbrowser
+            url = f'http://localhost:5001/firma_accetta_token.html?{urlencode(params)}'
+            webbrowser.open(url)
+
+        except ValueError as e:
+            QMessageBox.warning(self, "Errore", str(e))
+            return
+        except Exception as e:
+            QMessageBox.warning(self, "Errore", f"Errore nell'accettazione della richiesta token: {str(e)}")
+            return
 
     def rifiuta_richiesta(self):
         selected_index = self.list_view.selectedIndexes()

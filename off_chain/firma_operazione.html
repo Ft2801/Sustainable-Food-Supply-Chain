@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firma Operazione - Supply Chain Sostenibile</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome per le icone -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #3498db;
+      --secondary-color: #2ecc71;
+      --accent-color: #f39c12;
+      --dark-color: #2c3e50;
+      --light-color: #ecf0f1;
+    }
+    body {
+      background-color: var(--light-color);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding-top: 2rem;
+    }
+    .container {
+      max-width: 800px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+    }
+    .card {
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+    }
+    .card-header {
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 10px 10px 0 0 !important;
+      padding: 1rem;
+    }
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      padding: 0.75rem 1.5rem;
+      font-weight: 600;
+      border-radius: 50px;
+      transition: all 0.3s;
+    }
+    .btn-primary:hover {
+      background-color: var(--dark-color);
+      border-color: var(--dark-color);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    .metamask-logo {
+      width: 40px;
+      margin-right: 10px;
+    }
+    .status-indicator {
+      display: none;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .chain-icon {
+      font-size: 3rem;
+      color: var(--secondary-color);
+      margin-bottom: 1rem;
+    }
+    .operation-details {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="text-center mb-4">
+      <i class="fas fa-link chain-icon"></i>
+      <h1 class="mb-3">Sustainable Food Supply Chain</h1>
+      <p class="lead">Firma dell'operazione sulla blockchain</p>
+    </div>
+    
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-center">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" alt="MetaMask" class="metamask-logo">
+        <h2 class="mb-0">Conferma Operazione</h2>
+      </div>
+      <div class="card-body">
+        <div id="operationDetails" class="operation-details">
+          <h4><i class="fas fa-info-circle me-2"></i>Dettagli Operazione</h4>
+          <div id="detailsContent"></div>
+        </div>
+        
+        <p class="card-text">Per procedere con la firma dell'operazione, è necessario utilizzare il tuo wallet MetaMask. Questo processo è sicuro e conferma la tua identità sulla blockchain.</p>
+        
+        <button id="signButton" class="btn btn-primary btn-lg" onclick="firma()">
+          <i class="fas fa-signature me-2"></i>Firma Operazione
+        </button>
+        
+        <div id="loadingStatus" class="status-indicator bg-info text-white">
+          <i class="fas fa-spinner fa-spin me-2"></i> Connessione a MetaMask in corso...
+        </div>
+        
+        <div id="successStatus" class="status-indicator bg-success text-white">
+          <i class="fas fa-check-circle me-2"></i> Operazione firmata con successo!
+        </div>
+        
+        <div id="errorStatus" class="status-indicator bg-danger text-white">
+          <i class="fas fa-exclamation-triangle me-2"></i> <span id="errorMessage">Errore durante la firma.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    async function firma() {
+      // Mostra il dettaglio dell'operazione
+      const detailsContent = document.getElementById('detailsContent');
+      const loadingStatus = document.getElementById('loadingStatus');
+      const successStatus = document.getElementById('successStatus');
+      const errorStatus = document.getElementById('errorStatus');
+      const errorMessage = document.getElementById('errorMessage');
+      
+      // Nascondi tutti gli indicatori di stato all'inizio
+      loadingStatus.style.display = 'none';
+      successStatus.style.display = 'none';
+      errorStatus.style.display = 'none';
+      
+      if (typeof window.ethereum === 'undefined') {
+        errorStatus.style.display = 'block';
+        errorMessage.textContent = '⚠️ MetaMask non è installato.';
+        return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const messaggio = decodeURIComponent(urlParams.get("messaggio"));
+      const tipo = urlParams.get("tipo");
+      const operation_type = urlParams.get("op");
+      const batch_id = urlParams.get("lotto");
+      
+      // Mostra i dettagli dell'operazione
+      let detailsHTML = `
+        <div class="row">
+          <div class="col-md-6"><strong>Tipo operazione:</strong></div>
+          <div class="col-md-6">${operation_type || 'Non specificato'}</div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-6"><strong>ID Lotto:</strong></div>
+          <div class="col-md-6">${batch_id || 'Non specificato'}</div>
+        </div>
+        <div class="row mt-2">
+          <div class="col-md-6"><strong>Tipo:</strong></div>
+          <div class="col-md-6">${tipo || 'Non specificato'}</div>
+        </div>
+      `;
+      detailsContent.innerHTML = detailsHTML;
+
+      try {
+        // Mostra l'indicatore di caricamento
+        loadingStatus.style.display = 'block';
+        
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+
+        const signature = await ethereum.request({
+          method: 'personal_sign',
+          params: [messaggio, address],
+        });
+
+        const res = await fetch("http://localhost:5001/conferma_operazione", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            address,
+            messaggio,
+            signature,
+            operation_type,
+            batch_id,
+            tipo,
+          })
+        });
+
+        // Nascondi l'indicatore di caricamento
+        loadingStatus.style.display = 'none';
+        
+        const json = await res.json();
+        
+        // Mostra l'indicatore di successo
+        successStatus.style.display = 'block';
+        successStatus.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${json.message}`;
+        
+        // Chiudi la finestra dopo 3 secondi
+        setTimeout(() => {
+          window.close();
+        }, 3000);
+      } catch (err) {
+        // Nascondi l'indicatore di caricamento
+        loadingStatus.style.display = 'none';
+        
+        // Mostra l'indicatore di errore
+        errorStatus.style.display = 'block';
+        errorMessage.textContent = err.message;
+        console.error(err);
+      }
+    }
+
+  </script>
+</body>
+</html>

@@ -5,12 +5,14 @@
 import datetime
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QLineEdit, QTableWidget, QTableWidgetItem,
-    QHeaderView, QPushButton
+    QHeaderView, QPushButton, QHBoxLayout, QMessageBox, QInputDialog
 )
+from PyQt5.QtGui import QColor
 from model.operation_estesa_model import OperazioneEstesaModel 
 from presentation.view.vista_composizione_prodotto import VistaCreaProdottoTrasformato
 from presentation.controller.company_controller import ControllerAzienda
 from presentation.view.vista_aggiungi_operazione import AggiungiOperazioneView
+from presentation.controller.blockchain_controller import BlockchainController
 from session import Session
 
 
@@ -22,7 +24,7 @@ class OperazioniAziendaView(QWidget):
         self.controller = ControllerAzienda()
         
 
-        self.operazioni : list[OperazioneEstesaModel]= self.controller.lista_operazioni(self.id_azienda) # Mock data
+        self.operazioni : list[OperazioneEstesaModel]= self.controller.lista_operazioni(self.id_azienda)
         self.operazioni_filtrate = self.operazioni.copy()
 
         self.init_ui()
@@ -38,8 +40,8 @@ class OperazioniAziendaView(QWidget):
         layout.addWidget(self.filtro_input)
 
         self.tabella = QTableWidget()
-        self.tabella.setColumnCount(4)
-        self.tabella.setHorizontalHeaderLabels(["Tipo", "Data", "Prodotto", "CO2"])
+        self.tabella.setColumnCount(5)  # Aggiunto una colonna per lo stato blockchain
+        self.tabella.setHorizontalHeaderLabels(["Tipo", "Data", "Prodotto", "CO2", "Su Blockchain"])
         self.tabella.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabella.setSortingEnabled(True)
 
@@ -49,9 +51,21 @@ class OperazioniAziendaView(QWidget):
         self.aggiorna_tabella()
         self.setWindowTitle("Operazioni Azienda")
 
+        # Crea un layout orizzontale per i bottoni
+        button_layout = QHBoxLayout()
+        
+        # Bottone per aggiungere operazioni
         self.bottone_aggiungi = QPushButton("Aggiungi Operazione")
         self.bottone_aggiungi.clicked.connect(self.apri_aggiungi_operazione)
-        layout.addWidget(self.bottone_aggiungi)
+        button_layout.addWidget(self.bottone_aggiungi)
+        
+        # Bottone per deployare operazioni sulla blockchain
+        self.bottone_deploy = QPushButton("Registra su Blockchain")
+        self.bottone_deploy.clicked.connect(self.deploy_operazione_blockchain)
+        button_layout.addWidget(self.bottone_deploy)
+        
+        # Aggiungi il layout dei bottoni al layout principale
+        layout.addLayout(button_layout)
 
     def filtra_operazioni(self, testo):
         try:
@@ -90,6 +104,16 @@ class OperazioniAziendaView(QWidget):
             # Colonna CO2
             co2_str = str(oper.consumo_co2) if hasattr(oper, 'consumo_co2') else ''
             self.tabella.setItem(row, 3, QTableWidgetItem(co2_str))
+            
+            # Colonna Stato Blockchain
+            blockchain_status = "Sì" if hasattr(oper, 'blockchain_registered') and oper.blockchain_registered else "No"
+            item = QTableWidgetItem(blockchain_status)
+            # Imposta il colore di sfondo in base allo stato
+            if blockchain_status == "Sì":
+                item.setBackground(QColor(200, 255, 200))  # Verde chiaro
+            else:
+                item.setBackground(QColor(255, 200, 200))  # Rosso chiaro
+            self.tabella.setItem(row, 4, item)
 
     def apri_aggiungi_operazione(self):
         if Session().current_user["role"] == "Trasformatore":
@@ -105,3 +129,68 @@ class OperazioniAziendaView(QWidget):
     def ricarica_operazioni(self):
         self.operazioni = self.controller.lista_operazioni(self.id_azienda)
         self.filtra_operazioni(self.filtro_input.text())
+        
+    def deploy_operazione_blockchain(self):
+        # Verifica se è stata selezionata un'operazione
+        selected_items = self.tabella.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Nessuna selezione", "Seleziona un'operazione dalla tabella prima di procedere.")
+            return
+        
+        # Ottieni la riga selezionata
+        selected_row = selected_items[0].row()
+        
+        # Recupera l'operazione selezionata
+        operazione = self.operazioni_filtrate[selected_row]
+        
+        # Verifica se l'operazione è già registrata sulla blockchain
+        if operazione.blockchain_registered:
+            QMessageBox.information(
+                self,
+                "Operazione già registrata",
+                f"L'operazione '{operazione.nome_operazione}' è già stata registrata sulla blockchain."
+            )
+            return
+        
+        # Chiedi conferma all'utente
+        risposta = QMessageBox.question(
+            self, 
+            "Conferma registrazione", 
+            f"Vuoi registrare l'operazione '{operazione.nome_operazione}' sulla blockchain?\n\n" 
+            f"Prodotto: {operazione.nome_prodotto}\n" 
+            f"Data: {operazione.data_operazione}\n" 
+            f"CO2: {operazione.consumo_co2}",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if risposta == QMessageBox.No:
+            return
+        
+        try:
+            # Ottieni la chiave privata dell'utente
+            # In un'applicazione reale, questo dovrebbe essere gestito in modo più sicuro
+            blockchain_controller = BlockchainController()
+            
+            esito = blockchain_controller.firma_operazione(
+                tipo=operazione.nome_operazione,
+                id_lotto=operazione.id_lotto,
+                id_operazione=operazione.id_operazione,
+
+            )
+
+            if esito:                 
+                                      
+                    # Aggiorna lo stato dell'operazione nella tabella
+                operazione.blockchain_registered = True
+                self.aggiorna_tabella()
+                # Ricarica le operazioni per mostrare lo stato aggiornato
+                self.ricarica_operazioni()
+                
+            
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Errore",
+                f"Si è verificato un errore durante la registrazione dell'operazione sulla blockchain:\n{str(e)}"
+            )
+            return

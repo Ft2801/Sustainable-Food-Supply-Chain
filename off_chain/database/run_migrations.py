@@ -54,5 +54,5 @@ def run_migrations(db_path):
         conn.close()
 
 if __name__ == "__main__":
-    db_path = Path(__file__).parent / "sfs_chain_database.db"
+    db_path = Path(__file__).parent / "database.db"
     run_migrations(db_path)

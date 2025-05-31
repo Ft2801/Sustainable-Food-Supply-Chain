@@ -27,6 +27,8 @@ class Session:
         self._current_user = user_data
         self.logged_in = True
         self.session_start_time = time.time()
+        self.tentativi = 1
+        self.timer = 0
         self.session_token = f"token_{int(self.session_start_time)}"
         return self.session_token
 
@@ -41,9 +43,8 @@ class Session:
         self.tentativi += 1
         
     def can_log(self):
-       self.add_try()
-       self.check_tentativi()
-       
+        self.add_try()
+        self.check_tentativi()
     
     def check_tentativi(self):
         if self.tentativi  < self.numero_tentativi:

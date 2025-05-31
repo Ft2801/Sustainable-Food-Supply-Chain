@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firma Richiesta Token</title>
+    <!-- Rimuoviamo ethers.js perché non è necessario -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            text-align: center;
+        }
+        .message-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Firma Richiesta Token</h1>
+        <div class="message-box">
+            <p><strong>Messaggio da firmare:</strong></p>
+            <p id="message"></p>
+            <p><strong>Dettagli:</strong></p>
+            <ul>
+                <li>Destinatario: <span id="destinatario"></span></li>
+                <li>Quantità: <span id="quantita"></span> token</li>
+            </ul>
+        </div>
+        <div class="button-container">
+            <button class="button" id="sign-button">Firma con MetaMask</button>
+        </div>
+        <div id="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Funzione per ottenere i parametri dalla URL
+        function getUrlParams() {
+            const params = {};
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            
+            for (const [key, value] of urlParams) {
+                params[key] = value;
+            }
+            
+            return params;
+        }
+
+        // Funzione per mostrare lo stato
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = type;
+            statusElement.style.display = 'block';
+        }
+
+        // Funzione principale
+        async function main() {
+            const params = getUrlParams();
+            
+            // Verifica che tutti i parametri necessari siano presenti
+            if (!params.messaggio || !params.destinatario || !params.quantita) {
+                showStatus('Parametri mancanti nella URL', 'error');
+                return;
+            }
+            
+            // Popola i campi con i parametri dalla URL
+            document.getElementById('message').textContent = params.messaggio;
+            document.getElementById('destinatario').textContent = params.destinatario;
+            document.getElementById('quantita').textContent = params.quantita;
+            
+            // Gestisci il click sul pulsante di firma
+            document.getElementById('sign-button').addEventListener('click', async () => {
+                try {
+                    // Verifica se MetaMask è installato
+                    if (typeof window.ethereum === 'undefined') {
+                        showStatus('MetaMask non è installato. Per favore installa MetaMask per continuare.', 'error');
+                        return;
+                    }
+                    
+                    // Assicuriamoci che l'oggetto ethereum sia completamente caricato
+                    if (!window.ethereum.isMetaMask) {
+                        showStatus('Attendere il caricamento completo di MetaMask...', 'info');
+                        // Attendiamo un po' per dare tempo a MetaMask di inizializzarsi
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                    showStatus('Connessione a MetaMask...', 'info');
+                    
+                    // Richiedi l'accesso agli account
+                    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                    const account = accounts[0];
+                    
+                    showStatus('Account connesso: ' + account, 'info');
+                    
+                    // Prepara il messaggio da firmare
+                    const message = params.messaggio;
+                    
+                    // Firma il messaggio con MetaMask
+                    showStatus('Firma il messaggio con MetaMask...', 'info');
+                    const signature = await ethereum.request({
+                        method: 'personal_sign',
+                        params: [message, account]
+                    });
+                    
+                    showStatus('Messaggio firmato con successo!', 'success');
+                    
+                    // Invia la firma al server
+                    const response = await fetch('/conferma_richiesta_token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            address: account,
+                            messaggio: message,
+                            signature: signature,
+                            destinatario: params.destinatario,
+                            quantita: params.quantita
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        showStatus('Richiesta token inviata con successo!', 'success');
+                        // Chiudi automaticamente la finestra dopo 3 secondi
+                        setTimeout(() => {
+                            window.close();
+                        }, 3000);
+                    } else {
+                        showStatus('Errore: ' + result.message, 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Errore:', error);
+                    showStatus('Errore: ' + error.message, 'error');
+                }
+            });
+        }
+        
+        // Esegui la funzione principale quando la pagina è caricata
+        window.addEventListener('DOMContentLoaded', main);
+    </script>
+</body>
+</html>

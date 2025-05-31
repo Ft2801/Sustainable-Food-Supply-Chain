@@ -34,34 +34,21 @@ class CredentialRepositoryImpl(ABC):
     def get_user(self, user: str) -> Union[UserModel, None]:
         try:
             query,value = ( 
-                self.query_builder.select("*").table("Credenziali").where("Username", "=",user).get_query())    
-            return UserModel(*self.db.fetch_results(query,value)[0])
+                self.query_builder.select("Id_credenziali","Username","Password" )
+                .table("Credenziali").where("Username", "=",user).get_query())    
+            results = self.db.fetch_results(query,value)
+            
+            # Verifica se ci sono risultati prima di tentare di accedere all'elemento [0]
+            if results and len(results) > 0:
+                return UserModel(*results[0])
+            else:
+                logger.warning(f"Nessun utente trovato con username: {user}")
+                return None
         except Exception as e:
             logger.warning(f"Errore durante il recupero delle credenziali nel rep: {str(e)}")
             return None
 
 
-    def get_lista_credenziali(self) -> list[UserModel]:
-        try:
-
-            query,value = ( 
-                self.query_builder.select("*").table("credenziali").get_query())
-
-
-            result = [UserModel(*x) for x in self.db.fetch_results(query,value) ]
-            
-            
-        except Exception as e:
-            logger.warning(f"Errore durante il recupero delle credenziali nel rep: {str(e)}")
-            return []
-        
-    
-        if not result:
-            logger.warning("The credenziali table is empty or the query returned no results.")
-        else:
-            logger.info(f"Credenziali obtained ")
-
-        return result
 
     def get_azienda_by_id(self, id: int) -> CompanyModel:
         query, value = (
@@ -77,17 +64,17 @@ class CredentialRepositoryImpl(ABC):
             return False
 
 
-    def register(self, username: str, password: str, tipo: aziende_enum, indirizzo: str):
+    def register(self, username: str, password: str, tipo: aziende_enum, indirizzo: str, blockchain_address: str) -> int:
         try:
-            UserModel.validate_password(password)
-            hash_password = UserModel.hash_password(password= password)
+            
             self.db.cur.execute("BEGIN TRANSACTION;")  # Inizio transazione manuale
             # Prima INSERT: credenziali
             query_credenziali = """
-                INSERT INTO Credenziali (Username, Password)
-                VALUES (?, ?);
+                INSERT INTO Credenziali (Username, Password, address)
+                VALUES (?, ?, ?);
             """
-            self.db.cur.execute(query_credenziali, (username, hash_password))
+
+            self.db.cur.execute(query_credenziali, (username, password,blockchain_address))
             logger.info(f"Inserisco le credenziali del nuovo utente {username}")
             id_credenziali = self.db.cur.lastrowid  # Ottieni l'ID appena creato
             
@@ -172,3 +159,17 @@ class CredentialRepositoryImpl(ABC):
                 raise e
         except Exception as e:
             raise Exception(f"Errore nel cambio della password {e}")
+        
+
+    def get_address_by_id(self, id: int) -> str:
+        try:
+            query = "SELECT address FROM Credenziali WHERE Id_credenziali = ?"
+            value = (id,)
+            result = self.db.fetch_results(query, value)
+            if result:
+                return result[0][0]
+            else:
+                raise Exception("Nessun indirizzo trovato per l'ID fornito.")
+        except Exception as e:
+            logger.error(f"Errore durante il recupero dell'indirizzo: {str(e)}")
+            raise e

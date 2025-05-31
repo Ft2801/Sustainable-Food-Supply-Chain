@@ -11,18 +11,21 @@ from persistence.repository_impl.credential_repository_impl import CredentialRep
 from session import Session
 from model.company_model import CompanyModel
 from model.credential_model import UserModel
+from presentation.controller.blockchain_controller import BlockchainController
 
 class ControllerAutenticazione:
 
     def __init__(self):
         self.credential = CredentialRepositoryImpl()
+        self.blockchainconroller = BlockchainController()
         logger.info("BackEnd: Successful initialization of 'class instances' for repository implements")
         self.sessione = Session()
 
-    def registrazione(self, username, password, tipo, indirizzo):
+    def registrazione(self, username, password, tipo, indirizzo, blockchain_address : str):
         """Tenta di aggiungere un utente, gestendo eventuali errori."""
         try:
-            self.credential.register(username, password, tipo, indirizzo)
+
+            self.credential.register(username, password, tipo, indirizzo,blockchain_address)
             return True, "Utente registrato con successo!", None # Aggiunto None per coerenza
         except PasswordTooShortError as e:
             return False, str(e), None
@@ -77,7 +80,7 @@ class ControllerAutenticazione:
             return self.credential.get_azienda_by_id(Session().current_user["id_azienda"])
         except Exception as e: # W0719: Cattura eccezione generica
             logger.error(f"Errore nel'ottenimento del utente {e}")
-            raise Exception(f"Errore nel recupero utente: {str(e)}") from e # W0707
+            raise Exception(f"Errore nel recupero utente nella funzione getuser: {str(e)}") from e # W0707
 
     def verifica_password(self, old_password: str) -> bool:
         try:
@@ -94,4 +97,63 @@ class ControllerAutenticazione:
         except Exception as e: # W0719: Cattura eccezione generica
             # W0707: Aggiunto 'from e'
             raise Exception(f"Errore durante il cambio password: {str(e)}") from e
-# C0304: Aggiunta newline finale
+            
+    def get_id_by_address(self, blockchain_address: str) -> int:
+        """
+        Ottiene l'ID dell'azienda a partire dall'indirizzo blockchain.
+        
+        Args:
+            blockchain_address: L'indirizzo blockchain dell'azienda
+            
+        Returns:
+            int: L'ID dell'azienda, o None se non trovato
+        """
+        try:
+            # Normalizza l'indirizzo per garantire corrispondenza case-insensitive
+            blockchain_address = blockchain_address.lower()
+            
+            # Ottieni l'ID dell'azienda dal database
+            query = "SELECT a.Id_azienda FROM Azienda a JOIN Credenziali c ON a.Id_credenziali = c.Id_credenziali WHERE LOWER(c.address) = ?"
+            params = (blockchain_address,)
+            
+            # Esegui la query
+            result = self.credential.db.fetch_one(query, params)
+            
+            if result:
+                logger.info(f"Trovato ID azienda {result} per l'indirizzo blockchain {blockchain_address}")
+                return result
+            else:
+                logger.warning(f"Nessun ID azienda trovato per l'indirizzo blockchain {blockchain_address}")
+                return None
+        except Exception as e:
+            logger.error(f"Errore durante il recupero dell'ID azienda dall'indirizzo blockchain: {str(e)}")
+            return None
+
+    def get_address_by_id(self, id_azienda: int) -> str:
+        """
+        Ottiene l'indirizzo blockchain di un'azienda a partire dal suo ID.
+        
+        Args:
+            id_azienda: L'ID dell'azienda
+            
+        Returns:
+            str: L'indirizzo blockchain dell'azienda, o None se non trovato
+        """
+        try:
+            # Ottieni l'indirizzo blockchain dal database
+            query = "SELECT c.address FROM Azienda a JOIN Credenziali c ON a.Id_credenziali = c.Id_credenziali WHERE a.Id_azienda = ?"
+            params = (id_azienda,)
+            
+            # Esegui la query
+            result = self.credential.db.fetch_one(query, params)
+            
+            if result:
+                logger.info(f"Trovato indirizzo blockchain {result} per l'ID azienda {id_azienda}")
+                return result
+            else:
+                logger.warning(f"Nessun indirizzo blockchain trovato per l'ID azienda {id_azienda}")
+                return None
+        except Exception as e:
+            logger.error(f"Errore durante il recupero dell'indirizzo blockchain dall'ID azienda: {str(e)}")
+            return None
+# C0304: Aggiunta newline finale

@@ -20,7 +20,7 @@ class RichiestaModel:
     nome_azienda_trasportatore: str
     id_prodotto: int
     nome_prodotto: str
-    quantita: float
+    quantita: int
     stato_ricevente: str
     stato_trasportatore: str
     data: datetime.datetime

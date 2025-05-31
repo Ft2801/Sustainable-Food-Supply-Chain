@@ -20,7 +20,7 @@ class Database:
         """Initialize the database connection if not already initialized."""
         if not self._connection_initialized:
             try:
-                self.conn = sqlite3.connect("sfs_chain_database.db", timeout=10)  # Connessione al database
+                self.conn = sqlite3.connect("database.db", timeout=10)  # Connessione al database
                 # Enable foreign key constraints
                 self.conn.execute("PRAGMA foreign_keys = ON")
                 self.cur = self.conn.cursor()  # Cursore
@@ -167,7 +167,8 @@ class DatabaseMigrations:
             'DROP TABLE IF EXISTS Prodotto',   # No dependencies
             'DROP TABLE IF EXISTS Soglie',     # No dependencies
             'DROP TABLE IF EXISTS Azienda',    # Depends on Credenziali
-            'DROP TABLE IF EXISTS Credenziali' # No dependencies
+            'DROP TABLE IF EXISTS Credenziali', # No dependencies
+            'DROP TABLE IF EXISTS RichiestaToken'
         ]
 
         TABLE_CREATION_QUERIES = [
@@ -175,7 +176,8 @@ class DatabaseMigrations:
             CREATE TABLE  Credenziali (
                 Id_credenziali INTEGER PRIMARY KEY AUTOINCREMENT,
                 Username TEXT UNIQUE NOT NULL,
-                Password TEXT NOT NULL                
+                Password TEXT NOT NULL,
+                Address TEXT NOT NULL              
             )
             ''',
             '''
@@ -194,8 +196,8 @@ class DatabaseMigrations:
                 Tipo TEXT CHECK(Tipo IN ('Agricola', 'Trasportatore', 'Trasformatore', 'Rivenditore', 'Certificatore')),
                 Nome TEXT NOT NULL,
                 Indirizzo TEXT NOT NULL,
-                Co2_emessa REAL NOT NULL DEFAULT 0,
-                Co2_compensata REAL NOT NULL DEFAULT 0,
+                Co2_emessa INTEGER NOT NULL DEFAULT 0,
+                Co2_compensata INTEGER NOT NULL DEFAULT 0,
                 Token INTEGER NOT NULL DEFAULT 100 CHECK(Token >= 0),
                 CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (Id_credenziali) REFERENCES Credenziali(Id_credenziali) ON DELETE CASCADE
@@ -216,9 +218,10 @@ class DatabaseMigrations:
                 Id_prodotto INTEGER NOT NULL,
                 Id_lotto INTEGER UNIQUE NOT NULL,
                 Data_operazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                Consumo_CO2 REAL NOT NULL,
-                quantita REAL NOT NULL CHECK(quantita > 0),
-                Tipo TEXT CHECK(tipo IN ('produzione', 'trasporto', 'trasformazione', 'vendita')) NOT NULL,
+                Consumo_CO2 INTEGER NOT NULL,
+                quantita INTEGER NOT NULL CHECK(quantita > 0),
+                Tipo TEXT CHECK(tipo IN ('produzione','cessione', 'trasporto', 'trasformazione', 'vendita')) NOT NULL,
+                blockchain_registered BOOLEAN DEFAULT 0,
                 FOREIGN KEY (Id_azienda) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE,
                 FOREIGN KEY (Id_prodotto) REFERENCES Prodotto(Id_prodotto) ON DELETE CASCADE
             )
@@ -228,7 +231,7 @@ class DatabaseMigrations:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 id_lotto_output INTEGER NOT NULL,
                 id_lotto_input INTEGER NOT NULL,
-                quantità_utilizzata REAL NOT NULL CHECK(quantità_utilizzata > 0),
+                quantità_utilizzata INTEGER NOT NULL CHECK(quantità_utilizzata > 0),
                 FOREIGN KEY (id_lotto_input) REFERENCES Operazione(Id_lotto)
             )
             ''',
@@ -247,8 +250,9 @@ class DatabaseMigrations:
                 Id_azione INTEGER PRIMARY KEY AUTOINCREMENT,
                 Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 Id_azienda INTEGER NOT NULL,
-                Co2_compensata REAL NOT NULL,
+                Co2_compensata INTEGER NOT NULL,
                 Nome_azione TEXT NOT NULL,
+                blockchain_registered BOOLEAN DEFAULT 0,
                 FOREIGN KEY (Id_azienda) REFERENCES Azienda(Id_azienda) ON DELETE CASCADE
             )
             ''',
@@ -256,7 +260,7 @@ class DatabaseMigrations:
             CREATE TABLE Magazzino (
                 id_azienda TEXT NOT NULL,
                 id_lotto TEXT NOT NULL,
-                quantita REAL NOT NULL CHECK(quantita >= 0),
+                quantita INTEGER NOT NULL CHECK(quantita >= 0),
                 PRIMARY KEY (id_azienda, id_lotto),
                 FOREIGN KEY (id_azienda) REFERENCES Azienda(Id_azienda),
                 FOREIGN KEY (id_lotto) REFERENCES Operazione(Id_lotto)
@@ -269,7 +273,7 @@ class DatabaseMigrations:
                 Id_ricevente INTEGER NOT NULL,
                 Id_trasportatore INTEGER NOT NULL,
                 Id_prodotto INTEGER NOT NULL,
-                Quantita REAL NOT NULL,
+                Quantita INTEGER NOT NULL,
                 Stato_ricevente TEXT CHECK(Stato_ricevente IN ('In attesa', 'Accettata', 'Rifiutata')),
                 Stato_trasportatore TEXT CHECK(Stato_trasportatore IN ('In attesa', 'Accettata', 'Rifiutata')),
                 Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -326,18 +330,18 @@ class DatabaseMigrations:
         try:
             # Seed delle credenziali
             SEED_CREDENZIALI = [
-                ("aaa", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("ttt", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("trasf", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("riv","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45"),
-                ("cert","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45")
+                ("aaa", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x70997970C51812dc3A010C7d01b50e0d17dc79C8"),
+                ("ttt", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC"),
+                ("trasf", "3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x90F79bf6EB2c4f870365E785982E1f101E93b906"),
+                ("riv","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65"),
+                ("cert","3f0409ad2ac4570392adef46536c00e46c60d702d3822788319590de4c146a45","0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc")
             ]
 
-            for username, password in SEED_CREDENZIALI:
+            for username, password , address in SEED_CREDENZIALI:
                 db.execute_query("""
-                    INSERT OR IGNORE INTO Credenziali (Username, Password)
-                    VALUES (?, ?)
-                """, (username, password))
+                    INSERT OR IGNORE INTO Credenziali (Username, Password, Address)
+                    VALUES (?, ?, ?)
+                """, (username, password, address))
 
             # Ottieni gli ID delle credenziali inserite
             credenziali = db.fetch_results("SELECT Id_credenziali, Username FROM Credenziali")
@@ -392,101 +396,9 @@ class DatabaseMigrations:
                     VALUES (?, ?)
                 """, (nome, stato))            
 
-            
 
+        
 
-            # Operazioni di produzione delle materie prime
-            operazioni = [
-    # Produzione mele
-                (1, 1, 1001, 50.0, 100.0, 'produzione'),
-                # Produzione zucchero
-                (1, 2, 1002, 25.0, 50.0, 'produzione'),
-                # Trasformazione in succo
-                (2, 1, 1010, 25.0, 50.0, 'trasporto'),
-
-                (2, 2, 1020, 25.0, 50.0, 'trasporto'),
-
-                (3, 3, 1100, 10.0, 100.0, 'trasformazione'),
-
-                (2, 3, 1011, 25.0, 50.0, 'trasporto'),
-
-                (4, 3, 2000, 1.0, 10.0, 'vendita'),
-
-                
-            ]
-
-            for op in operazioni:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO Operazione (Id_azienda, Id_prodotto, Id_lotto, Consumo_CO2, quantita, Tipo)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, op)
-
-            SEED_MAGAZZINO = [
-
-                
-                (1,1001, 100),
-                (1,1002,50),
-                (3,1010,200),
-                (3,1020,100)
-            ]
-
-            for id_az, id_lot, qt in SEED_MAGAZZINO:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO Magazzino (id_azienda, id_lotto, quantita)
-                    VALUES (?, ?,?)
-                """, (id_az, id_lot,qt))
-
-            # ComposizioneLotto: il succo di mela in bottiglia è fatto da mele e zucchero
-            composizioni = [
-                  # usa 40 zucchero
-                (1010, 1001, 50.0),
-                (1020, 1002, 50.0),
-                (1100,1010,20),
-                (1100,1020,20),
-                (1011,1100,10),
-                (2000,1011,5)
-            ]
-
-            for output_lotto, input_lotto, quantita_usata in composizioni:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO ComposizioneLotto (id_lotto_output, id_lotto_input, quantità_utilizzata)
-                    VALUES (?, ?, ?)
-                """, (output_lotto, input_lotto, quantita_usata))
-
-            certificati = [
-                (1001,"desc1",5),
-                (1100,"des2c",5),
-                (2000,"desc3",5)
-
-            ]
-
-            for id_lotto, desc, id_az in certificati:
-                db.execute_query("""
-                    INSERT OR IGNORE INTO Certificato (Id_lotto, Descrizione, Id_azienda_certificatore)
-                    VALUES (?, ?, ?)
-                """, (id_lotto, desc, id_az))
-
-            
-                
-                
-           
-
-            # Richiesta di prodotto da parte di un rivenditore (vendita)
-            db.execute_query("""
-                INSERT INTO Richiesta (
-                    Id_richiedente, Id_ricevente, Id_trasportatore, 
-                    Id_prodotto, Quantita, Stato_ricevente, Stato_trasportatore
-                )
-                VALUES ( ?, ?, ?, ?, ?, ?, ?)
-            """, (  
-                1,  # Id_richiedente (azienda che vende il succo di mela in bottiglia)
-                2,  # Id_ricevente (azienda di distribuzione)
-                3,  # Id_trasportatore (trasportatore)
-                2,  # Id prodotto "Succo di mela in bottiglia"
-                50.0,  # Quantità richiesta
-                'In attesa',  # Stato_ricevente
-                'In attesa'   # Stato_trasportatore
-            ))
 
             seed_soglie =[
                 ("produzione","1","52","b990173ff0b8d24e9d41dbaa64a39cda476c54cf50b465811c788ee36a211369"),

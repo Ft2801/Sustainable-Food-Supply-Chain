@@ -124,20 +124,20 @@ class ProductRepositoryImpl( ABC):
     def get_prodotti_ordinabili(self,tipo_prodoto : int = 0) -> list[ProductForChoiceModel]:
         
         self.query_builder \
-            .select("Azienda.Nome","Prodotto.nome","Magazzino.quantita",
-                    "Prodotto.id_prodotto","Azienda.Id_azienda",  "Operazione.Consumo_CO2") \
+            .select("Azienda.Nome","Prodotto.Nome","Magazzino.quantita",
+                    "Prodotto.Id_prodotto","Azienda.Id_azienda",  "Operazione.Consumo_CO2") \
             .table("Magazzino") \
-            .join("Operazione", "Magazzino.id_lotto", "Operazione.id_lotto") \
-            .join("Azienda", "Operazione.id_azienda", "Azienda.id_azienda") \
-            .join("Prodotto", "Operazione.id_prodotto", "Prodotto.id_prodotto") \
+            .join("Operazione", "Magazzino.id_lotto", "Operazione.Id_lotto") \
+            .join("Azienda", "Operazione.Id_azienda", "Azienda.Id_azienda") \
+            .join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto") \
             .where("Magazzino.quantita", ">", 0)
             
         if tipo_prodoto == 0:
-            self.query_builder.where("Prodotto.stato", "=", 0)\
+            self.query_builder.where("Prodotto.Stato", "=", 0)\
                              .where("Azienda.Tipo", "=", db_default_string.TIPO_AZIENDA_AGRICOLA)
         elif tipo_prodoto == 1:
-            self.query_builder.where("Prodotto.stato", "=", 1) \
-                            .where("Azienda.Tipo", "=", db_default_string.TIPO_AZIENDA_TRASPORTATORE)
+            self.query_builder.where("Prodotto.Stato", "=", 1) \
+                            .where("Azienda.Tipo", "=", db_default_string.TIPO_AZIENDA_TRASFORMATORE)
         else:
             raise ValueError("Tipo di prodotto non identificato")
 

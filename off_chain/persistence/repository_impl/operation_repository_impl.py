@@ -60,7 +60,9 @@ class OperationRepositoryImpl(ABC):
                     "Operazione.Data_operazione",
                     "Operazione.Consumo_CO2",
                     "Operazione.Tipo",
-                    "Operazione.quantita"
+                    "Operazione.quantita",
+                    "Operazione.blockchain_registered",
+                    "Operazione.Id_lotto"
                 )
                 .table("Operazione")
                 .join("Prodotto", "Operazione.Id_prodotto", "Prodotto.Id_prodotto")
@@ -79,12 +81,14 @@ class OperationRepositoryImpl(ABC):
                 try:
                     operazione = OperazioneEstesaModel(
                         id_operazione=row[0],
+                        id_lotto= row[8],  # Assuming id_lotto is the second column
                         id_prodotto=row[1],
                         nome_prodotto=row[2],
                         data_operazione=row[3],
                         consumo_co2=row[4],
                         nome_operazione=row[5],
-                        quantita_prodotto=row[6]
+                        quantita_prodotto=row[6],
+                        blockchain_registered=bool(row[7]) if len(row) > 7 else False
                     )
                     operazioni_estese.append(operazione)
                 except Exception as e:
@@ -98,7 +102,7 @@ class OperationRepositoryImpl(ABC):
 
 
 
-    def inserisci_operazione_azienda_rivenditore(self, azienda: int, prodotto: int, data: datetime, co2: float,
+    def inserisci_operazione_azienda_rivenditore(self, azienda: int, prodotto: int, data: datetime, co2: int,
                                                  evento: str, id_lotto_input: int, quantita : int):
         """
         Inserts a new operation for a retailer and updates the product status in a single transaction.
@@ -130,10 +134,11 @@ class OperationRepositoryImpl(ABC):
 
             queries.append((query, params))
 
-            token_assegnati = self.token_opeazione(co2,evento,prodotto)
-
-            value_update= (co2,token_assegnati,azienda)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # Registrazione del consumo CO2 (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2, azienda)
+            queries.append((query, params))
 
             self.db.execute_transaction(queries)
 
@@ -144,7 +149,7 @@ class OperationRepositoryImpl(ABC):
 
     """ Funzionanti"""
 
-    def inserisci_operazione_azienda_agricola(self, id_tipo_prodotto: int, descrizione : str, quantita: int, azienda: int, data: datetime, co2: float):
+    def inserisci_operazione_azienda_agricola(self, id_tipo_prodotto: int, descrizione : str, quantita: int, azienda: int, data: datetime, co2: int):
         """
         Inserts a new agricultural product and logs the operation.
         """
@@ -172,10 +177,11 @@ class OperationRepositoryImpl(ABC):
 
             queries.append((query,value))
 
-            token_assegnati = self.token_opeazione(co2,tipo_evento,id_tipo_prodotto)
-            
-            value_update= (co2,token_assegnati,azienda,)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # Registrazione del consumo CO2 (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2, azienda)
+            queries.append((query, params))
 
             self.db.execute_transaction(queries)
 
@@ -185,7 +191,7 @@ class OperationRepositoryImpl(ABC):
             raise Exception(f"Errore nell'inserimento: {e}")
 
 
-    def inserisci_operazione_trasporto(self, id_azienda_trasporto: int,id_lotto_input: int, id_prodotto: int, id_azienda_richiedente: int, id_azienda_ricevente: int, quantita: int, co2_emessa: float):
+    def inserisci_operazione_trasporto(self, id_azienda_trasporto: int,id_lotto_input: int, id_prodotto: int, id_azienda_richiedente: int, id_azienda_ricevente: int, quantita: int, co2_emessa: int):
         """
         Inserts a new transport operation and updates the product status.
         """
@@ -218,7 +224,7 @@ class OperationRepositoryImpl(ABC):
        
 
             query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
-            params = (id_azienda_trasporto,id_prodotto, value_output_lotto, quantita, 0,db_default_string.TIPO_OP_VENDITA)
+            params = (id_azienda_ricevente,id_prodotto, value_output_lotto, quantita, 0,db_default_string.TIPO_OP_CESSIONE)
 
             queries.append((query,params))
 
@@ -233,7 +239,7 @@ class OperationRepositoryImpl(ABC):
        
 
             query = "INSERT INTO Operazione (Id_azienda,Id_prodotto,Id_lotto, Quantita, Consumo_CO2, tipo) VALUES (?, ?, ?, ?, ?, ?)"
-            params = (id_azienda_ricevente,id_prodotto, lotto_vendita, quantita, co2_emessa,evento)
+            params = (id_azienda_trasporto,id_prodotto, lotto_vendita, quantita, co2_emessa,evento)
 
             queries.append((query,params))
 
@@ -252,10 +258,11 @@ class OperationRepositoryImpl(ABC):
             queries.append((query_mag, value_mag))
 
             
-            token_assegnati = self.token_opeazione(co2_emessa,evento,id_prodotto)
-
-            value_update= (co2_emessa,token_assegnati,id_azienda_trasporto)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # Registrazione del consumo CO2 (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2_emessa, id_azienda_trasporto)
+            queries.append((query, params))
 
 
 
@@ -289,37 +296,24 @@ class OperationRepositoryImpl(ABC):
             
             # 2. IMPORTANTE: Inserisci PRIMA l'operazione di trasformazione
             # Questo è necessario per soddisfare il vincolo di chiave esterna in ComposizioneLotto
-            query_operazione, value_op = (
-                self.query_builder.
-                table("Operazione")
-                .insert(id_prodotto=id_tipo_prodotto,
-                        id_azienda=id_azienda,
-                        Tipo=tipo_evento,
-                        Id_lotto=value_output_lotto,
-                        Consumo_CO2=co2_consumata,
-                        quantita=quantita_prodotta)
-                .get_query()
-            )
+            query_operazione = "INSERT INTO Operazione (Id_azienda,\
+                  Id_prodotto , Id_lotto ,Consumo_CO2 , quantita ,Tipo) VALUES (?,?,?,?,?,?)"
+            value_op = (id_azienda,id_tipo_prodotto,value_output_lotto,co2_consumata,quantita_prodotta,tipo_evento)
             
             # Aggiungi l'operazione come PRIMA query da eseguire
             queries.append((query_operazione, value_op))
             
             # 3. Aggiungi nuovo lotto al magazzino
-            query_magazzino = "INSERT OR IGNORE INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?, ?)"
+            query_magazzino = "INSERT INTO Magazzino (id_azienda, id_lotto, quantita) VALUES (?, ?, ?)"
             value = (id_azienda, value_output_lotto, quantita_prodotta)
             queries.append((query_magazzino, value))
             
             # 4. Prepara update quantità materie prime
             for _, (materia, quantita_usata) in materie_prime_usate.items():
                 if isinstance(materia, ProdottoLottoModel):
-                    query_update_materia, value = (
-                        self.query_builder.
-                        table("Magazzino")
-                        .update(quantita=("quantita - ?",[quantita_usata]))
-                        .where("id_azienda", "=", materia.id_azienda)
-                        .where("quantita", ">=", quantita_usata)
-                        .get_query()
-                    )
+                    print(f"\n\\nn\n\nn\n\n\n\n\n\n\ {quantita_usata}\n\n\n\n\n")
+                    query_update_materia ="UPDATE Magazzino SET quantita = quantita - ? WHERE id_lotto = ?"
+                    value = (quantita_usata,materia.id_lotto)
                     queries.append((query_update_materia, value))
             
             # 5. Ora crea le composizioni del lotto (dopo aver creato l'operazione)
@@ -329,10 +323,11 @@ class OperationRepositoryImpl(ABC):
                     params = (value_output_lotto, materia.id_lotto, quantita_usata)
                     queries.append((query_comp, params))
 
-            # 6. Aggiorna i token e CO2 dell'azienda
-            token = self.token_opeazione(co2_consumata, tipo_evento, id_tipo_prodotto)
-            value_update = (co2_consumata, token, id_azienda)
-            queries.append((self.QUERY_UPDATE_AZIENDA, value_update))
+            # 6. Aggiorna solo la CO2 dell'azienda (senza assegnazione token)
+            # I token verranno assegnati solo quando l'operazione sarà registrata sulla blockchain
+            query = "UPDATE Azienda SET Co2_emessa = Co2_emessa + ? WHERE Id_azienda = ?"
+            params = (co2_consumata, id_azienda)
+            queries.append((query, params))
             
             # 7. Esegui la transazione
             self.db.execute_transaction(queries)
@@ -375,12 +370,14 @@ class OperationRepositoryImpl(ABC):
         
 
     def recupera_soglia(self, tipo_operazione: str, id_prodotto: int) ->int:
+        if tipo_operazione == db_default_string.TIPO_OP_CESSIONE:
+            return 0
         result = self.db.fetch_results("""
             SELECT Operazione, Prodotto, Soglia_Massima, firma FROM Soglie WHERE Operazione = ? AND Prodotto = ?
         """, (tipo_operazione, id_prodotto))
 
         if not result:
-            raise ValueError("Soglia non trovata.")
+            raise ValueError(f"Soglia non trovata. {tipo_operazione},{id_prodotto}")
         
 
         tipo_operazione, id_prodotto, soglia_massima, firma = result[0]

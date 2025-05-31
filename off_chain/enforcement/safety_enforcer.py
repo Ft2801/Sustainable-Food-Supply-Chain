@@ -100,7 +100,7 @@ class SafetyEnforcer:
         return self.safety_violations
 
     def update_safety_rule(self,
-    rule_name: str, value: Union[tuple, float, int]) -> None:
+    rule_name: str, value: Union[tuple, int, int]) -> None:
         """Update a safety rule with new values"""
         if rule_name in self.safety_rules:
             self.safety_rules[rule_name] = value

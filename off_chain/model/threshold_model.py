@@ -7,6 +7,6 @@ class ThresholdModel:
     Represents operation thresholds for products.
     """
     Prodotto: str
-    Soglia_Massima: float
+    Soglia_Massima: int
     Tipo: str
     

@@ -22,33 +22,14 @@
             const contractPath = path.join(__dirname, "../../on_chain/artifacts/contracts/SustainableFoodChain.sol/SustainableFoodChain.json");
             const contractJson = JSON.parse(fs.readFileSync(contractPath));
             
-            // Ottieni tutti gli account disponibili
-            const accounts = await provider.listAccounts();
-            
-            // Cerca l'indirizzo dell'azienda specificata tra gli account disponibili
-            let companyAddress = "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"; // Indirizzo dell'azienda
-            let signerIndex = 0; // Default al primo account
-            
-            if (companyAddress) {
-                console.log(`Cercando indirizzo dell'azienda: ${companyAddress}`);
-                for (let i = 0; i < accounts.length; i++) {
-                    const accountAddress = isEthersV6 ? accounts[i].address : accounts[i];
-                    if (accountAddress.toLowerCase() === companyAddress.toLowerCase()) {
-                        signerIndex = i;
-                        console.log(`Trovato indirizzo dell'azienda all'indice ${signerIndex}: ${accountAddress}`);
-                        break;
-                    }
-                }
-            }
-            
-            // Ottieni il signer dell'account dell'azienda
+            // Ottieni il signer in modo compatibile con entrambe le versioni
             let signer;
             if (isEthersV6) {
-                signer = await provider.getSigner(accounts[signerIndex].address);
-                console.log(`Usando account ${signerIndex} con indirizzo ${accounts[signerIndex].address} come signer`);
+                const accounts = await provider.listAccounts();
+                signer = await provider.getSigner(accounts[0].address);
             } else {
-                signer = provider.getSigner(accounts[signerIndex]);
-                console.log(`Usando account ${signerIndex} con indirizzo ${accounts[signerIndex]} come signer`);
+                const accounts = await provider.listAccounts();
+                signer = provider.getSigner(accounts[0]);
             }
             
             // Verifica che il provider sia connesso
@@ -57,17 +38,17 @@
     
             // Crea un'istanza del contratto SustainableFoodChain
             const contract = new ethers.Contract(
-                "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",  // Indirizzo del contratto SustainableFoodChain
+                "0x5FbDB2315678afecb367f032d93F642f64180aa3",  // Indirizzo del contratto SustainableFoodChain
                 contractJson.abi,
                 signer
             );
             
-            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`);
+            console.log(`Usando contratto SustainableFoodChain all'indirizzo: 0x5FbDB2315678afecb367f032d93F642f64180aa3`);
             
             // Verifica se l'azienda è già registrata
             try {
-                const isRegistered = await contract.isCompanyAddressRegistered("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc");
-                console.log(`Verifica registrazione per l'indirizzo 0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc: ${isRegistered ? 'Registrato' : 'Non registrato'}`);
+                const isRegistered = await contract.isCompanyAddressRegistered("0x0000000000000000000000000000000000000017");
+                console.log(`Verifica registrazione per l'indirizzo 0x0000000000000000000000000000000000000017: ${isRegistered ? 'Registrato' : 'Non registrato'}`);
                 if (isRegistered) {
                     console.log("L'azienda è già registrata sulla blockchain");
                     process.exit(0);
@@ -77,13 +58,13 @@
                 // Continuiamo comunque con la registrazione
             }
             
-            console.log(`Registrazione dell'azienda c di tipo 1 in corso...`);
+            console.log(`Registrazione dell'azienda a di tipo 0 in corso...`);
             
             // Esegui la transazione di registrazione
             const tx = await contract.registerCompany(
-                "c",
-                1,  // Tipo di azienda (enum: 0=Producer, 1=Processor, 2=Distributor, 3=Retailer, 4=Other)
-                "r",
+                "a",
+                0,  // Tipo di azienda (enum: 0=Producer, 1=Processor, 2=Distributor, 3=Retailer, 4=Other)
+                "a",
                 "{}"
             );
             console.log("Transaction hash:", tx.hash);
@@ -99,7 +80,7 @@
             
             // Verifica nuovamente la registrazione dopo la transazione
             try {
-                const isRegisteredAfter = await contract.isCompanyAddressRegistered("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc");
+                const isRegisteredAfter = await contract.isCompanyAddressRegistered("0x0000000000000000000000000000000000000017");
                 console.log("Verifica finale: l'azienda è " + (isRegisteredAfter ? "correttamente registrata" : "potrebbe richiedere più tempo per essere visibile"));
             } catch (verifyError) {
                 console.warn("Impossibile verificare la registrazione, ma la transazione è stata confermata:", verifyError.message);
