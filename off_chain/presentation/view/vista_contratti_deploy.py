@@ -30,14 +30,13 @@ class OperazioniCompanyView(QWidget):
             controller = BlockchainController()
             messaggi = controller.get_all_comp()
             self.table.setRowCount(len(messaggi))
-            self.table.setColumnCount(4)
+            self.table.setColumnCount(3)
             self.table.setHorizontalHeaderLabels(["ido","idin", "qt"])
 
             for i, m in enumerate(messaggi):
                 self.table.setItem(i, 0, QTableWidgetItem(str(m[0])))  # tipo
                 self.table.setItem(i, 1, QTableWidgetItem(str(m[1])))
                 self.table.setItem(i, 2, QTableWidgetItem(str(m[2])))
-                self.table.setItem(i, 3, QTableWidgetItem(str(m[3])))
 
 
             
