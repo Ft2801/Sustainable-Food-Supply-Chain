@@ -8,6 +8,7 @@ from session import Session
 from persistence.repository_impl.credential_repository_impl import CredentialRepositoryImpl
 from persistence.repository_impl.richieste_repository_impl import RichiesteRepositoryImpl
 from persistence.repository_impl.operation_repository_impl import OperationRepositoryImpl
+from persistence.repository_impl import db_default_string
 from configuration.log_load_setting import logger
 import subprocess
 import requests
@@ -323,17 +324,23 @@ class BlockchainController:
             }
             tipo_bc = operation_type_map.get(operation_type, 0)
 
-            query = """
-            SELECT c.Address
-            FROM Magazzino AS m
-            JOIN Azienda AS a ON m.id_azienda = a.Id_azienda
-            JOIN Credenziali AS c ON a.Id_credenziali = c.Id_credenziali
-            WHERE m.id_lotto = ?
-            """
-            params = (batch_id,)
-            account_lotto = db.fetch_results(query=query, params=params)
+            if operation_type != db_default_string.TIPO_OP_VENDITA:
 
-            logger.info(f"account destinazione lotto: {account_lotto}")
+                query = """
+                SELECT c.Address
+                FROM Magazzino AS m
+                JOIN Azienda AS a ON m.id_azienda = a.Id_azienda
+                JOIN Credenziali AS c ON a.Id_credenziali = c.Id_credenziali
+                WHERE m.id_lotto = ?
+                """
+                params = (batch_id,)
+                account_lotto = db.fetch_results(query=query, params=params)
+
+                logger.info(f"account destinazione lotto: {account_lotto}")
+                
+                azienda_proprietaria_lotto = Web3.to_checksum_address(account_lotto[0][0]) 
+            else:
+                azienda_proprietaria_lotto =  Web3.to_checksum_address('0x0000000000000000000000000000000000000000')
 
 
 
@@ -372,7 +379,6 @@ class BlockchainController:
                 logger.warning(f"Impossibile convertire batch_id a intero: {batch_id}, impostando a 1")
                 batch_id_int = 1
 
-            azienda_proprietaria_lotto = Web3.to_checksum_address(account_lotto[0][0])
 
             logger.info(f"indirizzo destinaario {azienda_proprietaria_lotto}")
             
