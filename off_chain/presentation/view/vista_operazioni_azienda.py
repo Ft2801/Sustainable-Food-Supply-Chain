@@ -54,10 +54,11 @@ class OperazioniAziendaView(QWidget):
         # Crea un layout orizzontale per i bottoni
         button_layout = QHBoxLayout()
         
-        # Bottone per aggiungere operazioni
-        self.bottone_aggiungi = QPushButton("Aggiungi Operazione")
-        self.bottone_aggiungi.clicked.connect(self.apri_aggiungi_operazione)
-        button_layout.addWidget(self.bottone_aggiungi)
+        # Bottone per aggiungere operazioni - non visibile per i trasportatori
+        if self.role != "Trasportatore":
+            self.bottone_aggiungi = QPushButton("Aggiungi Operazione")
+            self.bottone_aggiungi.clicked.connect(self.apri_aggiungi_operazione)
+            button_layout.addWidget(self.bottone_aggiungi)
         
         # Bottone per deployare operazioni sulla blockchain
         self.bottone_deploy = QPushButton("Registra su Blockchain")
