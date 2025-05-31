@@ -137,46 +137,45 @@ class VisualizzaRichiesteView(QDialog):
             if richiesta.stato_trasportatore != "In attesa":
                 QMessageBox.information(self, "Info", "Questa richiesta è già stata gestita.")
                 return
-
-            # --- Nuovo: chiedi CO2 emessa ---
-            co2, succ = QInputDialog.getDouble(
-                self, "CO₂ Emessa", "Inserisci la quantità di CO₂ emessa (kg):", decimals=2
-            )
-
-            if not succ:
-                return  # L'utente ha annullato
-
-            # --- Recupera id_prodotto e quantità dalla richiesta ---
-            id_prodotto = richiesta.id_prodotto
-            quantita = richiesta.quantita
-            id_azienda_richiedente = richiesta.id_azienda_richiedente
-            id_azienda_destinataria = richiesta.id_azienda_ricevente
-            lotto_input = richiesta.id_lotto_input
-
-            try:
-                
-                self.controller.salva_operazione_trasporto(
-                    id_prodotto=id_prodotto,
-                    quantita=quantita,
-                    co2=co2,
-                    id_azienda_richiedente=id_azienda_richiedente,
-                    id_azienda_ricevente=id_azienda_destinataria,
-                    id_lotto_input=lotto_input,
+            
+            # Solo se stiamo accettando la richiesta, chiediamo la CO2 e salviamo l'operazione
+            if nuovo_stato == "Accettata":
+                # --- Chiedi CO2 emessa ---
+                co2, succ = QInputDialog.getDouble(
+                    self, "CO₂ Emessa", "Inserisci la quantità di CO₂ emessa (kg):", decimals=2
                 )
-            except Exception as err:
-                QMessageBox.critical(self, "Errore", f"Errore nel salvataggio CO₂: {str(err)}")
-                return
 
+                if not succ:
+                    return  # L'utente ha annullato
+
+                # --- Recupera id_prodotto e quantità dalla richiesta ---
+                id_prodotto = richiesta.id_prodotto
+                quantita = richiesta.quantita
+                id_azienda_richiedente = richiesta.id_azienda_richiedente
+                id_azienda_destinataria = richiesta.id_azienda_ricevente
+                lotto_input = richiesta.id_lotto_input
+
+                try:
+                    self.controller.salva_operazione_trasporto(
+                        id_prodotto=id_prodotto,
+                        quantita=quantita,
+                        co2=co2,
+                        id_azienda_richiedente=id_azienda_richiedente,
+                        id_azienda_ricevente=id_azienda_destinataria,
+                        id_lotto_input=lotto_input,
+                    )
+                except Exception as err:
+                    QMessageBox.critical(self, "Errore", f"Errore nel salvataggio CO₂: {str(err)}")
+                    return
 
         try:
             self.controller.update_richiesta(
                 id_richiesta=richiesta.id_richiesta,
                 nuovo_stato=nuovo_stato
             )
-            QMessageBox.information(self, "Successo", f"Richiesta accettata con successo.")
+            QMessageBox.information(self, "Successo", f"Richiesta {nuovo_stato.lower()} con successo.")
 
             # Ricarica dati
-            #self.richieste_ricevute = self.controller.get_richieste_ricevute(self.id_azienda)
             self.carica_ricevute()
         except Exception as err:
             QMessageBox.critical(self, "Errore", f"Errore durante la gestione: {str(err)}")
