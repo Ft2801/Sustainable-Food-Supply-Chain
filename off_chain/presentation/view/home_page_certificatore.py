@@ -12,6 +12,7 @@ from presentation.controller.certification_controller import ControllerCertifica
 from presentation.view import funzioni_utili
 from presentation.view.vista_stato_azienda import VistaStatoAzienda
 from presentation.view.vista_soglie import VistaSoglie
+from presentation.view.vista_sviluppatori import VistaSviluppatori
 
 
 class HomePageCertificatore(QMainWindow):
@@ -23,6 +24,7 @@ class HomePageCertificatore(QMainWindow):
         self.vista_soglie = None
         self.vista_azienda = None
         self.vista_certificazioni = None
+        self.vista_sviluppatori = None
 
         self.menu_bar = self.menuBar()
         self.menu_bar.setStyleSheet("background-color: rgb(240, 240, 240)")
@@ -84,6 +86,11 @@ class HomePageCertificatore(QMainWindow):
 
         funzioni_utili.insert_button_in_grid(self.button_soglie, button_layout, 5, 2)
         self.button_soglie.clicked.connect(self.show_soglie)
+        
+        # Bottone per accedere alla vista sviluppatori
+        self.button_sviluppatori = QPushButton('Sviluppatori')
+        self.button_sviluppatori.clicked.connect(self.show_sviluppatori)
+        funzioni_utili.insert_button_in_grid(self.button_sviluppatori, button_layout, 5, 4)
 
         funzioni_utili.insert_logo(self.logo, button_layout, QPixmap("presentation\\resources\\logo_centro.png"))
 
@@ -140,3 +147,8 @@ class HomePageCertificatore(QMainWindow):
     def show_azienda(self):
         self.vista_azienda = VistaStatoAzienda(self.aggiorna_profilo)
         self.vista_azienda.show()
+        
+    def show_sviluppatori(self):
+        """Mostra la vista degli sviluppatori"""
+        self.vista_sviluppatori = VistaSviluppatori()
+        self.vista_sviluppatori.show()

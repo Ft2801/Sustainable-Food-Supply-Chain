@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QGridLayo
 from presentation.view.vista_prodotti_guest import ProdottiFinitiView
 from presentation.controller.guest_controller import ControllerGuest
 from presentation.view import funzioni_utili
+from presentation.view.vista_sviluppatori import VistaSviluppatori
 
 
 class HomePageGuest(QMainWindow):
@@ -22,6 +23,7 @@ class HomePageGuest(QMainWindow):
         self.vista_prodotti = None
         self.vista_prodotti_certificati = None
         self.vista_aziende = None
+        self.vista_sviluppatori = None
 
         self.menu_bar = self.menuBar()
         self.menu_bar.setStyleSheet("background-color: rgb(240, 240, 240)")
@@ -72,8 +74,13 @@ class HomePageGuest(QMainWindow):
         button_layout = QGridLayout()
         button_layout.setSpacing(1)
 
-        funzioni_utili.insert_button_in_grid(self.button_prodotti, button_layout, 2, 2)
+        funzioni_utili.insert_button_in_grid(self.button_prodotti, button_layout, 2, 1)
         self.button_prodotti.clicked.connect(self.lista_prodotti_clicked)
+        
+        # Bottone per accedere alla vista sviluppatori
+        self.button_sviluppatori = QPushButton('Sviluppatori')
+        self.button_sviluppatori.clicked.connect(self.show_sviluppatori)
+        funzioni_utili.insert_button_in_grid(self.button_sviluppatori, button_layout, 2, 4)
 
 
         funzioni_utili.insert_logo(self.logo, button_layout, QPixmap("presentation\\resources\\logo_centro.png"))
@@ -114,3 +121,8 @@ class HomePageGuest(QMainWindow):
     def lista_prodotti_clicked(self):
         self.vista_prodotti = ProdottiFinitiView()
         self.vista_prodotti.show()
+        
+    def show_sviluppatori(self):
+        """Mostra la vista degli sviluppatori"""
+        self.vista_sviluppatori = VistaSviluppatori()
+        self.vista_sviluppatori.show()

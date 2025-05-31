@@ -25,6 +25,7 @@ from presentation.view.vista_riepilogo_operazioni import VistaRiepilogoOperazion
 from session import Session
 from presentation.view.vista_soglie_azienda import SoglieAziendaView
 from persistence.repository_impl import db_default_string
+from presentation.view.vista_sviluppatori import VistaSviluppatori
 
 
 class HomePage(QMainWindow):
@@ -46,11 +47,10 @@ class HomePage(QMainWindow):
         self.vista_azioni = None
         self.vista_operazioni = None
         self.vista_magazzino = None
-        # Aggiunta Domenico
         self.vista_riepilogo = None
         self.vista_ricevi_richieste = None
         self.vista_invia_richieste = None
-        # Fin qui
+        self.vista_sviluppatori = None
 
     def setup_menu(self):
         menu = self.menuBar()
@@ -92,7 +92,7 @@ class HomePage(QMainWindow):
 
         self.logo = QLabel()
         button_layout = QGridLayout()
-        button_layout.setSpacing(1)
+        button_layout.setSpacing(20)
 
         self.setup_buttons(button_layout)
         funzioni_utili.insert_logo(self.logo, button_layout, QPixmap("presentation/resources/logo_centro.png"))
@@ -110,7 +110,7 @@ class HomePage(QMainWindow):
 
         self.button_azioni_compensative = QPushButton('Azioni compensative')
         self.button_azioni_compensative.clicked.connect(self.show_azioni)
-        funzioni_utili.insert_button_in_grid(self.button_azioni_compensative, layout, 1, 4)
+        funzioni_utili.insert_button_in_grid(self.button_azioni_compensative, layout, 1, 3)
 
         self.button_magazzino = QPushButton('Magazzino')
         self.button_magazzino.clicked.connect(self.show_magazzino)
@@ -122,7 +122,7 @@ class HomePage(QMainWindow):
 
         self.button_stato_azienda = QPushButton('Stato azienda')
         self.button_stato_azienda.clicked.connect(self.show_stato)
-        funzioni_utili.insert_button_in_grid(self.button_stato_azienda, layout, 3, 4)
+        funzioni_utili.insert_button_in_grid(self.button_stato_azienda, layout, 3, 3)
 
         self.button_token = QPushButton('Gestione token')
         self.button_token.clicked.connect(self.show_token)
@@ -148,7 +148,12 @@ class HomePage(QMainWindow):
 
         self.button_richieste = QPushButton('Richieste')
         self.button_richieste.clicked.connect(self.show_richieste)
-        funzioni_utili.insert_button_in_grid(self.button_richieste, layout, 5, 4)
+        funzioni_utili.insert_button_in_grid(self.button_richieste, layout, 5, 3)
+        
+        # Bottone per accedere alla vista sviluppatori
+        self.button_sviluppatori = QPushButton('Sviluppatori')
+        self.button_sviluppatori.clicked.connect(self.show_sviluppatori)
+        funzioni_utili.insert_button_in_grid(self.button_sviluppatori, layout, 3, 6)
 
     def logout(self):
 
@@ -230,3 +235,9 @@ class HomePage(QMainWindow):
     def mostra(self):
         """Mostra la finestra principale"""
         self.show()
+        
+    def show_sviluppatori(self):
+        """Mostra la vista degli sviluppatori"""
+        self.vista_sviluppatori = VistaSviluppatori()
+        self.vista_sviluppatori.closed.connect(self.mostra)
+        self.vista_sviluppatori.show()
