@@ -55,7 +55,7 @@ class ProdottiFinitiView(QWidget):
         # --- Tabella ---
         self.tabella = QTableWidget()
         self.tabella.setColumnCount(3)
-        self.tabella.setHorizontalHeaderLabels(["Nome", "Numero Lotto", "CO₂ Emessa (kg)"])
+        self.tabella.setHorizontalHeaderLabels(["Nome", "Numero Lotto", "Nome Azienda"])
         self.tabella.horizontalHeader().setStretchLastSection(True)
         self.tabella.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.tabella.setEditTriggers(QTableWidget.NoEditTriggers)

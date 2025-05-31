@@ -751,30 +751,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "soglia_co2",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "co2Consumed",
-        "type": "uint256"
-      }
-    ],
-    "name": "assignTokensByConsumption",
-    "outputs": [
-      {
-        "internalType": "int256",
-        "name": "",
-        "type": "int256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "account",
         "type": "address"
@@ -1046,6 +1022,11 @@
         "internalType": "uint256",
         "name": "quantita",
         "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "azienda_proprietaria",
+        "type": "address"
       }
     ],
     "name": "creaLotto",
@@ -1085,29 +1066,6 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "id_lotto_output",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "id_lotti_input",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "quantita_input",
-        "type": "uint256[]"
-      }
-    ],
-    "name": "createComposizioneLotto",
-    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -1235,7 +1193,7 @@
           },
           {
             "internalType": "address",
-            "name": "creatore",
+            "name": "possessore",
             "type": "address"
           },
           {
@@ -1860,7 +1818,7 @@
       },
       {
         "internalType": "address",
-        "name": "creatore",
+        "name": "possessore",
         "type": "address"
       },
       {
@@ -2033,34 +1991,56 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "id_operazione",
-        "type": "uint256"
+        "components": [
+          {
+            "internalType": "uint16",
+            "name": "idOperazione",
+            "type": "uint16"
+          },
+          {
+            "internalType": "enum SustainableFoodChain.OperationType",
+            "name": "operationType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "batchId",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "quantita",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "idLotti",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint256[]",
+            "name": "quantitaLotti",
+            "type": "uint256[]"
+          },
+          {
+            "internalType": "uint16",
+            "name": "sogliaCO2",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "consumoCO2",
+            "type": "uint16"
+          }
+        ],
+        "internalType": "struct SustainableFoodChain.OperazioneInput",
+        "name": "input",
+        "type": "tuple"
       },
       {
-        "internalType": "enum SustainableFoodChain.OperationType",
-        "name": "operationType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "uint256",
-        "name": "batchId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "quantita",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "id_lotti",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "quantita_lotti",
-        "type": "uint256[]"
+        "internalType": "address",
+        "name": "az_proprietaria_lotto",
+        "type": "address"
       }
     ],
     "name": "registerOperation",
