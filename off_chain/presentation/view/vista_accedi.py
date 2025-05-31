@@ -318,8 +318,6 @@ class VistaAccedi(QMainWindow):
                     self.apri_html(
                         username=username, password=password,
                         tipo=tipo, indirizzo=indirizzo)
-                    QMessageBox.information(
-                        self, "SupplyChain", "Registrazione in corso...")
                 except Exception as e:
                     QMessageBox.warning(
                         self, "SupplyChain", f"Errore durante la registrazione: {e}")

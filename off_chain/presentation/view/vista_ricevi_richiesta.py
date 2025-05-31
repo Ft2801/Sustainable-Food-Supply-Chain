@@ -11,7 +11,7 @@ from model.richiesta_token_model import RichiestaTokenModel
 from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
-from session import Session
+from presentation.controller.blockchain_controller import BlockchainController
 
 
 class VistaRiceviRichiesta(QMainWindow):
@@ -26,7 +26,7 @@ class VistaRiceviRichiesta(QMainWindow):
 
         self.controllerAut = ControllerAutenticazione()
 
-        self.token = self.controllerAut.get_user().token
+        self.blockchain_controller = BlockchainController()
         # Elementi di layout
         self.list_view = QListView()
         self.invia_button = QPushButton("Accetta")
@@ -53,7 +53,7 @@ class VistaRiceviRichiesta(QMainWindow):
         main_layout.setSpacing(20)
         main_layout.setAlignment(Qt.AlignCenter)  # Centra verticalmente
 
-        label = QLabel(f"Token posseduti: {self.token}\n"
+        label = QLabel(f"Token posseduti: {self.blockchain_controller.get_my_token_balance()}\n"
                        f"Richieste ricevute")
 
         funzioni_utili.insert_label(label, main_layout)

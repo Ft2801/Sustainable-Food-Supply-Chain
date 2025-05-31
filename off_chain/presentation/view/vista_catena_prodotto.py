@@ -24,11 +24,6 @@ class LottoTreeView(QMainWindow):
         self.controller = ControllerGuest()
         self.lotto_id = lotto_id
 
-        # Campo CO₂ unitario
-        self.co2_unit_field = QLineEdit()
-        self.co2_unit_field.setReadOnly(True)
-        self.co2_unit_field.setPlaceholderText("Consumo unitario CO₂ (kg/unità)")
-
         # Cronologia (albero dei lotti)
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["ID Lotto", "Tipo", "Quantità Prodotta", "CO₂ Totale (kg)", "Quantità Usata"])
@@ -42,8 +37,6 @@ class LottoTreeView(QMainWindow):
 
         # Layout
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Consumo unitario CO₂:"))
-        layout.addWidget(self.co2_unit_field)
 
         splitter = QSplitter(Qt.Vertical)
         tree_container = QWidget()
@@ -70,7 +63,6 @@ class LottoTreeView(QMainWindow):
         self.setCentralWidget(container)
 
         self.carica_albero_lotti(self.lotto_id, self.tree.invisibleRootItem())
-        self.aggiorna_campo_consumo_unitario()
         self.carica_certificazioni_lotto()
 
     def carica_albero_lotti(self, id_lotto, parent_item, quantita_usata=""):

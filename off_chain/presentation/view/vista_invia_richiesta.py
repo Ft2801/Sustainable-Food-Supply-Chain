@@ -13,6 +13,7 @@ from presentation.controller.credential_controller import ControllerAutenticazio
 from presentation.controller.company_controller import ControllerAzienda
 from session import Session
 from presentation.view import funzioni_utili
+from presentation.controller.blockchain_controller import BlockchainController
 
 
 class VistaInviaRichiesta(QMainWindow):
@@ -22,6 +23,7 @@ class VistaInviaRichiesta(QMainWindow):
         super().__init__()
 
         self.controller = ControllerAzienda()
+        self.blockchain_controller = BlockchainController()
 
         self.lista_prova : list[RichiestaTokenModel]= self.controller.get_richiesta_inv_token()
         self.lista_aziende : list[CompanyModel] = self.controller.get_aziende()
@@ -54,7 +56,7 @@ class VistaInviaRichiesta(QMainWindow):
         main_layout.setSpacing(20)
         main_layout.setAlignment(Qt.AlignCenter)  # Centra verticalmente
 
-        label = QLabel(f"Token posseduti: {self.token}\n"
+        label = QLabel(f"Token posseduti: {self.blockchain_controller.get_my_token_balance()}\n"
                        f"Richieste inviate")
 
         funzioni_utili.insert_label(label, main_layout)

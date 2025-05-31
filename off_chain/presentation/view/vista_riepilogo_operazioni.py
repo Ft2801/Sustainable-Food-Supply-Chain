@@ -11,7 +11,7 @@ from model.richiesta_token_model import RichiestaTokenModel
 from presentation.controller.credential_controller import ControllerAutenticazione
 from presentation.controller.company_controller import ControllerAzienda
 from presentation.view import funzioni_utili
-
+from presentation.controller.blockchain_controller import BlockchainController
 
 class VistaRiepilogoOperazioni(QMainWindow):
     closed = pyqtSignal()
@@ -24,7 +24,7 @@ class VistaRiepilogoOperazioni(QMainWindow):
         self.lista_prova : list[RichiestaTokenModel]= self.controller.get_operazioni_token()
         self.controllerAut = ControllerAutenticazione()
 
-        self.token = self.controllerAut.get_user().token
+        self.blockchain_controller = BlockchainController()
 
         # Elementi di layout
         self.list_view = QListView()
@@ -50,7 +50,7 @@ class VistaRiepilogoOperazioni(QMainWindow):
         main_layout.setSpacing(20)
         main_layout.setAlignment(Qt.AlignCenter)  # Centra verticalmente
 
-        label = QLabel(f"Token posseduti: {str(self.token)}\n"
+        label = QLabel(f"Token posseduti: {str(self.blockchain_controller.get_my_token_balance())}\n"
                        f"Riepilogo operazioni")
 
         funzioni_utili.insert_label(label, main_layout)

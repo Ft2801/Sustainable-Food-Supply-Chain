@@ -348,11 +348,11 @@ class DatabaseMigrations:
 
             # Seed aziende di esempio collegate agli ID credenziali
             SEED_AZIENDE = [
-                ("aaa", "Azienda Agricola Verde", "Via Roma 1", "Agricola", 10.5, 2.0),
-                ("ttt", "Trasporti EcoExpress", "Via Milano 2", "Trasportatore", 30.0, 5.0),
-                ("trasf", "trasformazione BioCheck", "Via Torino 3", "Trasformatore", 5.0, 1.5),
-                ("riv", "riv BioCheck", "Via Torino 3", "Rivenditore", 5.0, 1.5),
-                ("cert", "cert BioCheck", "Via Torino 3", "Certificatore", 5.0, 1.5),
+                ("aaa", "Azienda Agricola Verde", "Via Roma 1", "Agricola", 0, 0),
+                ("ttt", "Trasporti EcoExpress", "Via Milano 2", "Trasportatore", 0, 0),
+                ("trasf", "trasformazione BioCheck", "Via Torino 3", "Trasformatore", 0, 0),
+                ("riv", "riv BioCheck", "Via Torino 3", "Rivenditore", 0, 0),
+                ("cert", "cert BioCheck", "Via Torino 3", "Certificatore", 0, 0),
             ]
 
             for username, nome, indirizzo, tipo, co2_emessa, co2_compensata in SEED_AZIENDE:

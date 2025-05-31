@@ -43,7 +43,7 @@ class VistaCertificazioniLotto(QWidget):
         self.lista_certificazioni.clear()
         certificati = self.controller.get_certificati_lotto(self.id_lotto)
         for descrizione in certificati:
-            item = QListWidgetItem(f"Azienda Certificatrice: {descrizione.Nome_azienda} | Descrizione: {descrizione.Descrizione} | Dara: {descrizione.Data} ")
+            item = QListWidgetItem(f"Azienda Certificatrice: {descrizione.nome_azienda} | Descrizione: {descrizione.descrizione} | Data: {descrizione.data} ")
             self.lista_certificazioni.addItem(item)
 
     def aggiungi_certificazione(self):
