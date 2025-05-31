@@ -131,7 +131,6 @@ class HomePage(QMainWindow):
         self.button_catena_operazioni.clicked.connect(self.show_catena_operazioni)
         funzioni_utili.insert_button_in_grid(self.button_catena_operazioni, layout, 6, 6)
 
-        # Aggiunta Domenico
         menu_token = QMenu(self)
 
         azione_invia = QAction("Richiedi token", self)
@@ -209,7 +208,6 @@ class HomePage(QMainWindow):
     def show_token(self):
         QMessageBox.information(self, 'SupplyChain', "Gestione token in lavorazione")
 
-    # Aggiunta Domenico
     def invia_richiesta(self):
         self.hide()
         self.vista_invia_richieste = VistaInviaRichiesta()
