@@ -16,11 +16,10 @@ L'applicazione utilizza MetaMask per l'interazione con la blockchain, consentend
 - **Tracciabilità Prodotti**: Monitoraggio completo del ciclo di vita dei prodotti alimentari
 - **Gestione Operazioni**: Registrazione e verifica delle operazioni nella filiera
 - **Metriche di Sostenibilità**: Monitoraggio dell'impatto ambientale
-- **Token CO2**: Sistema di tokenizzazione per la gestione delle emissioni di carbonio, utilizzato sia per le operazioni che per le azioni compensative
+- **Token CO2**: Sistema di tokenizzazione per la gestione delle emissioni di CO2, utilizzato sia per le operazioni che per le azioni compensative
 - **Scambio Token**: Piattaforma per lo scambio di token tra aziende
 - **Richieste Prodotti**: Sistema di richiesta e approvazione per lo scambio di prodotti tra aziende
-- **Azioni Compensative**: Sistema di richiesta e approvazione per le azioni compensative di CO2
-- **Certificazioni**: Sistema di richiesta e approvazione per le certificazioni di qualità
+- **Certificazioni**: Sistema per le certificazioni di qualità
 
 ### Requisiti Generali
 - Git
@@ -59,7 +58,6 @@ Il file requirements.txt contiene tutte le dipendenze Python necessarie per l'ap
 ### Configurazione Environment
 
 L'applicazione utilizza SQLite come database, quindi non è necessario configurare un server database esterno. Il database verrà creato automaticamente al primo avvio dell'applicazione.
-È consigliabile disattivare il comando relativo alle migrazioni dopo il primo avvio dell'applicazione.
 
 ### Setup dell'Ambiente Hardhat
 
@@ -75,6 +73,28 @@ npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzepp
 ```bash
 cd on_chain
 npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox ethers @openzeppelin/contracts
+```
+
+### Installazione Ethers.js
+
+```bash
+cd ..
+npm install ethers
+```
+### Setup smart contract
+
+```bash
+cd on_chain
+npx hardhat clean
+npx hardhat compile
+```
+
+### Setup database
+
+```bash
+cd off_chain
+cd database
+python db_migrations.py
 ```
 
 ## Come Avviare l'Applicazione
