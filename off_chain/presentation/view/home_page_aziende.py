@@ -122,7 +122,7 @@ class HomePage(QMainWindow):
 
         self.button_stato_azienda = QPushButton('Stato azienda')
         self.button_stato_azienda.clicked.connect(self.show_stato)
-        funzioni_utili.insert_button_in_grid(self.button_stato_azienda, layout, 3, 3)
+        funzioni_utili.insert_button_in_grid(self.button_stato_azienda, layout, 3, 6)
 
         self.button_token = QPushButton('Gestione token')
         self.button_token.clicked.connect(self.show_token)
@@ -153,7 +153,7 @@ class HomePage(QMainWindow):
         # Bottone per accedere alla vista sviluppatori
         self.button_sviluppatori = QPushButton('Sviluppatori')
         self.button_sviluppatori.clicked.connect(self.show_sviluppatori)
-        funzioni_utili.insert_button_in_grid(self.button_sviluppatori, layout, 3, 6)
+        funzioni_utili.insert_button_in_grid(self.button_sviluppatori, layout, 5, 6)
 
     def logout(self):
 
