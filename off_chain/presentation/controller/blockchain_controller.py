@@ -199,40 +199,6 @@ class BlockchainController:
             nonce = w3.eth.get_transaction_count(account)
             gas_price = w3.eth.gas_price
             
-            # Ottieni l'ID dell'azienda dall'indirizzo blockchain
-            try:
-                conn = sqlite3.connect(DATABASE_PATH)
-                cursor = conn.cursor()
-                
-                # Prima trova l'ID delle credenziali dall'indirizzo blockchain
-                cursor.execute(
-                    "SELECT Id_credenziali FROM Credenziali WHERE Address = ?",
-                    (account_address,)
-                )
-                result = cursor.fetchone()
-                
-                if not result:
-                    raise Exception(f"Nessuna credenziale trovata per l'indirizzo {account_address}")
-                    
-                id_credenziali = result[0]
-                
-                # Poi trova l'ID dell'azienda dalle credenziali
-                cursor.execute(
-                    "SELECT Id_azienda FROM Azienda WHERE Id_credenziali = ?",
-                    (id_credenziali,)
-                )
-                result = cursor.fetchone()
-                
-                if not result:
-                    raise Exception(f"Nessuna azienda trovata per le credenziali con ID {id_credenziali}")
-                    
-                company_id = result[0]
-                conn.close()
-                
-            except Exception as e:
-                logger.error(f"Errore nel recupero dell'ID azienda: {e}")
-                raise Exception(f"Errore nel recupero dell'ID azienda: {str(e)}")
-            
             # Assicurati che i tipi di dati siano corretti per il contratto
             # Converti i tipi se necessario - usa try/except per gestire casi di stringa
             try:
@@ -241,7 +207,7 @@ class BlockchainController:
                 logger.warning(f"Impossibile convertire co2_compensata a intero: {co2_compensata}, impostando a 0")
                 co2_compensata_int = 0
                 
-            logger.info(f"Invio azione: tipo={tipo_azione}, desc={description}, data={data_azione}, co2={co2_compensata_int}, company_id={company_id}")
+            logger.info(f"Invio azione: tipo={tipo_azione}, desc={description}, data={data_azione}, co2={co2_compensata_int}")
             
             # Il contratto registerCompensationAction accetta solo 3 parametri, non 4
             # L'identificazione dell'azienda avviene tramite msg.sender nel contratto
@@ -692,7 +658,7 @@ class BlockchainController:
         account = self.get_address()  # Funzione che recupera account locale
 
         # Crea un messaggio descrittivo per l'accettazione di token
-        messaggio = f"Conferma accettazione di {quantita} token richiesti dall'azienda con ID {mittente} (richiesta #{id_richiesta})"
+        messaggio = f"Conferma accettazione richiesta di {quantita} token da parte dell'azienda con ID {mittente} (richiesta #{id_richiesta})"
         messaggio_encoded = messaggio.replace(" ", "%20")
 
         # Costruisci l'URL con tutti i parametri necessari
