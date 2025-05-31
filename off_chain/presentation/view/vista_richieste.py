@@ -173,7 +173,7 @@ class VisualizzaRichiesteView(QDialog):
                 id_richiesta=richiesta.id_richiesta,
                 nuovo_stato=nuovo_stato
             )
-            QMessageBox.information(self, "Successo", f"Richiesta  con successo.")
+            QMessageBox.information(self, "Successo", f"Richiesta accettata con successo.")
 
             # Ricarica dati
             #self.richieste_ricevute = self.controller.get_richieste_ricevute(self.id_azienda)
