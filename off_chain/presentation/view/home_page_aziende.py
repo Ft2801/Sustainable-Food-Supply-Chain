@@ -17,11 +17,9 @@ from presentation.view import funzioni_utili
 from presentation.view.vista_stato_azienda import VistaStatoAzienda
 from presentation.view.vista_operazioni_azienda import OperazioniAziendaView
 from presentation.view.vista_azioni_compensative_azienda import AzioniAziendaView
-# Aggiunta Domenico
 from presentation.view.vista_invia_richiesta import VistaInviaRichiesta
 from presentation.view.vista_ricevi_richiesta import VistaRiceviRichiesta
 from presentation.view.vista_riepilogo_operazioni import VistaRiepilogoOperazioni
-# Fin qui
 from session import Session
 from presentation.view.vista_soglie_azienda import SoglieAziendaView
 from persistence.repository_impl import db_default_string
@@ -51,6 +49,7 @@ class HomePage(QMainWindow):
         self.vista_ricevi_richieste = None
         self.vista_invia_richieste = None
         self.vista_sviluppatori = None
+        self.vista_catena_operazioni = None
 
     def setup_menu(self):
         menu = self.menuBar()
@@ -128,6 +127,10 @@ class HomePage(QMainWindow):
         self.button_token.clicked.connect(self.show_token)
         funzioni_utili.insert_button_in_grid(self.button_token, layout, 5, 2)
 
+        self.button_catena_operazioni = QPushButton('Catena Operazioni')
+        self.button_catena_operazioni.clicked.connect(self.show_catena_operazioni)
+        funzioni_utili.insert_button_in_grid(self.button_catena_operazioni, layout, 6, 6)
+
         # Aggiunta Domenico
         menu_token = QMenu(self)
 
@@ -188,7 +191,7 @@ class HomePage(QMainWindow):
         self.vista_azioni.show()
 
     def show_magazzino(self):
-        self.vista_magazzino = OperazioniCompanyView()
+        self.vista_magazzino = VisualizzaMagazzinoView()
         self.vista_magazzino.show()
 
     def show_stato(self):
@@ -241,3 +244,8 @@ class HomePage(QMainWindow):
         self.vista_sviluppatori = VistaSviluppatori()
         self.vista_sviluppatori.closed.connect(self.mostra)
         self.vista_sviluppatori.show()
+        
+    def show_catena_operazioni(self):
+        """Mostra la vista della catena di operazioni sulla blockchain"""
+        self.vista_catena_operazioni = OperazioniCompanyView()
+        self.vista_catena_operazioni.show()
